@@ -461,7 +461,7 @@
   function initTableEditing() {
     const body = document.getElementById('tx-table-body');
 
-    body.addEventListener('change', (e) => {
+    body.addEventListener('change', async (e) => {
       const target = e.target;
       const txId = target.dataset.txId;
       if (!txId) return;
@@ -472,27 +472,53 @@
 
       if (target.classList.contains('category-select')) {
         if (tx.category === target.value) return;
-        // API: `fetch(`/api/transactions/${txId}`, { method: 'PATCH', body: JSON.stringify({ category: target.value }) })`
+
+        const previousCategory = tx.category;
         tx.category = target.value;
         renderStats();
         renderCategoryChart();
         renderTable();
 
+        try {
+          await updateTransactionCategory(txId, target.value);
+        } catch (error) {
+          console.error('Could not update transaction category:', error);
+          tx.category = previousCategory;
+          renderStats();
+          renderCategoryChart();
+          renderTable();
+        }
+
       } else if (target.classList.contains('merchant-input')) {
         const newName = target.value.trim();
         if (!newName || tx.merchant === newName) { target.value = tx.merchant; return; }
-        // API: `fetch(`/api/transactions/${txId}`, { method: 'PATCH', body: JSON.stringify({ merchant: newName }) })`
+        const previousMerchant = tx.merchant;
         tx.merchant = newName;
         renderTable();
+
+        try {
+          await updateTransactionMerchant(txId, newName);
+        } catch (error) {
+          console.error('Could not update transaction merchant:', error);
+          tx.merchant = previousMerchant;
+          renderTable();
+        }
 
       } else if (target.classList.contains('amount-input')) {
         const parsed = Math.round(parseFloat(target.value) * 100) / 100;
         if (isNaN(parsed) || parsed < 0) { target.value = tx.amount.toFixed(2); return; }
         if (tx.amount === parsed) return;
-        // API: `fetch(`/api/transactions/${txId}`, { method: 'PATCH', body: JSON.stringify({ amount: parsed }) })`
-        // Handy for split bills — set this to just your share of the total.
+        const previousAmount = tx.amount;
         tx.amount = parsed;
         renderAll();
+
+        try {
+          await updateTransactionAmount(txId, parsed);
+        } catch (error) {
+          console.error('Could not update transaction amount:', error);
+          tx.amount = previousAmount;
+          renderAll();
+        }
 
       } else if (target.classList.contains('exclude-checkbox')) {
         // API: `fetch(`/api/transactions/${txId}`, { method: 'PATCH', body: JSON.stringify({ excluded: target.checked }) })`
@@ -582,6 +608,7 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     await accountsReady;
+    if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
     state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
     Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
     initTheme();

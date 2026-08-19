@@ -21,13 +21,13 @@ const CATEGORIES = [
   { id: 'groceries',     label: 'Groceries',      color: 'var(--cat-groceries)' },
   { id: 'dining',        label: 'Dining Out',      color: 'var(--cat-dining)' },
   { id: 'transport',     label: 'Transport',       color: 'var(--cat-transport)' },
-  { id: 'utilities',     label: 'Utilities',       color: 'var(--cat-utilities)' },
+  { id: 'holiday',       label: 'Holiday',       color: 'var(--cat-holiday)' },
   { id: 'housing',       label: 'Housing',         color: 'var(--cat-housing)' },
   { id: 'subscriptions', label: 'Subscriptions',   color: 'var(--cat-subscriptions)' },
   { id: 'shopping',      label: 'Shopping',        color: 'var(--cat-shopping)' },
   { id: 'health',        label: 'Health',          color: 'var(--cat-health)' },
   { id: 'travel',        label: 'Travel',          color: 'var(--cat-travel)' },
-  { id: 'other',         label: 'Other / Joint',   color: 'var(--cat-other)' },
+  { id: 'other',         label: 'Unassigned',   color: 'var(--cat-other)' },
 ];
 
 // ---- Accounts, grouped by owner --------------------------------------
@@ -72,7 +72,7 @@ async function loadAccounts() {
     const groupId = row.user.toLowerCase().replace(/[^a-z0-9]+/g, '_');
     if (!groups.has(groupId)) groups.set(groupId, { id: groupId, label: row.user, accounts: [] });
     groups.get(groupId).accounts.push({
-      id: `${groupId}_${row.account_id}`,
+      id: row.account_id.replace(/^.* - /, ''),
       label: row.account_name,
     });
   });
@@ -82,8 +82,6 @@ async function loadAccounts() {
     group.accounts.map((account) => ({ ...account, groupId: group.id, groupLabel: group.label }))
   );
 }
-
-const accountsReady = loadAccounts();
 
 // Roughly how likely a transaction in each category is to come out of
 // each owner's accounts — housing/utilities skew joint, personal
@@ -210,8 +208,16 @@ for (let i = 5; i >= 0; i--) {
 }
 
 const TRANSACTIONS = {}; // { '2026-08': [ {id,date,merchant,category,amount}, ... ] }
-accountsReady.then(() => {
-  MONTHS.forEach((m) => { TRANSACTIONS[m.key] = generateMonth(m.year, m.month); });
+const accountsReady = loadAccounts().then(async () => {
+  const transactions = await loadSupabaseTransactions();
+  transactions.forEach((transaction) => {
+    const month = transaction.date.slice(0, 7);
+    if (!TRANSACTIONS[month]) TRANSACTIONS[month] = [];
+    TRANSACTIONS[month].push(transaction);
+  });
+
+  const monthKeys = Object.keys(TRANSACTIONS).sort();
+  MONTHS.splice(0, MONTHS.length, ...monthKeys.map((key) => ({ key })));
 });
 
 const MONTH_LABEL = (key) => {
