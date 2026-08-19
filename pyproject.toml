@@ -1,0 +1,14 @@
+[project]
+name = "spending-tracker"
+version = "0.1.0"
+description = "Batch ingestion and processing pipeline for bank statements"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.3",
+    "pdfplumber>=0.11",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9.0"]
+build-backend = "uv_build"
