@@ -14,6 +14,7 @@
   const state = {
     month: MONTHS[MONTHS.length - 1].key, // most recent month by default
     activeCategories: new Set(CATEGORIES.map((c) => c.id)), // all active
+    activeUsers: new Set(),
     activeAccounts: new Set(), // populated after accounts.csv loads
     search: '',
     sort: { key: 'date', dir: 'desc' },
@@ -57,110 +58,92 @@
     });
   }
 
-  // ---- Account multiselect (which accounts we're looking at) -------------
-  // Grouped by owner (You / Wife / Joint); checking a group selects all of
-  // that owner's accounts, and the group checkbox reflects a tri-state
-  // (all / none / some) based on its sub-accounts.
+  // ---- User and account filters -----------------------------------------
+  function initUserFilter() {
+    const wrap = document.getElementById('user-filter');
+    const button = document.getElementById('user-filter-button');
+    const label = document.getElementById('user-filter-label');
+    const panel = document.getElementById('user-filter-panel');
+    const users = ACCOUNT_GROUPS.map((group) => ({ id: group.id, label: group.label }));
+
+    panel.innerHTML = users.map((user) => `
+      <label class="multiselect__option">
+        <input type="checkbox" class="js-user-checkbox" value="${user.id}" checked>
+        ${user.label}
+      </label>
+    `).join('') + '<div class="multiselect__divider"></div><button type="button" class="multiselect__clear" id="user-filter-select-all">Select all</button>';
+
+    const updateLabel = () => {
+      const count = state.activeUsers.size;
+      label.textContent = count === users.length ? 'All users' : `${count} users selected`;
+    };
+    const close = () => { panel.hidden = true; wrap.classList.remove('is-open'); button.setAttribute('aria-expanded', 'false'); };
+
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      panel.hidden = !panel.hidden;
+      wrap.classList.toggle('is-open', !panel.hidden);
+      button.setAttribute('aria-expanded', String(!panel.hidden));
+    });
+    panel.addEventListener('click', (event) => event.stopPropagation());
+    panel.addEventListener('change', (event) => {
+      const checkbox = event.target;
+      if (checkbox.id === 'user-filter-select-all') return;
+      checkbox.checked ? state.activeUsers.add(checkbox.value) : state.activeUsers.delete(checkbox.value);
+      updateLabel();
+      renderAll();
+    });
+    panel.querySelector('#user-filter-select-all').addEventListener('click', () => {
+      state.activeUsers = new Set(users.map((user) => user.id));
+      panel.querySelectorAll('input').forEach((input) => { input.checked = true; });
+      updateLabel();
+      renderAll();
+    });
+    document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) close(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+    updateLabel();
+  }
+
   function initAccountFilter() {
     const wrap = document.getElementById('account-filter');
     const button = document.getElementById('account-filter-button');
     const label = document.getElementById('account-filter-label');
     const panel = document.getElementById('account-filter-panel');
 
-    panel.innerHTML = ACCOUNT_GROUPS.map((g) => `
-      <div class="multiselect__group" data-group="${g.id}">
-        <label class="multiselect__option multiselect__option--group">
-          <input type="checkbox" class="js-group-checkbox" data-group="${g.id}" checked>
-          ${g.label}
-        </label>
-        <div class="multiselect__suboptions">
-          ${g.accounts.map((a) => `
-            <label class="multiselect__option multiselect__option--sub">
-              <input type="checkbox" class="js-account-checkbox" data-group="${g.id}" value="${a.id}" checked>
-              ${a.label}
-            </label>
-          `).join('')}
-        </div>
-      </div>
-    `).join('') + `
-      <div class="multiselect__divider"></div>
-      <button type="button" class="multiselect__clear" id="account-filter-select-all">Select all</button>
-    `;
+    panel.innerHTML = ACCOUNTS.map((account) => `
+      <label class="multiselect__option">
+        <input type="checkbox" class="js-account-checkbox" value="${account.id}" checked>
+        ${account.label}
+      </label>
+    `).join('') + '<div class="multiselect__divider"></div><button type="button" class="multiselect__clear" id="account-filter-select-all">Select all</button>';
 
-    function updateLabel() {
-      const n = state.activeAccounts.size;
-      if (n === ACCOUNTS.length) label.textContent = 'All accounts';
-      else if (n === 0) label.textContent = 'No accounts';
-      else if (n === 1) label.textContent = accountById[[...state.activeAccounts][0]].label;
-      else label.textContent = `${n} accounts selected`;
-    }
+    const updateLabel = () => {
+      const count = state.activeAccounts.size;
+      label.textContent = count === ACCOUNTS.length ? 'All accounts' : `${count} accounts selected`;
+    };
+    const close = () => { panel.hidden = true; wrap.classList.remove('is-open'); button.setAttribute('aria-expanded', 'false'); };
 
-    function updateGroupCheckboxState(groupId) {
-      const groupCb = panel.querySelector(`.js-group-checkbox[data-group="${groupId}"]`);
-      const subCbs = [...panel.querySelectorAll(`.js-account-checkbox[data-group="${groupId}"]`)];
-      const checkedCount = subCbs.filter((cb) => cb.checked).length;
-      groupCb.checked = checkedCount === subCbs.length;
-      groupCb.indeterminate = checkedCount > 0 && checkedCount < subCbs.length;
-    }
-
-    function open() {
-      panel.hidden = false;
-      wrap.classList.add('is-open');
-      button.setAttribute('aria-expanded', 'true');
-    }
-    function close() {
-      panel.hidden = true;
-      wrap.classList.remove('is-open');
-      button.setAttribute('aria-expanded', 'false');
-    }
-
-    button.addEventListener('click', (e) => {
-      e.stopPropagation();
-      panel.hidden ? open() : close();
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      panel.hidden = !panel.hidden;
+      wrap.classList.toggle('is-open', !panel.hidden);
+      button.setAttribute('aria-expanded', String(!panel.hidden));
     });
-
-    panel.addEventListener('click', (e) => {
-      if (e.target.id === 'account-filter-select-all') {
-        state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
-        panel.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = true; cb.indeterminate = false; });
-        updateLabel();
-        renderAll();
-        return;
-      }
-      e.stopPropagation();
-    });
-
-    panel.addEventListener('change', (e) => {
-      const cb = e.target;
-      if (cb.type !== 'checkbox') return;
-
-      if (cb.classList.contains('js-group-checkbox')) {
-        // Checking/unchecking a user selects or clears all of their accounts.
-        const groupId = cb.dataset.group;
-        const subCbs = [...panel.querySelectorAll(`.js-account-checkbox[data-group="${groupId}"]`)];
-        subCbs.forEach((sub) => {
-          sub.checked = cb.checked;
-          if (cb.checked) state.activeAccounts.add(sub.value);
-          else state.activeAccounts.delete(sub.value);
-        });
-        cb.indeterminate = false;
-      } else if (cb.classList.contains('js-account-checkbox')) {
-        if (cb.checked) state.activeAccounts.add(cb.value);
-        else state.activeAccounts.delete(cb.value);
-        updateGroupCheckboxState(cb.dataset.group);
-      }
-
+    panel.addEventListener('click', (event) => event.stopPropagation());
+    panel.addEventListener('change', (event) => {
+      const checkbox = event.target;
+      checkbox.checked ? state.activeAccounts.add(checkbox.value) : state.activeAccounts.delete(checkbox.value);
       updateLabel();
       renderAll();
     });
-
-    document.addEventListener('click', (e) => {
-      if (!panel.hidden && !wrap.contains(e.target)) close();
+    panel.querySelector('#account-filter-select-all').addEventListener('click', () => {
+      state.activeAccounts = new Set(ACCOUNTS.map((account) => account.id));
+      panel.querySelectorAll('input').forEach((input) => { input.checked = true; });
+      updateLabel();
+      renderAll();
     });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !panel.hidden) close();
-    });
-
+    document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) close(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
     updateLabel();
   }
 
@@ -223,7 +206,10 @@
   // API: replace with `fetch(`/api/transactions?month=${month}&accounts=${[...state.activeAccounts]}`)`
   function getMonthTransactions(month) {
     const all = TRANSACTIONS[month] || [];
-    return all.filter((t) => state.activeAccounts.has(t.account));
+    return all.filter((t) => {
+      const account = accountById[t.account];
+      return state.activeAccounts.has(t.account) && account && state.activeUsers.has(account.groupId);
+    });
   }
 
   // Transactions that actually feed the stats/charts — same as above, minus
@@ -609,9 +595,11 @@
   document.addEventListener('DOMContentLoaded', async () => {
     await accountsReady;
     if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
+    state.activeUsers = new Set(ACCOUNT_GROUPS.map((group) => group.id));
     state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
     Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
     initTheme();
+    initUserFilter();
     initAccountFilter();
     initMonthSelect();
     initCategoryChips();

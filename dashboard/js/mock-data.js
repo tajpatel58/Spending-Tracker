@@ -72,8 +72,8 @@ async function loadAccounts() {
     const groupId = row.user.toLowerCase().replace(/[^a-z0-9]+/g, '_');
     if (!groups.has(groupId)) groups.set(groupId, { id: groupId, label: row.user, accounts: [] });
     groups.get(groupId).accounts.push({
-      id: row.account_id.replace(/^.* - /, ''),
-      label: row.account_name,
+      id: row.account_id,
+      label: `${row.account_name} (${row.account_id})`,
     });
   });
 
