@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Household Spending</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar__inner">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="9" height="9" rx="2" fill="var(--accent)"/>
+          <rect x="12" y="1" width="9" height="9" rx="2" fill="var(--gold)"/>
+          <rect x="1" y="12" width="9" height="9" rx="2" fill="var(--gold)"/>
+          <rect x="12" y="12" width="9" height="9" rx="2" fill="var(--accent)"/>
+        </svg>
+      </span>
+      <span class="brand__name">Ledger</span>
+    </div>
+
+    <div class="topbar__controls">
+      <div class="multiselect" id="account-filter">
+        <button type="button" class="multiselect__button" id="account-filter-button" aria-haspopup="listbox" aria-expanded="false">
+          <span id="account-filter-label">All accounts</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="multiselect__panel" id="account-filter-panel" role="listbox" aria-label="Filter by account" hidden></div>
+      </div>
+
+      <label class="field field--select" for="month-select">
+        <span class="field__label">Month</span>
+        <select id="month-select" aria-label="Select month"></select>
+      </label>
+
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+        <svg class="icon icon--sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <svg class="icon icon--moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MAIN ============ -->
+<main class="container">
+
+  <div class="page-heading">
+    <h1>Overview</h1>
+    <p id="page-subtitle" class="page-heading__subtitle">Spending summary</p>
+  </div>
+
+  <!-- Stat tiles -->
+  <section class="stats-grid" aria-label="Summary statistics">
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">Total spend</span>
+      <span class="stat-tile__value" id="stat-total">£0</span>
+      <span class="stat-tile__delta" id="stat-total-delta">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">Top category</span>
+      <span class="stat-tile__value stat-tile__value--text" id="stat-top-category">—</span>
+      <span class="stat-tile__delta" id="stat-top-category-amount">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">Transactions</span>
+      <span class="stat-tile__value" id="stat-count">0</span>
+      <span class="stat-tile__delta" id="stat-avg">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">Daily average</span>
+      <span class="stat-tile__value" id="stat-daily-avg">£0</span>
+      <span class="stat-tile__delta" id="stat-daily-note">—</span>
+    </div>
+  </section>
+
+  <!-- Charts -->
+  <section class="charts-grid" aria-label="Charts">
+    <div class="tile chart-tile">
+      <div class="tile__header">
+        <h2>Spending by category</h2>
+        <span class="tile__meta" id="category-chart-meta"></span>
+      </div>
+      <div class="chart-tile__body">
+        <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--donut">
+          <canvas id="category-chart" role="img" aria-label="Donut chart of spending by category"></canvas>
+        </div>
+        <ul class="legend" id="category-legend"></ul>
+      </div>
+    </div>
+
+    <div class="tile chart-tile">
+      <div class="tile__header">
+        <h2>Spending trend</h2>
+        <span class="tile__meta">Last 6 months</span>
+      </div>
+      <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--line">
+        <canvas id="trend-chart" role="img" aria-label="Line chart of monthly spending trend"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Transactions -->
+  <section class="tile table-tile" aria-label="Transactions">
+    <div class="table-tile__header">
+      <h2>Transactions</h2>
+      <div class="table-controls">
+        <label class="field field--search">
+          <svg class="field__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="search-input" placeholder="Search merchant…" aria-label="Search transactions">
+        </label>
+      </div>
+    </div>
+
+    <div class="chip-row" id="category-filters" role="group" aria-label="Filter by category"></div>
+
+    <div class="table-scroll">
+      <table class="tx-table">
+        <thead>
+          <tr>
+            <th data-sort="date" class="is-sorted is-sorted--desc">Date</th>
+            <th data-sort="merchant">Merchant</th>
+            <th data-sort="account">Account</th>
+            <th data-sort="category">Category</th>
+            <th data-sort="amount" class="tx-table__amount-col">Amount</th>
+            <th class="tx-table__exclude-col">Exclude</th>
+          </tr>
+        </thead>
+        <tbody id="tx-table-body"></tbody>
+      </table>
+      <p class="empty-state" id="empty-state" hidden>No transactions match your filters.</p>
+    </div>
+
+    <div class="table-tile__footer">
+      <span id="table-count-label">0 transactions</span>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ CHAT WIDGET ============ -->
+<button id="chat-fab" class="chat-fab" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="chat-panel" title="Ask about your spending">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H10l-4.5 4v-4h-1A2.5 2.5 0 0 1 2 13.5v0" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  </svg>
+</button>
+
+<div id="chat-panel" class="chat-panel" role="dialog" aria-label="Spending assistant" aria-modal="false" hidden>
+  <div class="chat-panel__header">
+    <div>
+      <h3>Spending assistant</h3>
+      <p>Ask a question about your transactions</p>
+    </div>
+    <button id="chat-close" class="icon-btn icon-btn--ghost" type="button" aria-label="Close chat">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="chat-panel__messages" id="chat-messages">
+    <div class="chat-msg chat-msg--assistant">
+      <p>Hi — I'll be able to answer questions about your spending once I'm connected to the backend. Try asking me something in the meantime.</p>
+    </div>
+  </div>
+
+  <form id="chat-form" class="chat-panel__input-row">
+    <input type="text" id="chat-input" placeholder="Ask about your spending…" autocomplete="off" aria-label="Message">
+    <button type="submit" class="icon-btn icon-btn--accent" aria-label="Send message">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 11l17.5-8-8 17.5-2.4-7.1L3 11Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/mock-data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
