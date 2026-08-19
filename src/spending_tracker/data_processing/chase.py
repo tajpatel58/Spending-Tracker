@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import re
+import uuid
 
 
 def parse_transaction_details(details: str) -> dict[str, str]:
@@ -54,14 +55,20 @@ def parse_transaction_details(details: str) -> dict[str, str]:
     }
 
 
-def clean_chase_dataframe(chase_df: pd.DataFrame, 
+def clean_transaction_dataframe(chase_df: pd.DataFrame, 
+                          account_id: str,
+                          user: str,
                           csv_path: Path = None) -> pd.DataFrame:
+
+    # add columns for account_id and user
+    chase_df["account_id"] = account_id
+    chase_df["user"] = user
+
     # Convert 'date' column to datetime
     chase_df['date'] = pd.to_datetime(chase_df['date'], errors='coerce')
 
     # Convert 'amount' and 'balance' columns to numeric, removing any non-numeric characters
-    chase_df['amount'] = pd.to_numeric(chase_df['amount'].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
-    chase_df['balance'] = pd.to_numeric(chase_df['balance'].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
+    chase_df['amount'] = -1 * pd.to_numeric(chase_df['amount'].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
 
     # Clean the 'transaction_details' column
     chase_df[["merchant", "type", "other_details"]] = (
@@ -70,4 +77,16 @@ def clean_chase_dataframe(chase_df: pd.DataFrame,
         .apply(pd.Series)
     )
 
+    # create dupe columns as might be changed by end user. 
+    chase_df["raw_merchant"] = chase_df["merchant"]
+    chase_df["raw_amount"] = chase_df["amount"]
+    chase_df["bank"] = "Chase Bank"
+    chase_df["category"] = None 
+
+    # add event_id column with unique UUIDs for each row
+    chase_df["event_id"] = chase_df.apply(lambda _: str(uuid.uuid4()), axis=1)
+
+    export_cols = ["event_id", "date", "merchant", "type", "category", "amount", "other_details", "account_id", "user", "raw_merchant", "raw_amount", "bank"]
+
+    chase_df = chase_df[export_cols]
     return chase_df
