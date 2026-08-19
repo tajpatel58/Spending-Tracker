@@ -675,15 +675,27 @@ button { font-family: inherit; }
 
 .exclude-cell { text-align: center; }
 
-.exclude-checkbox {
+.delete-checkbox {
   width: 15px;
   height: 15px;
   accent-color: var(--rose);
   cursor: pointer;
 }
 
-.tx-table tbody tr.is-excluded { opacity: 0.45; }
-.tx-table tbody tr.is-excluded:hover { opacity: 0.65; }
+.delete-button {
+  border: 0;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: var(--rose);
+  color: white;
+  cursor: pointer;
+  font: 500 11px 'IBM Plex Mono', monospace;
+}
+
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
 
 .empty-state {
   text-align: center;
@@ -699,6 +711,10 @@ button { font-family: inherit; }
   color: var(--text-faint);
   font-size: 12px;
   font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 /* ==========================================================================

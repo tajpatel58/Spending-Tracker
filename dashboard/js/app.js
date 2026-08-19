@@ -16,6 +16,7 @@
     activeCategories: new Set(CATEGORIES.map((c) => c.id)), // all active
     activeUsers: new Set(),
     activeAccounts: new Set(), // populated after accounts.csv loads
+    selectedTransactionIds: new Set(),
     search: '',
     sort: { key: 'date', dir: 'desc' },
   };
@@ -212,11 +213,9 @@
     });
   }
 
-  // Transactions that actually feed the stats/charts — same as above, minus
-  // anything the user has manually excluded (e.g. a third-party's share of
-  // a split bill).
+  // Transactions that feed the stats and charts.
   function getCalcTransactions(month) {
-    return getMonthTransactions(month).filter((t) => !t.excluded);
+    return getMonthTransactions(month);
   }
 
   function getFilteredTransactions() {
@@ -405,7 +404,7 @@
           `<option value="${c.id}" ${c.id === t.category ? 'selected' : ''}>${c.label}</option>`
         ).join('');
         return `
-          <tr class="${t.excluded ? 'is-excluded' : ''}">
+          <tr>
             <td class="tx-table__date">${formatDate(t.date)}</td>
             <td class="tx-table__merchant">
               <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
@@ -424,26 +423,32 @@
               </span>
             </td>
             <td class="exclude-cell">
-              <input type="checkbox" class="exclude-checkbox" data-tx-id="${t.id}" ${t.excluded ? 'checked' : ''} aria-label="Exclude from calculations">
+              <input type="checkbox" class="delete-checkbox" data-tx-id="${t.id}" ${state.selectedTransactionIds.has(t.id) ? 'checked' : ''} aria-label="Select transaction for removal">
             </td>
           </tr>
         `;
       }).join('');
     }
 
-    const includedTxs = txs.filter((t) => !t.excluded);
-    const excludedCount = txs.length - includedTxs.length;
-    const total = includedTxs.reduce((s, t) => s + t.amount, 0);
-    const excludedNote = excludedCount ? ` · ${excludedCount} excluded` : '';
+    const total = txs.reduce((s, t) => s + t.amount, 0);
     document.getElementById('table-count-label').textContent =
-      `${txs.length} transaction${txs.length === 1 ? '' : 's'} · ${currency(total)}${excludedNote}`;
+      `${txs.length} transaction${txs.length === 1 ? '' : 's'} · ${currency(total)}`;
+    updateDeleteButton();
+  }
+
+  function updateDeleteButton() {
+    const button = document.getElementById('delete-selected-button');
+    if (!button) return;
+    const count = state.selectedTransactionIds.size;
+    button.hidden = count === 0;
+    button.textContent = count ? `Delete selected (${count})` : 'Delete selected';
   }
 
   function escapeAttr(str) {
     return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   }
 
-  // ---- Manual editing: category, merchant name, amount, exclude ----------
+  // ---- Manual editing: category, merchant name, amount, remove -----------
   function initTableEditing() {
     const body = document.getElementById('tx-table-body');
 
@@ -451,6 +456,13 @@
       const target = e.target;
       const txId = target.dataset.txId;
       if (!txId) return;
+
+      if (target.classList.contains('delete-checkbox')) {
+        if (target.checked) state.selectedTransactionIds.add(txId);
+        else state.selectedTransactionIds.delete(txId);
+        updateDeleteButton();
+        return;
+      }
 
       const monthTxs = TRANSACTIONS[state.month] || [];
       const tx = monthTxs.find((t) => t.id === txId);
@@ -506,10 +518,28 @@
           renderAll();
         }
 
-      } else if (target.classList.contains('exclude-checkbox')) {
-        // API: `fetch(`/api/transactions/${txId}`, { method: 'PATCH', body: JSON.stringify({ excluded: target.checked }) })`
-        tx.excluded = target.checked;
+      }
+    });
+
+    document.getElementById('delete-selected-button').addEventListener('click', async (e) => {
+      const selectedIds = [...state.selectedTransactionIds];
+      if (!selectedIds.length) return;
+
+      const button = e.currentTarget;
+      button.disabled = true;
+      button.textContent = 'Deleting...';
+      try {
+        await deleteTransactions(selectedIds);
+        Object.keys(TRANSACTIONS).forEach((month) => {
+          TRANSACTIONS[month] = TRANSACTIONS[month].filter((transaction) => !state.selectedTransactionIds.has(transaction.id));
+        });
+        state.selectedTransactionIds.clear();
+        button.disabled = false;
         renderAll();
+      } catch (error) {
+        console.error('Could not delete selected transactions:', error);
+        button.disabled = false;
+        updateDeleteButton();
       }
     });
   }

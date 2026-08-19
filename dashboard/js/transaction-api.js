@@ -24,3 +24,12 @@ async function updateTransactionAmount(transactionId, amount) {
 
   if (error) throw error;
 }
+
+async function deleteTransactions(transactionIds) {
+  const { error } = await supabaseClient
+    .from('transactions')
+    .delete()
+    .in('event_id', transactionIds);
+
+  if (error) throw error;
+}

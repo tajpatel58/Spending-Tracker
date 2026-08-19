@@ -10,9 +10,8 @@
  *   TRANSACTIONS             -> GET /api/transactions?month=YYYY-MM
  *
  * A tiny seeded PRNG is used instead of Math.random() so the demo
- * data looks the same on every reload. Each transaction now also
- * carries `excluded` (bool) for the exclude-from-totals checkbox —
- * merchant/category/amount are all editable in place from the table.
+ * data looks the same on every reload. Merchant/category/amount are
+ * editable in place from the table.
  * ---------------------------------------------------------------------
  */
 
@@ -191,7 +190,6 @@ function generateMonth(year, month) {
         category: cat.id,
         account: pickAccount(cat.id, rand),
         amount,
-        excluded: false,
       });
     }
   });
