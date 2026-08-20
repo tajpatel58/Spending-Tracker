@@ -2,8 +2,7 @@ import pandas as pd
 import pdfplumber
 from pathlib import Path
 
-
-def parse_pdf_to_dataframe(pdf_path: str, 
+def pdf_to_dataframe(pdf_path: str, 
                            columns: list = None,
                            csv_path: str = None) -> pd.DataFrame:
     rows = []
@@ -25,12 +24,8 @@ def parse_pdf_to_dataframe(pdf_path: str,
 
     return df
 
-def chase_pdf_to_dataframe(pdf_path: str, csv_path: str = None) -> pd.DataFrame:
-    columns = ["date", "transaction_details", "amount", "balance"]
-    return parse_pdf_to_dataframe(pdf_path, columns=columns, csv_path=csv_path)
 
-
-def find_raw_transaction_statements(
+def find_raw_transaction_partitions(
     raw_transactions_root: Path,
 ) -> list[tuple[str, str, str, str]]:
     """Return (user, bank, account_id, month) for each raw statement PDF."""
