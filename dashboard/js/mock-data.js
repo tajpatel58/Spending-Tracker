@@ -17,16 +17,16 @@
 
 // ---- Categories (id, label, CSS var for color) -------------------------
 const CATEGORIES = [
-  { id: 'groceries',     label: 'Groceries',      color: 'var(--cat-groceries)' },
+  { id: 'groceries',     label: 'Groceries',       color: 'var(--cat-groceries)' },
   { id: 'dining',        label: 'Dining Out',      color: 'var(--cat-dining)' },
   { id: 'transport',     label: 'Transport',       color: 'var(--cat-transport)' },
-  { id: 'holiday',       label: 'Holiday',       color: 'var(--cat-holiday)' },
+  { id: 'holiday',       label: 'Holiday',         color: 'var(--cat-holiday)' },
   { id: 'housing',       label: 'Housing',         color: 'var(--cat-housing)' },
   { id: 'subscriptions', label: 'Subscriptions',   color: 'var(--cat-subscriptions)' },
   { id: 'shopping',      label: 'Shopping',        color: 'var(--cat-shopping)' },
   { id: 'health',        label: 'Health',          color: 'var(--cat-health)' },
-  { id: 'birthday',      label: 'Birthday',          color: 'var(--cat-birthday)' },
-  { id: 'other',         label: 'Unassigned',   color: 'var(--cat-other)' },
+  { id: 'birthday/gifts',label: 'Birthday/Gifts',  color: 'var(--cat-birthday)' },
+  { id: 'other',         label: 'Unassigned',      color: 'var(--cat-other)' },
   { id: 'salary',        label: 'Salary',          color: 'var(--cat-salary)' },
   { id: 'interest',      label: 'Interest Payments', color: 'var(--cat-interest)' },
 ];
