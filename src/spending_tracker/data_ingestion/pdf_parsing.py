@@ -28,3 +28,26 @@ def parse_pdf_to_dataframe(pdf_path: str,
 def chase_pdf_to_dataframe(pdf_path: str, csv_path: str = None) -> pd.DataFrame:
     columns = ["date", "transaction_details", "amount", "balance"]
     return parse_pdf_to_dataframe(pdf_path, columns=columns, csv_path=csv_path)
+
+
+def find_raw_transaction_statements(
+    raw_transactions_root: Path,
+) -> list[tuple[str, str, str, str]]:
+    """Return (user, bank, account_id, month) for each raw statement PDF."""
+    statements = []
+
+    for statement_path in sorted(raw_transactions_root.rglob("statement.pdf")):
+        relative_parts = statement_path.relative_to(raw_transactions_root).parts
+        if len(relative_parts) != 5:
+            raise ValueError(
+                "Expected raw files at "
+                "<user>/<bank>/<account_id>/<month>/statement.pdf, "
+                f"but found: {statement_path}"
+            )
+
+        user, bank, account_id, month, filename = relative_parts
+        if filename != "statement.pdf":
+            continue
+        statements.append((user, bank, account_id, month))
+
+    return statements
