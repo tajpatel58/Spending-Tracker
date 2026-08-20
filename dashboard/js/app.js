@@ -256,10 +256,10 @@
       deltaEl.className = 'stat-tile__delta';
     }
 
-    const totals = categoryTotals(txs);
-    const topId = Object.keys(totals).sort((a, b) => totals[b] - totals[a])[0];
-    document.getElementById('stat-top-category').textContent = topId ? catById[topId].label : '—';
-    document.getElementById('stat-top-category-amount').textContent = topId ? currency(totals[topId]) : '—';
+    const income = txs
+      .filter((t) => t.category === 'salary' || t.category === 'interest')
+      .reduce((sum, t) => sum + t.amount, 0);
+    document.getElementById('stat-income').textContent = currency(income);
 
     document.getElementById('stat-count').textContent = txs.length;
     const avg = txs.length ? total / txs.length : 0;

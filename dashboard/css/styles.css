@@ -411,6 +411,12 @@ button { font-family: inherit; }
 .stat-tile__delta.is-up { color: var(--rose); }
 .stat-tile__delta.is-down { color: var(--accent); }
 
+.stat-tile--income .stat-tile__label,
+.stat-tile--income .stat-tile__value,
+.stat-tile--income .stat-tile__delta {
+  color: var(--cat-salary);
+}
+
 /* ==========================================================================
    Charts
    ========================================================================== */
