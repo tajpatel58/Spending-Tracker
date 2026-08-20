@@ -282,6 +282,7 @@
     const txs = getCalcTransactions(state.month);
     const totals = categoryTotals(txs);
     const entries = CATEGORIES
+      .filter((c) => !['salary', 'interest'].includes(c.id))
       .map((c) => ({ ...c, total: totals[c.id] || 0 }))
       .filter((c) => c.total > 0)
       .sort((a, b) => b.total - a.total);
