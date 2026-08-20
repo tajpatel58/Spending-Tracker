@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import re
-import uuid
+from spending_tracker.data_processing import common
 
 
 def parse_transaction_details(details: str) -> dict[str, str]:
@@ -84,7 +84,15 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
     chase_df["category"] = None 
 
     # add event_id column with unique UUIDs for each row
-    chase_df["event_id"] = chase_df.apply(lambda _: str(uuid.uuid4()), axis=1)
+    chase_df["event_id"] = chase_df.apply(
+        lambda row: common.generate_event_id(
+            account_id=row["account_id"],
+            date=row["date"].strftime("%Y-%m-%d"),
+            amount=row["amount"],
+            description=row["transaction_details"]
+        ),
+        axis=1
+    )
 
     export_cols = ["event_id", "date", "merchant", "type", "category", "amount", "other_details", "account_id", "user", "raw_merchant", "raw_amount", "bank"]
 
