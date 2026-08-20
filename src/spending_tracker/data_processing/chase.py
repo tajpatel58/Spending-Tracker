@@ -56,9 +56,8 @@ def parse_transaction_details(details: str) -> dict[str, str]:
 
 
 def clean_transaction_dataframe(chase_df: pd.DataFrame, 
-                          account_id: str,
-                          user: str,
-                          csv_path: Path = None) -> pd.DataFrame:
+                                account_id: str,
+                                user: str) -> pd.DataFrame:
 
     # add columns for account_id and user
     chase_df["account_id"] = account_id
@@ -68,7 +67,7 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
     chase_df['date'] = pd.to_datetime(chase_df['date'], errors='coerce')
 
     # Convert 'amount' and 'balance' columns to numeric, removing any non-numeric characters
-    chase_df['amount'] = -1 * pd.to_numeric(chase_df['amount'].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
+    chase_df['amount'] = pd.to_numeric(chase_df['amount'].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
 
     # Clean the 'transaction_details' column
     chase_df[["merchant", "type", "other_details"]] = (
@@ -76,6 +75,9 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
         .apply(parse_transaction_details)
         .apply(pd.Series)
     )
+
+    # remove round ups
+    chase_df = chase_df[~chase_df["merchant"].str.contains("Round up")]
 
     # create dupe columns as might be changed by end user. 
     chase_df["raw_merchant"] = chase_df["merchant"]
@@ -86,10 +88,11 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
     # add event_id column with unique UUIDs for each row
     chase_df["event_id"] = chase_df.apply(
         lambda row: common.generate_event_id(
-            account_id=row["account_id"],
-            date=row["date"].strftime("%Y-%m-%d"),
-            amount=row["amount"],
-            description=row["transaction_details"]
+            row["account_id"],
+            row["date"].strftime("%Y-%m-%d"),
+            row["amount"],
+            row["transaction_details"],
+            row["balance"]
         ),
         axis=1
     )
