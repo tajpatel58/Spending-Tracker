@@ -25,8 +25,10 @@ const CATEGORIES = [
   { id: 'subscriptions', label: 'Subscriptions',   color: 'var(--cat-subscriptions)' },
   { id: 'shopping',      label: 'Shopping',        color: 'var(--cat-shopping)' },
   { id: 'health',        label: 'Health',          color: 'var(--cat-health)' },
-  { id: 'travel',        label: 'Travel',          color: 'var(--cat-travel)' },
+  { id: 'birthday',      label: 'Birthday',          color: 'var(--cat-birthday)' },
   { id: 'other',         label: 'Unassigned',   color: 'var(--cat-other)' },
+  { id: 'salary',        label: 'Salary',          color: 'var(--cat-salary)' },
+  { id: 'interest',      label: 'Interest Payments', color: 'var(--cat-interest)' },
 ];
 
 // ---- Accounts, grouped by owner --------------------------------------
