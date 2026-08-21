@@ -84,6 +84,7 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
     chase_df["raw_amount"] = chase_df["amount"]
     chase_df["bank"] = "Chase Bank"
     chase_df["category"] = None 
+    chase_df["hidden"] = False
 
     # add event_id column with unique UUIDs for each row
     chase_df["event_id"] = chase_df.apply(
@@ -97,7 +98,7 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
         axis=1
     )
 
-    export_cols = ["event_id", "date", "merchant", "type", "category", "amount", "other_details", "account_id", "user", "raw_merchant", "raw_amount", "bank"]
+    export_cols = ["event_id", "date", "merchant", "type", "category", "amount", "other_details", "account_id", "user", "raw_merchant", "raw_amount", "bank", "hidden"]
 
     chase_df = chase_df[export_cols]
     return chase_df
