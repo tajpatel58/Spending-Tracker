@@ -208,6 +208,7 @@
   function getMonthTransactions(month) {
     const all = TRANSACTIONS[month] || [];
     return all.filter((t) => {
+      if (t.hidden === true) return false;
       const account = accountById[t.account];
       return state.activeAccounts.has(t.account) && account && state.activeUsers.has(account.groupId);
     });
@@ -424,7 +425,7 @@
               </span>
             </td>
             <td class="exclude-cell">
-              <input type="checkbox" class="delete-checkbox" data-tx-id="${t.id}" ${state.selectedTransactionIds.has(t.id) ? 'checked' : ''} aria-label="Select transaction for removal">
+              <input type="checkbox" class="hide-checkbox" data-tx-id="${t.id}" ${state.selectedTransactionIds.has(t.id) ? 'checked' : ''} aria-label="Select transaction to hide">
             </td>
           </tr>
         `;
@@ -434,22 +435,22 @@
     const total = txs.reduce((s, t) => s + t.amount, 0);
     document.getElementById('table-count-label').textContent =
       `${txs.length} transaction${txs.length === 1 ? '' : 's'} · ${currency(total)}`;
-    updateDeleteButton();
+    updateHideButton();
   }
 
-  function updateDeleteButton() {
-    const button = document.getElementById('delete-selected-button');
+  function updateHideButton() {
+    const button = document.getElementById('hide-selected-button');
     if (!button) return;
     const count = state.selectedTransactionIds.size;
     button.hidden = count === 0;
-    button.textContent = count ? `Delete selected (${count})` : 'Delete selected';
+    button.textContent = count ? `Hide selected (${count})` : 'Hide selected';
   }
 
   function escapeAttr(str) {
     return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   }
 
-  // ---- Manual editing: category, merchant name, amount, remove -----------
+  // ---- Manual editing: category, merchant name, amount, hide -------------
   function initTableEditing() {
     const body = document.getElementById('tx-table-body');
 
@@ -458,10 +459,10 @@
       const txId = target.dataset.txId;
       if (!txId) return;
 
-      if (target.classList.contains('delete-checkbox')) {
+      if (target.classList.contains('hide-checkbox')) {
         if (target.checked) state.selectedTransactionIds.add(txId);
         else state.selectedTransactionIds.delete(txId);
-        updateDeleteButton();
+        updateHideButton();
         return;
       }
 
@@ -522,25 +523,28 @@
       }
     });
 
-    document.getElementById('delete-selected-button').addEventListener('click', async (e) => {
+    document.getElementById('hide-selected-button').addEventListener('click', async (e) => {
       const selectedIds = [...state.selectedTransactionIds];
       if (!selectedIds.length) return;
 
       const button = e.currentTarget;
       button.disabled = true;
-      button.textContent = 'Deleting...';
+      button.textContent = 'Hiding...';
       try {
-        await deleteTransactions(selectedIds);
-        Object.keys(TRANSACTIONS).forEach((month) => {
-          TRANSACTIONS[month] = TRANSACTIONS[month].filter((transaction) => !state.selectedTransactionIds.has(transaction.id));
+        await hideTransactions(selectedIds);
+        selectedIds.forEach((transactionId) => {
+          Object.values(TRANSACTIONS).forEach((transactions) => {
+            const transaction = transactions.find((item) => item.id === transactionId);
+            if (transaction) transaction.hidden = true;
+          });
         });
         state.selectedTransactionIds.clear();
         button.disabled = false;
         renderAll();
       } catch (error) {
-        console.error('Could not delete selected transactions:', error);
+        console.error('Could not hide selected transactions:', error);
         button.disabled = false;
-        updateDeleteButton();
+        updateHideButton();
       }
     });
   }
