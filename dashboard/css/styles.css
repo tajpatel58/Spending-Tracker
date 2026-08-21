@@ -411,12 +411,6 @@ button { font-family: inherit; }
 .stat-tile__delta.is-up { color: var(--rose); }
 .stat-tile__delta.is-down { color: var(--accent); }
 
-.stat-tile--income .stat-tile__label,
-.stat-tile--income .stat-tile__value,
-.stat-tile--income .stat-tile__delta {
-  color: var(--cat-salary);
-}
-
 /* ==========================================================================
    Charts
    ========================================================================== */
@@ -683,24 +677,24 @@ button { font-family: inherit; }
 
 .exclude-cell { text-align: center; }
 
-.delete-checkbox {
+.hide-checkbox {
   width: 15px;
   height: 15px;
   accent-color: var(--rose);
   cursor: pointer;
 }
 
-.delete-button {
+.hide-button {
   border: 0;
   padding: 4px 7px;
   border-radius: 4px;
-  background: var(--rose);
-  color: white;
+  background: var(--gold);
+  color: var(--text);
   cursor: pointer;
   font: 500 11px 'IBM Plex Mono', monospace;
 }
 
-.delete-button:disabled {
+.hide-button:disabled {
   opacity: 0.6;
   cursor: wait;
 }

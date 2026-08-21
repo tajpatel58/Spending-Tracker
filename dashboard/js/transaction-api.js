@@ -25,10 +25,10 @@ async function updateTransactionAmount(transactionId, amount) {
   if (error) throw error;
 }
 
-async function deleteTransactions(transactionIds) {
+async function hideTransactions(transactionIds) {
   const { error } = await supabaseClient
     .from('transactions')
-    .delete()
+    .update({ hidden: true })
     .in('event_id', transactionIds);
 
   if (error) throw error;
