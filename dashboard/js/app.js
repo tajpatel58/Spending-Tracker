@@ -225,21 +225,27 @@
       .filter((t) => !state.search || t.merchant.toLowerCase().includes(state.search));
   }
 
+  function isExpense(t) {
+    return !['salary', 'interest', 'refund'].includes(t.category);
+  }
+
   function categoryTotals(txs) {
     const totals = {};
-    txs.forEach((t) => { totals[t.category] = (totals[t.category] || 0) + t.amount; });
+    txs.forEach((t) => { totals[t.category] = (totals[t.category] || 0) + Math.abs(t.amount); });
     return totals;
   }
 
   function monthTotal(month) {
-    return getCalcTransactions(month).reduce((sum, t) => sum + t.amount, 0);
+    return getCalcTransactions(month)
+      .filter(isExpense)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }
 
   // ---- Stat tiles ---------------------------------------------------------
   // API: replace with `fetch(`/api/analytics/summary?month=${month}`)`
   function renderStats() {
     const txs = getCalcTransactions(state.month);
-    const total = txs.reduce((s, t) => s + t.amount, 0);
+    const total = txs.filter(isExpense).reduce((s, t) => s + Math.abs(t.amount), 0);
 
     const idx = MONTHS.findIndex((m) => m.key === state.month);
     const prevKey = idx > 0 ? MONTHS[idx - 1].key : null;
@@ -262,9 +268,10 @@
       .reduce((sum, t) => sum + t.amount, 0);
     document.getElementById('stat-income').textContent = currency(income);
 
+    const expenseCount = txs.filter(isExpense).length;
     document.getElementById('stat-count').textContent = txs.length;
-    const avg = txs.length ? total / txs.length : 0;
-    document.getElementById('stat-avg').textContent = txs.length ? `${currency(avg)} avg / transaction` : '—';
+    const avg = expenseCount ? total / expenseCount : 0;
+    document.getElementById('stat-avg').textContent = expenseCount ? `${currency(avg)} avg / expense` : '—';
 
     const [y, m] = state.month.split('-').map(Number);
     const dim = new Date(y, m, 0).getDate();
@@ -281,9 +288,9 @@
   // API: replace totals with `fetch(`/api/analytics/summary?month=${month}`)`
   function renderCategoryChart() {
     const txs = getCalcTransactions(state.month);
-    const totals = categoryTotals(txs);
+    const totals = categoryTotals(txs.filter(isExpense));
     const entries = CATEGORIES
-      .filter((c) => !['salary', 'interest'].includes(c.id))
+      .filter((c) => isExpense({ category: c.id }))
       .map((c) => ({ ...c, total: totals[c.id] || 0 }))
       .filter((c) => c.total > 0)
       .sort((a, b) => b.total - a.total);
@@ -432,7 +439,9 @@
       }).join('');
     }
 
-    const total = txs.reduce((s, t) => s + t.amount, 0);
+    const total = txs
+      .filter(isExpense)
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
     document.getElementById('table-count-label').textContent =
       `${txs.length} transaction${txs.length === 1 ? '' : 's'} · ${currency(total)}`;
     updateHideButton();

@@ -29,6 +29,7 @@ const CATEGORIES = [
   { id: 'other',         label: 'Unassigned',      color: 'var(--cat-other)' },
   { id: 'salary',        label: 'Salary',          color: 'var(--cat-salary)' },
   { id: 'interest',      label: 'Interest Payments', color: 'var(--cat-interest)' },
+  { id: 'refund',        label: 'Refund',           color: 'var(--cat-refund)' },
 ];
 
 // ---- Accounts, grouped by owner --------------------------------------
