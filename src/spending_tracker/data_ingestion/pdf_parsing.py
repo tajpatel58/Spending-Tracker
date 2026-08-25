@@ -3,8 +3,8 @@ import pdfplumber
 from pathlib import Path
 
 def pdf_to_dataframe(pdf_path: str, 
-                           columns: list = None,
-                           csv_path: str = None) -> pd.DataFrame:
+                     columns: list = None,
+                     csv_path: str = None) -> pd.DataFrame:
     rows = []
 
     with pdfplumber.open(pdf_path) as pdf:
@@ -27,22 +27,21 @@ def pdf_to_dataframe(pdf_path: str,
 
 def find_raw_transaction_partitions(
     raw_transactions_root: Path,
-) -> list[tuple[str, str, str, str]]:
-    """Return (user, bank, account_id, month) for each raw statement PDF."""
+) -> list[tuple[str, str, str, str, str]]:
+    """Return (user, bank, account_id, month, extension) for each statement."""
     statements = []
 
-    for statement_path in sorted(raw_transactions_root.rglob("statement.pdf")):
+    for statement_path in sorted(raw_transactions_root.rglob("statement.*")):
         relative_parts = statement_path.relative_to(raw_transactions_root).parts
+        print(relative_parts)
         if len(relative_parts) != 5:
             raise ValueError(
                 "Expected raw files at "
-                "<user>/<bank>/<account_id>/<month>/statement.pdf, "
+                "<user>/<bank>/<account_id>/<month>/statement.*, "
                 f"but found: {statement_path}"
             )
 
         user, bank, account_id, month, filename = relative_parts
-        if filename != "statement.pdf":
-            continue
-        statements.append((user, bank, account_id, month))
+        statements.append((user, bank, account_id, month, filename))
 
     return statements
