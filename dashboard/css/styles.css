@@ -711,13 +711,23 @@ button { font-family: inherit; }
 }
 
 .hide-button {
-  border: 0;
-  padding: 4px 7px;
-  border-radius: 4px;
-  background: var(--gold);
-  color: var(--text);
+  border: 1px solid var(--gold);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--gold);
   cursor: pointer;
-  font: 500 11px 'IBM Plex Mono', monospace;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.hide-button:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--surface);
 }
 
 .hide-button:disabled {
@@ -871,6 +881,22 @@ button { font-family: inherit; }
 @media (max-width: 560px) {
   .container { padding: 20px 14px 100px; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .topbar__controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .topbar__controls .multiselect,
+  .topbar__controls .field,
+  .topbar__controls .field select { min-width: 0; width: 100%; }
+  .topbar__controls .multiselect__button,
+  .topbar__controls .field select { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .topbar__controls .hide-button { grid-column: 1; grid-row: 1; justify-self: start; }
+  .topbar__controls #account-filter { grid-column: 2; grid-row: 1; }
+  .topbar__controls .field--select { grid-column: 1; grid-row: 2; }
+  .topbar__controls #theme-toggle { grid-column: 3; grid-row: 2; justify-self: end; }
+
   .field--search { width: 160px; }
   .chart-tile__body { flex-direction: column; align-items: flex-start; }
   .chat-panel { width: calc(100vw - 32px); right: 16px; left: 16px; bottom: 84px; }
