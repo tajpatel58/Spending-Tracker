@@ -75,7 +75,8 @@ async function loadAccounts() {
     if (!groups.has(groupId)) groups.set(groupId, { id: groupId, label: row.user, accounts: [] });
     groups.get(groupId).accounts.push({
       id: row.account_id,
-      label: `${row.account_name} (${row.account_id})`,
+      label: row.account_id,
+      bank: row.account_name,
     });
   });
 

@@ -271,9 +271,34 @@ button { font-family: inherit; }
 .multiselect__option:hover { background: var(--surface-alt); }
 .multiselect__option input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
 
+.account-option__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.account-option__user { font-weight: 600; }
+
+.account-option__details {
+  padding-left: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.account-option__number {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+}
+
 .multiselect__group { margin-bottom: 2px; }
 .multiselect__option--group { font-weight: 600; }
 .multiselect__option--group input { width: 15px; height: 15px; }
+
+.account-filter__user { margin-bottom: 4px; }
+.account-filter__banks { margin-left: 8px; }
+.account-filter__bank { margin-left: 8px; }
+.account-filter__bank-option { color: var(--text-muted); font-weight: 500; }
 
 .multiselect__suboptions {
   display: flex;

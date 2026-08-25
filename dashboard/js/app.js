@@ -14,7 +14,6 @@
   const state = {
     month: MONTHS[MONTHS.length - 1].key, // most recent month by default
     activeCategories: new Set(CATEGORIES.map((c) => c.id)), // all active
-    activeUsers: new Set(),
     activeAccounts: new Set(), // populated after accounts.csv loads
     selectedTransactionIds: new Set(),
     search: '',
@@ -59,63 +58,46 @@
     });
   }
 
-  // ---- User and account filters -----------------------------------------
-  function initUserFilter() {
-    const wrap = document.getElementById('user-filter');
-    const button = document.getElementById('user-filter-button');
-    const label = document.getElementById('user-filter-label');
-    const panel = document.getElementById('user-filter-panel');
-    const users = ACCOUNT_GROUPS.map((group) => ({ id: group.id, label: group.label }));
-
-    panel.innerHTML = users.map((user) => `
-      <label class="multiselect__option">
-        <input type="checkbox" class="js-user-checkbox" value="${user.id}" checked>
-        ${user.label}
-      </label>
-    `).join('') + '<div class="multiselect__divider"></div><button type="button" class="multiselect__clear" id="user-filter-select-all">Select all</button>';
-
-    const updateLabel = () => {
-      const count = state.activeUsers.size;
-      label.textContent = count === users.length ? 'All users' : `${count} users selected`;
-    };
-    const close = () => { panel.hidden = true; wrap.classList.remove('is-open'); button.setAttribute('aria-expanded', 'false'); };
-
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      panel.hidden = !panel.hidden;
-      wrap.classList.toggle('is-open', !panel.hidden);
-      button.setAttribute('aria-expanded', String(!panel.hidden));
-    });
-    panel.addEventListener('click', (event) => event.stopPropagation());
-    panel.addEventListener('change', (event) => {
-      const checkbox = event.target;
-      if (checkbox.id === 'user-filter-select-all') return;
-      checkbox.checked ? state.activeUsers.add(checkbox.value) : state.activeUsers.delete(checkbox.value);
-      updateLabel();
-      renderAll();
-    });
-    panel.querySelector('#user-filter-select-all').addEventListener('click', () => {
-      state.activeUsers = new Set(users.map((user) => user.id));
-      panel.querySelectorAll('input').forEach((input) => { input.checked = true; });
-      updateLabel();
-      renderAll();
-    });
-    document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) close(); });
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
-    updateLabel();
-  }
-
   function initAccountFilter() {
     const wrap = document.getElementById('account-filter');
     const button = document.getElementById('account-filter-button');
     const label = document.getElementById('account-filter-label');
     const panel = document.getElementById('account-filter-panel');
 
-    panel.innerHTML = ACCOUNTS.map((account) => `
-      <label class="multiselect__option">
-        <input type="checkbox" class="js-account-checkbox" value="${account.id}" checked>
-        ${account.label}
-      </label>
+    const groupedAccounts = ACCOUNT_GROUPS.map((group) => {
+      const banks = new Map();
+      group.accounts.forEach((account) => {
+        if (!banks.has(account.bank)) banks.set(account.bank, []);
+        banks.get(account.bank).push(account);
+      });
+      return { ...group, banks: [...banks.entries()] };
+    });
+
+    panel.innerHTML = groupedAccounts.map((user) => `
+      <div class="account-filter__user" data-user="${user.id}">
+        <label class="multiselect__option multiselect__option--group">
+          <input type="checkbox" class="js-user-checkbox" data-user="${user.id}" checked>
+          <span>${user.label}</span>
+        </label>
+        <div class="account-filter__banks">
+          ${user.banks.map(([bank, accounts]) => `
+            <div class="account-filter__bank" data-user="${user.id}" data-bank="${bank}">
+              <label class="multiselect__option account-filter__bank-option">
+                <input type="checkbox" class="js-bank-checkbox" data-user="${user.id}" data-bank="${bank}" checked>
+                <span>${bank}</span>
+              </label>
+              <div class="multiselect__suboptions">
+                ${accounts.map((account) => `
+                  <label class="multiselect__option multiselect__option--sub">
+                    <input type="checkbox" class="js-account-checkbox" data-user="${user.id}" data-bank="${bank}" value="${account.id}" checked>
+                    <span class="account-option__number">${account.id}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
     `).join('') + '<div class="multiselect__divider"></div><button type="button" class="multiselect__clear" id="account-filter-select-all">Select all</button>';
 
     const updateLabel = () => {
@@ -133,7 +115,26 @@
     panel.addEventListener('click', (event) => event.stopPropagation());
     panel.addEventListener('change', (event) => {
       const checkbox = event.target;
-      checkbox.checked ? state.activeAccounts.add(checkbox.value) : state.activeAccounts.delete(checkbox.value);
+      if (checkbox.classList.contains('js-user-checkbox')) {
+        const userCheckboxes = panel.querySelectorAll(`.js-user-checkbox[data-user="${checkbox.dataset.user}"], .js-bank-checkbox[data-user="${checkbox.dataset.user}"], .js-account-checkbox[data-user="${checkbox.dataset.user}"]`);
+        userCheckboxes.forEach((input) => {
+          input.checked = checkbox.checked;
+          if (input.classList.contains('js-account-checkbox')) {
+            checkbox.checked ? state.activeAccounts.add(input.value) : state.activeAccounts.delete(input.value);
+          }
+        });
+      } else if (checkbox.classList.contains('js-bank-checkbox')) {
+        const bankAccounts = panel.querySelectorAll(`.js-account-checkbox[data-user="${checkbox.dataset.user}"][data-bank="${checkbox.dataset.bank}"]`);
+        bankAccounts.forEach((input) => {
+          input.checked = checkbox.checked;
+          checkbox.checked ? state.activeAccounts.add(input.value) : state.activeAccounts.delete(input.value);
+        });
+        updateUserCheckboxState(checkbox.dataset.user);
+      } else if (checkbox.classList.contains('js-account-checkbox')) {
+        checkbox.checked ? state.activeAccounts.add(checkbox.value) : state.activeAccounts.delete(checkbox.value);
+        updateBankCheckboxState(checkbox.dataset.user, checkbox.dataset.bank);
+        updateUserCheckboxState(checkbox.dataset.user);
+      }
       updateLabel();
       renderAll();
     });
@@ -143,6 +144,26 @@
       updateLabel();
       renderAll();
     });
+
+    function updateBankCheckboxState(userId, bank) {
+      const bankCheckbox = panel.querySelector(`.js-bank-checkbox[data-user="${userId}"][data-bank="${bank}"]`);
+      const accounts = [...panel.querySelectorAll(`.js-account-checkbox[data-user="${userId}"][data-bank="${bank}"]`)];
+      const selected = accounts.filter((account) => account.checked).length;
+      bankCheckbox.checked = selected === accounts.length;
+      bankCheckbox.indeterminate = selected > 0 && selected < accounts.length;
+    }
+
+    function updateUserCheckboxState(userId) {
+      const userCheckbox = panel.querySelector(`.js-user-checkbox[data-user="${userId}"]`);
+      const accounts = [...panel.querySelectorAll(`.js-account-checkbox[data-user="${userId}"]`)];
+      const selected = accounts.filter((account) => account.checked).length;
+      userCheckbox.checked = selected === accounts.length;
+      userCheckbox.indeterminate = selected > 0 && selected < accounts.length;
+      panel.querySelectorAll(`.js-bank-checkbox[data-user="${userId}"]`).forEach((bankCheckbox) => {
+        updateBankCheckboxState(bankCheckbox.dataset.user, bankCheckbox.dataset.bank);
+      });
+    }
+
     document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) close(); });
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
     updateLabel();
@@ -209,8 +230,7 @@
     const all = TRANSACTIONS[month] || [];
     return all.filter((t) => {
       if (t.hidden === true) return false;
-      const account = accountById[t.account];
-      return state.activeAccounts.has(t.account) && account && state.activeUsers.has(account.groupId);
+      return state.activeAccounts.has(t.account);
     });
   }
 
@@ -382,8 +402,8 @@
       if (key === 'amount') return mult * (a.amount - b.amount);
       if (key === 'merchant') return mult * a.merchant.localeCompare(b.merchant);
       if (key === 'account') {
-        const aLabel = `${accountById[a.account].groupLabel} ${accountById[a.account].label}`;
-        const bLabel = `${accountById[b.account].groupLabel} ${accountById[b.account].label}`;
+        const aLabel = `${accountById[a.account].groupLabel} ${accountById[a.account].bank} ${accountById[a.account].label}`;
+        const bLabel = `${accountById[b.account].groupLabel} ${accountById[b.account].bank} ${accountById[b.account].label}`;
         return mult * aLabel.localeCompare(bLabel);
       }
       if (key === 'category') return mult * catById[a.category].label.localeCompare(catById[b.category].label);
@@ -418,7 +438,7 @@
             <td class="tx-table__merchant">
               <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
             </td>
-            <td class="tx-table__account">${acc.groupLabel} · ${acc.label}</td>
+            <td class="tx-table__account">${acc.bank}, ${acc.label}</td>
             <td>
               <span class="category-badge">
                 <span class="category-badge__dot" style="background:${cat.color}"></span>
@@ -639,11 +659,9 @@
   document.addEventListener('DOMContentLoaded', async () => {
     await accountsReady;
     if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
-    state.activeUsers = new Set(ACCOUNT_GROUPS.map((group) => group.id));
     state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
     Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
     initTheme();
-    initUserFilter();
     initAccountFilter();
     initMonthSelect();
     initCategoryChips();
