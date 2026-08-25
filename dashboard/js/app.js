@@ -438,7 +438,7 @@
             <td class="tx-table__merchant">
               <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
             </td>
-            <td class="tx-table__account">${acc.bank}, ${acc.label}</td>
+            <td class="tx-table__account">${acc.bank} · ${acc.label}</td>
             <td>
               <span class="category-badge">
                 <span class="category-badge__dot" style="background:${cat.color}"></span>
