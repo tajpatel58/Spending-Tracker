@@ -13,7 +13,8 @@ def load_processed_transactions(
     if not csv_files:
         raise FileNotFoundError(f"No CSV files found under {processed_transactions_root}")
 
-    list_of_dataframes = [pd.read_csv(csv_path) for csv_path in csv_files]
+    # ensure account_id column is read as string to preserve leading zeros
+    list_of_dataframes = [pd.read_csv(csv_path, dtype={"account_id": str}) for csv_path in csv_files]
 
     complete_transactions_df = pd.concat(list_of_dataframes, ignore_index=True)
     return complete_transactions_df
