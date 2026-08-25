@@ -1,7 +1,20 @@
 import pandas as pd
 from pathlib import Path
 import re
+from spending_tracker.data_ingestion import pdf_parsing
 from spending_tracker.data_processing import common
+
+def load_raw_chase_statement_pdf(pdf_path: Path) -> pd.DataFrame:
+    """
+    Load a raw Chase statement PDF and return a DataFrame.
+    """
+    # Define the expected columns for Chase statements
+    expected_columns = ["date", "transaction_details", "amount", "balance"]
+
+    # Use the pdf_to_dataframe function to extract data from the PDF
+    raw_chase_df = pdf_parsing.pdf_to_dataframe(pdf_path, columns=expected_columns)
+
+    return raw_chase_df
 
 
 def parse_transaction_details(details: str) -> dict[str, str]:
@@ -55,16 +68,18 @@ def parse_transaction_details(details: str) -> dict[str, str]:
     }
 
 
-def clean_transaction_dataframe(chase_df: pd.DataFrame, 
-                                account_id: str,
-                                user: str) -> pd.DataFrame:
+def clean_chase_transaction_dataframe(chase_df: pd.DataFrame, **kwargs) -> pd.DataFrame:
 
     # add columns for account_id and user
-    chase_df["account_id"] = account_id
-    chase_df["user"] = user
+    chase_df["account_id"] = kwargs["account_id"]
+    chase_df["user"] = kwargs["user"]
 
-    # Convert 'date' column to datetime
+    # add occurence column to handle duplicate transactions
+    chase_df["occurrence"] = chase_df.groupby(["date", "transaction_details", "amount", "account_id"]).cumcount().add(1)
+
+    # Convert 'date' column to datetime and add month column for partitioning
     chase_df['date'] = pd.to_datetime(chase_df['date'], errors='coerce')
+    chase_df['month'] = chase_df['date'].dt.strftime('%B-%y')
 
     # Convert 'amount' and 'balance' columns to numeric, removing any non-numeric characters
     chase_df['amount'] = pd.to_numeric(chase_df['amount'].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
@@ -82,7 +97,7 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
     # create dupe columns as might be changed by end user. 
     chase_df["raw_merchant"] = chase_df["merchant"]
     chase_df["raw_amount"] = chase_df["amount"]
-    chase_df["bank"] = "Chase Bank"
+    chase_df["bank"] = "Chase"
     chase_df["category"] = None 
     chase_df["hidden"] = False
 
@@ -93,12 +108,11 @@ def clean_transaction_dataframe(chase_df: pd.DataFrame,
             row["date"].strftime("%Y-%m-%d"),
             row["amount"],
             row["transaction_details"],
-            row["balance"]
+            row["balance"],
+            row["occurrence"]
         ),
         axis=1
     )
 
-    export_cols = ["event_id", "date", "merchant", "type", "category", "amount", "other_details", "account_id", "user", "raw_merchant", "raw_amount", "bank", "hidden"]
-
-    chase_df = chase_df[export_cols]
+    chase_df = chase_df[common._TRANSACTIONS_DB_COLUMNS]
     return chase_df
