@@ -104,6 +104,19 @@
       </div>
     </div>
 
+    <div class="tile chart-tile chart-tile--user">
+      <div class="tile__header">
+        <h2>Spending by user</h2>
+        <span class="tile__meta" id="user-chart-meta"></span>
+      </div>
+      <div class="chart-tile__body">
+        <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--donut">
+          <canvas id="user-chart" role="img" aria-label="Doughnut chart of spending by user"></canvas>
+        </div>
+        <ul class="legend" id="user-legend"></ul>
+      </div>
+    </div>
+
     <div class="tile chart-tile">
       <div class="tile__header">
         <h2>Spending trend</h2>
@@ -112,6 +125,14 @@
       <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--line">
         <canvas id="trend-chart" role="img" aria-label="Line chart of monthly spending trend"></canvas>
       </div>
+    </div>
+
+    <div class="tile chart-tile chart-tile--budget">
+      <div class="tile__header">
+        <h2>Budget vs Actual</h2>
+        <span class="tile__meta" id="budget-chart-meta"></span>
+      </div>
+      <ul class="budget-list" id="budget-list" aria-label="Budget versus actual spending"></ul>
     </div>
   </section>
 
