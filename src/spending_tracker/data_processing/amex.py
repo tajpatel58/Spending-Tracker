@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import re
 from spending_tracker.data_processing import common
+from spending_tracker.data_processing import table_schema
 
 _AMEX_CARD_MEMBER_TO_USER_MAPPING = {
     "T PATEL": "Taj",
@@ -90,12 +91,7 @@ def clean_amex_transaction_dataframe(amex_df: pd.DataFrame, **kwargs) -> pd.Data
         .apply(pd.Series)
     )
 
-    # create dupe columns as might be changed by end user. 
-    amex_df["raw_merchant"] = amex_df["merchant"]
-    amex_df["raw_amount"] = amex_df["amount"]
     amex_df["bank"] = "Amex"
-    amex_df["category"] = None 
-    amex_df["hidden"] = False
     amex_df["type"] = None
 
     # add event_id column with unique UUIDs for each row
@@ -111,5 +107,5 @@ def clean_amex_transaction_dataframe(amex_df: pd.DataFrame, **kwargs) -> pd.Data
         axis=1
     )
 
-    amex_df = amex_df[common._TRANSACTIONS_DB_COLUMNS]
+    amex_df = amex_df[table_schema._TRANSACTIONS_DB_COLUMNS]
     return amex_df

@@ -2,12 +2,6 @@ import hashlib
 import pandas as pd
 from pathlib import Path
 
-_TRANSACTIONS_DB_COLUMNS = ["event_id", "date", "month","merchant", 
-                            "type", "category", "amount", 
-                            "other_details", "account_id", "user", 
-                            "raw_merchant", "raw_amount", "bank", 
-                            "hidden"]
-
 def generate_event_id(*inputs):
     raw = "|".join(str(value) for value in inputs)
 
@@ -24,9 +18,10 @@ def save_dataframe_to_csv(df: pd.DataFrame, csv_path: Path):
 
 
 def save_partitioned_dataframe_to_csv(
-    transactions_df: pd.DataFrame,
+    data: pd.DataFrame,
     output_root: Path,
     partition_columns: list[str],
+    export_columns: list[str] = None,
     filename: str = "statement.csv",
 ) -> list[Path]:
     """Save one CSV per unique combination of partition column values.
@@ -38,12 +33,12 @@ def save_partitioned_dataframe_to_csv(
     if not partition_columns:
         raise ValueError("partition_columns must contain at least one column")
 
-    missing_columns = [column for column in partition_columns if column not in transactions_df.columns]
+    missing_columns = [column for column in partition_columns if column not in data.columns]
     if missing_columns:
         raise KeyError(f"Partition columns not found in dataframe: {missing_columns}")
 
     output_paths = []
-    for partition_values, partition_df in transactions_df.groupby(partition_columns, dropna=False):
+    for partition_values, partition_df in data.groupby(partition_columns, dropna=False):
         if not isinstance(partition_values, tuple):
             partition_values = (partition_values,)
 
@@ -51,6 +46,12 @@ def save_partitioned_dataframe_to_csv(
             *(str(value) for value in partition_values),
             filename,
         )
+
+        if export_columns is None:
+            export_columns = partition_df.columns
+
+        partition_df = partition_df[export_columns]
+
         save_dataframe_to_csv(partition_df, partition_path)
         output_paths.append(partition_path)
 
