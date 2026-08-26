@@ -4,6 +4,7 @@ import pandas as pd
 def upload_transactions_to_db(
     transactions_df: pd.DataFrame,
     supabase_client: Client,
+    table_name: str,
     exclude_columns: list[str] | None = None,
 ) -> dict:
     """Upsert transactions, optionally leaving selected columns untouched.
@@ -28,7 +29,7 @@ def upload_transactions_to_db(
     )
     response = (
         supabase_client
-        .table("transactions")
+        .table(f"{table_name}")
         .upsert(
             records,
             on_conflict="event_id"
