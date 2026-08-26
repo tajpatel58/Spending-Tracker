@@ -98,7 +98,7 @@
           `).join('')}
         </div>
       </div>
-    `).join('') + '<div class="multiselect__divider"></div><button type="button" class="multiselect__clear" id="account-filter-select-all">Select all</button>';
+    `).join('') + '<div class="multiselect__divider"></div><div class="multiselect__actions"><button type="button" class="multiselect__clear" id="account-filter-select-all">Select all</button><button type="button" class="multiselect__clear" id="account-filter-clear-all">Clear all</button></div>';
 
     const updateLabel = () => {
       const count = state.activeAccounts.size;
@@ -141,6 +141,15 @@
     panel.querySelector('#account-filter-select-all').addEventListener('click', () => {
       state.activeAccounts = new Set(ACCOUNTS.map((account) => account.id));
       panel.querySelectorAll('input').forEach((input) => { input.checked = true; });
+      updateLabel();
+      renderAll();
+    });
+    panel.querySelector('#account-filter-clear-all').addEventListener('click', () => {
+      state.activeAccounts.clear();
+      panel.querySelectorAll('input').forEach((input) => {
+        input.checked = false;
+        input.indeterminate = false;
+      });
       updateLabel();
       renderAll();
     });
