@@ -73,8 +73,9 @@ def clean_nationwide_transaction_dataframe(nationwide_df: pd.DataFrame, **kwargs
 
     # add columns for account_id and user
     account_id = kwargs["account_id"]
+    user = kwargs["user"]
     nationwide_df["account_id"] = account_id
-    nationwide_df["user"] = "Joint"
+    nationwide_df["user"] = user
 
     # Convert 'date' column to datetime and add month column for partitioning
     nationwide_df['date'] = pd.to_datetime(nationwide_df['date'], errors='coerce', format='%d %b %Y')
