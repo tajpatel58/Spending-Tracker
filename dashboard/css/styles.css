@@ -313,6 +313,13 @@ button { font-family: inherit; }
 
 .multiselect__divider { height: 1px; background: var(--border); margin: 5px 2px; }
 
+.multiselect__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.multiselect__actions .multiselect__clear { flex: 1; }
+
 .multiselect__clear {
   width: 100%;
   text-align: left;
