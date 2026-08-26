@@ -448,7 +448,7 @@
             <td class="tx-table__amount">
               <span class="amount-edit">
                 <span class="amount-edit__prefix">£</span>
-                <input type="number" step="0.01" min="0" class="amount-input" data-tx-id="${t.id}" value="${t.amount.toFixed(2)}" aria-label="Edit amount">
+                <input type="number" step="0.01" class="amount-input" data-tx-id="${t.id}" value="${t.amount.toFixed(2)}" aria-label="Edit amount">
               </span>
             </td>
             <td class="exclude-cell">
@@ -535,7 +535,7 @@
 
       } else if (target.classList.contains('amount-input')) {
         const parsed = Math.round(parseFloat(target.value) * 100) / 100;
-        if (isNaN(parsed) || parsed < 0) { target.value = tx.amount.toFixed(2); return; }
+        if (!Number.isFinite(parsed)) { target.value = tx.amount.toFixed(2); return; }
         if (tx.amount === parsed) return;
         const previousAmount = tx.amount;
         tx.amount = parsed;
@@ -544,7 +544,7 @@
         try {
           await updateTransactionAmount(txId, parsed);
         } catch (error) {
-          console.error('Could not update transaction amount:', error);
+          console.error('Could not update transaction amount:', error.message || error);
           tx.amount = previousAmount;
           renderAll();
         }

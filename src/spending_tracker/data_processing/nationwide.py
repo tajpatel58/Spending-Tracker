@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import re
 from spending_tracker.data_processing import common
+from spending_tracker.data_processing import table_schema
 
 def load_raw_nationwide_statement_csv(csv_path: Path) -> pd.DataFrame:
     """
@@ -93,12 +94,8 @@ def clean_nationwide_transaction_dataframe(nationwide_df: pd.DataFrame, **kwargs
         .apply(pd.Series)
     )
 
-    # create dupe columns as might be changed by end user. 
-    nationwide_df["raw_merchant"] = nationwide_df["merchant"]
-    nationwide_df["raw_amount"] = nationwide_df["amount"]
     nationwide_df["bank"] = "Nationwide"
-    nationwide_df["category"] = None 
-    nationwide_df["hidden"] = False
+    nationwide_df["type"] = None
 
         # add occurence column to handle duplicate transactions
     nationwide_df["occurrence"] = nationwide_df.groupby(["date", "transaction_details", "amount", "user", "account_id"]).cumcount().add(1)
@@ -116,5 +113,5 @@ def clean_nationwide_transaction_dataframe(nationwide_df: pd.DataFrame, **kwargs
         axis=1
     )
 
-    nationwide_df = nationwide_df[common._TRANSACTIONS_DB_COLUMNS]
+    nationwide_df = nationwide_df[table_schema._TRANSACTIONS_DB_COLUMNS]
     return nationwide_df

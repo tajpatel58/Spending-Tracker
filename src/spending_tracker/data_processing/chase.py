@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 from spending_tracker.data_ingestion import pdf_parsing
 from spending_tracker.data_processing import common
+from spending_tracker.data_processing import table_schema
 
 def load_raw_chase_statement_pdf(pdf_path: Path) -> pd.DataFrame:
     """
@@ -95,11 +96,7 @@ def clean_chase_transaction_dataframe(chase_df: pd.DataFrame, **kwargs) -> pd.Da
     chase_df = chase_df[~chase_df["merchant"].str.contains("Round up")]
 
     # create dupe columns as might be changed by end user. 
-    chase_df["raw_merchant"] = chase_df["merchant"]
-    chase_df["raw_amount"] = chase_df["amount"]
     chase_df["bank"] = "Chase"
-    chase_df["category"] = None 
-    chase_df["hidden"] = False
 
     # add event_id column with unique UUIDs for each row
     chase_df["event_id"] = chase_df.apply(
@@ -114,5 +111,5 @@ def clean_chase_transaction_dataframe(chase_df: pd.DataFrame, **kwargs) -> pd.Da
         axis=1
     )
 
-    chase_df = chase_df[common._TRANSACTIONS_DB_COLUMNS]
+    chase_df = chase_df[table_schema._TRANSACTIONS_DB_COLUMNS]
     return chase_df
