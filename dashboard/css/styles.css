@@ -585,6 +585,16 @@ button { font-family: inherit; }
 
 .table-controls { display: flex; align-items: center; gap: 8px; }
 
+.icon-btn--clear-filter {
+  color: var(--rose);
+}
+
+.icon-btn--clear-filter:hover {
+  color: var(--rose);
+  border-color: var(--rose);
+  background: var(--rose-soft);
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;
