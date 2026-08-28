@@ -15,19 +15,19 @@
   --transition: 150ms ease;
 
   /* Category palette — consistent across themes */
-  --cat-groceries: #f448ac;
-  --cat-dining: #C75B5B;
-  --cat-transport: #4C6FA5;
-  --cat-holiday: #B0793C;
-  --cat-housing: #8B5FBF;
-  --cat-subscriptions: #C96B91;
-  --cat-shopping: #C6A15B;
-  --cat-health: #B5708C;
-  --cat-birthday: #4A90A4;
-  --cat-other: #6B7280;
-  --cat-salary: #2F8F5B;
-  --cat-interest: #78B982;
-  --cat-refund: #B8903F;
+  --cat-groceries: #D97706;
+  --cat-dining: #DC2626;
+  --cat-transport: #2563EB;
+  --cat-holiday: #7C3AED;
+  --cat-housing: #9333EA;
+  --cat-subscriptions: #DB2777;
+  --cat-shopping: #0891B2;
+  --cat-health: #0F766E;
+  --cat-birthday: #4F46E5;
+  --cat-other: #64748B;
+  --cat-salary: #15803D;
+  --cat-interest: #65A30D;
+  --cat-refund: #B45309;
 }
 
 /* ---- Light theme (default) ---- */
@@ -71,6 +71,21 @@
   --shadow-tile: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
   --shadow-pop: 0 20px 45px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
   --scrollbar: #333B4C;
+
+  /* Brighter category colors retain separation against dark surfaces. */
+  --cat-groceries: #F59E0B;
+  --cat-dining: #F87171;
+  --cat-transport: #60A5FA;
+  --cat-holiday: #A78BFA;
+  --cat-housing: #C084FC;
+  --cat-subscriptions: #F472B6;
+  --cat-shopping: #22D3EE;
+  --cat-health: #2DD4BF;
+  --cat-birthday: #818CF8;
+  --cat-other: #94A3B8;
+  --cat-salary: #4ADE80;
+  --cat-interest: #A3E635;
+  --cat-refund: #FBBF24;
 }
 
 /* ==========================================================================
