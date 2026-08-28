@@ -263,12 +263,12 @@
   // Edit these monthly budget values as the household budget evolves.
   const BUDGETS = {
     'Dining Out': 250,
-    Groceries: 400,
-    Housing: 1200,
-    Shopping: 400,
-    Transport: 180,
-    Health: 150,
-    Extras: 500,
+    Groceries: 300,
+    Housing: 500,
+    Shopping: 250,
+    Transport: 250,
+    Health: 200,
+    Extras: 400,
   };
 
   // Map raw category IDs into the budget groups shown on the dashboard.
