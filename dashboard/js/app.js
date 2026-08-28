@@ -14,6 +14,7 @@
   const state = {
     month: MONTHS[MONTHS.length - 1].key, // most recent month by default
     activeCategories: new Set(CATEGORIES.map((c) => c.id)), // all active
+    categoryFilter: null,
     activeAccounts: new Set(), // populated after accounts.csv loads
     selectedTransactionIds: new Set(),
     search: '',
@@ -217,6 +218,20 @@
     });
   }
 
+  function updateCategoryFilterControl() {
+    const button = document.getElementById('clear-category-filter');
+    if (!button) return;
+    button.hidden = !state.categoryFilter;
+  }
+
+  function initCategoryFilterControl() {
+    document.getElementById('clear-category-filter').addEventListener('click', () => {
+      state.categoryFilter = null;
+      updateCategoryFilterControl();
+      renderTable();
+    });
+  }
+
   // ---- Sorting ------------------------------------------------------------
   function initSorting() {
     document.querySelectorAll('.tx-table thead th[data-sort]').forEach((th) => {
@@ -253,6 +268,7 @@
   function getFilteredTransactions() {
     return getMonthTransactions(state.month)
       .filter((t) => state.activeCategories.has(t.category))
+      .filter((t) => !state.categoryFilter || t.category === state.categoryFilter)
       .filter((t) => !state.search || t.merchant.toLowerCase().includes(state.search));
   }
 
@@ -373,17 +389,35 @@
       },
     });
 
+    ctx.ondblclick = (event) => {
+      const elements = categoryChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+      if (!elements.length) return;
+      setCategoryFilter(entries[elements[0].index].id);
+    };
+
     document.getElementById('category-chart-meta').textContent = `${entries.length} categories`;
 
     const legend = document.getElementById('category-legend');
     const grandTotal = entries.reduce((s, e) => s + e.total, 0) || 1;
     legend.innerHTML = entries.slice(0, 6).map((e) => `
-      <li>
+      <li data-category-id="${e.id}">
         <span class="legend__swatch" style="background:${e.color}"></span>
         <span class="legend__name">${e.label}</span>
         <span class="legend__amount">${currencyShort(e.total)}</span>
       </li>
     `).join('') || '<li class="legend__name">No spending this month</li>';
+    legend.ondblclick = (event) => {
+      const item = event.target.closest('[data-category-id]');
+      if (item) setCategoryFilter(item.dataset.categoryId);
+    };
+  }
+
+  function setCategoryFilter(categoryId) {
+    state.categoryFilter = categoryId;
+    state.activeCategories.add(categoryId);
+    document.querySelector(`.chip[data-cat="${categoryId}"]`)?.classList.add('is-active');
+    updateCategoryFilterControl();
+    renderTable();
   }
 
   function renderUserChart() {
@@ -798,6 +832,7 @@
     initMonthSelect();
     initCategoryChips();
     initSearch();
+    initCategoryFilterControl();
     initSorting();
     initTableEditing();
     initChat();
