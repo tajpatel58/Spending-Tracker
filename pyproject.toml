@@ -5,6 +5,7 @@ description = "Batch ingestion and processing pipeline for bank statements"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ollama>=0.6.2",
     "pandas>=2.3",
     "pdfplumber>=0.11",
     "python-dotenv>=1.2.3",
