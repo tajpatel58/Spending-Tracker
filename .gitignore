@@ -223,3 +223,6 @@ data
 .vscode
 .DS_Store
 supabase.js
+package-lock.json
+package.json
+node_modules
