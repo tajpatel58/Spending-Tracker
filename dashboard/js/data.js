@@ -1,14 +1,17 @@
 /**
- * mock-data.js
+ * data.js
  * ---------------------------------------------------------------------
- * Loads the data the dashboard renders from:
+ * Loads the data the dashboard renders:
  *
- *   CATEGORIES               -> static list below
- *   ACCOUNT_GROUPS/ACCOUNTS  -> ../data/accounts/accounts.csv
- *   TRANSACTIONS             -> Supabase (see supabase.js)
+ *   CATEGORIES                -> static list below
+ *   ACCOUNT_GROUPS / ACCOUNTS -> ../data/accounts/accounts.csv
+ *   MONTHS / TRANSACTIONS     -> Supabase, via supabase-client.js
  *
- * Merchant/category/amount are editable in place from the table and are
- * written back through transaction-api.js.
+ * Merchant/category/amount are editable in place from the table (see
+ * table.js) and are written back through transactions-api.js.
+ *
+ * Everything else waits on the `accountsReady` promise below before
+ * reading ACCOUNTS/ACCOUNT_GROUPS/MONTHS/TRANSACTIONS.
  * ---------------------------------------------------------------------
  */
 
@@ -33,6 +36,7 @@ const CATEGORIES = [
 let ACCOUNT_GROUPS = [];
 let ACCOUNTS = [];
 
+/** Splits one CSV line into fields, handling quoted values. */
 function parseCsvLine(line) {
   const fields = [];
   let field = '';
@@ -55,6 +59,7 @@ function parseCsvLine(line) {
   return fields;
 }
 
+/** Loads accounts.csv and builds ACCOUNT_GROUPS / ACCOUNTS from it. */
 async function loadAccounts() {
   const response = await fetch('../data/accounts/accounts.csv');
   if (!response.ok) throw new Error(`Could not load accounts.csv (${response.status})`);
@@ -87,8 +92,12 @@ async function loadAccounts() {
 const MONTHS = [];             // [ { key: '2026-08' }, ... ]
 const TRANSACTIONS = {};       // { '2026-08': [ {id,date,merchant,category,amount}, ... ] }
 
+/**
+ * Loads accounts, then transactions, then groups the transactions by
+ * month into TRANSACTIONS and builds the MONTHS list.
+ */
 const accountsReady = loadAccounts().then(async () => {
-  const transactions = await loadSupabaseTransactions();
+  const transactions = await fetchTransactions();
   transactions.forEach((transaction) => {
     const month = transaction.date.slice(0, 7);
     if (!TRANSACTIONS[month]) TRANSACTIONS[month] = [];
@@ -98,6 +107,7 @@ const accountsReady = loadAccounts().then(async () => {
   MONTHS.push(...Object.keys(TRANSACTIONS).sort().map((key) => ({ key })));
 });
 
+/** Formats a month key like '2026-08' as "August 2026". */
 const MONTH_LABEL = (key) => {
   const [y, m] = key.split('-').map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
