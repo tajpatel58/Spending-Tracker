@@ -1,5 +1,4 @@
 from urllib import response
-
 from supabase import Client
 import pandas as pd
 
