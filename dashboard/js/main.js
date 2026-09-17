@@ -1,0 +1,38 @@
+/**
+ * main.js
+ * ---------------------------------------------------------------------
+ * Entry point — read this file first to see how everything fits
+ * together. Waits for accounts + transactions to finish loading, wires
+ * up every control on the page, then does the first render.
+ * ---------------------------------------------------------------------
+ */
+
+/** Re-renders every part of the dashboard from the current state. */
+function renderAll() {
+  renderStats();
+  renderCategoryChart();
+  renderUserChart();
+  renderTrendChart();
+  renderBudgetChart();
+  renderTable();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await accountsReady;
+  if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
+  state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
+  Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
+
+  initTheme();
+  initAccountFilter();
+  initMonthSelect();
+  initCategoryChips();
+  initSearch();
+  initCategoryFilterControl();
+  initSorting();
+  initTableEditing();
+  initChat();
+  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+  renderAll();
+});
