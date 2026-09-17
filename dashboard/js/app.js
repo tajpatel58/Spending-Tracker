@@ -12,7 +12,7 @@
 
   // ---- State --------------------------------------------------------
   const state = {
-    month: MONTHS[MONTHS.length - 1].key, // most recent month by default
+    month: null, // set to the most recent month once transactions load
     activeCategories: new Set(CATEGORIES.map((c) => c.id)), // all active
     categoryFilter: null,
     activeAccounts: new Set(), // populated after accounts.csv loads
@@ -260,11 +260,6 @@
     });
   }
 
-  // Transactions that feed the stats and charts.
-  function getCalcTransactions(month) {
-    return getMonthTransactions(month);
-  }
-
   function getFilteredTransactions() {
     return getMonthTransactions(state.month)
       .filter((t) => state.activeCategories.has(t.category))
@@ -308,7 +303,7 @@
   }
 
   function monthTotal(month) {
-    return getCalcTransactions(month)
+    return getMonthTransactions(month)
       .filter(isExpense)
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }
@@ -316,7 +311,7 @@
   // ---- Stat tiles ---------------------------------------------------------
   // API: replace with `fetch(`/api/analytics/summary?month=${month}`)`
   function renderStats() {
-    const txs = getCalcTransactions(state.month);
+    const txs = getMonthTransactions(state.month);
     const total = txs.filter(isExpense).reduce((s, t) => s + Math.abs(t.amount), 0);
 
     const idx = MONTHS.findIndex((m) => m.key === state.month);
@@ -359,7 +354,7 @@
 
   // API: replace totals with `fetch(`/api/analytics/summary?month=${month}`)`
   function renderCategoryChart() {
-    const txs = getCalcTransactions(state.month);
+    const txs = getMonthTransactions(state.month);
     const totals = categoryTotals(txs.filter(isExpense));
     const entries = CATEGORIES
       .filter((c) => isExpense({ category: c.id }))
@@ -467,7 +462,7 @@
   }
 
   function renderBudgetChart() {
-    const totals = categoryTotals(getCalcTransactions(state.month).filter(isExpense));
+    const totals = categoryTotals(getMonthTransactions(state.month).filter(isExpense));
     const groupNames = ['Dining Out', 'Groceries', 'Housing', 'Shopping', 'Transport', 'Health', 'Extras'];
     const groupColors = {
       'Dining Out': 'var(--cat-dining)',
