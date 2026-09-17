@@ -946,6 +946,97 @@ button { font-family: inherit; }
 .chat-panel__input-row button { flex-shrink: 0; }
 
 /* ==========================================================================
+   Login page
+   ========================================================================== */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-page__theme-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+}
+
+.login {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 36px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.login-card .brand {
+  margin-bottom: 18px;
+}
+
+.login-card .brand__name { font-size: 19px; }
+
+.login-card h1 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.login-card__subtitle {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  margin: 0 0 26px;
+}
+
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: #FFFFFF;
+  color: #1F1F1F;
+  border: 1px solid #DADCE0;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: box-shadow var(--transition), background var(--transition);
+}
+
+.google-btn:hover { background: #F7F8F8; box-shadow: 0 1px 3px rgba(20, 23, 31, 0.15); }
+.google-btn:active { background: #F1F3F4; }
+
+.google-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.login-card__error {
+  margin-top: 16px;
+  color: var(--rose);
+  font-size: 13px;
+  min-height: 1em;
+}
+
+.login-card__footnote {
+  margin-top: 28px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 

@@ -1,42 +1,11 @@
 /**
  * supabase-client.js
  * ---------------------------------------------------------------------
- * Connects to Supabase (using the credentials from config.js) and reads
- * transactions from it. Writing edits back to Supabase happens in
+ * Reads transactions from Supabase (via the shared client set up in
+ * auth.js). Writing edits back to Supabase happens in
  * transactions-api.js.
  * ---------------------------------------------------------------------
  */
-
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ============================================================
-// AUTHENTICATION
-// ============================================================
-
-/**
- * Checks whether the browser already has a logged-in Supabase session
- * and logs the result to the console.
- */
-async function initializeAuth() {
-  const { data, error } = await supabaseClient.auth.getSession();
-
-  if (error) {
-    console.error('[Ledger auth] Session check failed:', error);
-    return null;
-  }
-
-  if (!data.session) {
-    console.log('[Ledger auth] No active session');
-    return null;
-  }
-
-  console.log('[Ledger auth] Active session:', data.session.user.email);
-  return data.session;
-}
-
-// Checks the existing session once when the page loads.
-// Other scripts can `await authReady` if they need to know it has run.
-const authReady = initializeAuth();
 
 // ============================================================
 // TRANSACTIONS

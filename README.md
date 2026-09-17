@@ -6,12 +6,14 @@ reads live data from Supabase.
 
 ```
 household-ledger/
-  index.html              # page shell — stat tiles, charts, table, chat popup
+  index.html              # dashboard — stat tiles, charts, table, chat popup
+  login.html              # Google sign-in screen, gates the dashboard
   css/
     styles.css             # design tokens (colors/type/spacing) + all styling
   js/
     config.js               # your Supabase project's URL + key (gitignored)
     config.example.js       # template for config.js
+    auth.js                 # Google sign-in, the session guard, sign-out
     supabase-client.js      # connects to Supabase, reads transactions
     transactions-api.js     # writes edits (category/merchant/amount/hide) back
     data.js                 # loads categories, accounts.csv, transactions
@@ -39,6 +41,28 @@ The dashboard needs a Supabase project to read/write transactions:
 2. Fill in your Supabase project's URL and anon key (Supabase → Project
    Settings → API). `config.js` is gitignored, so your key never gets
    committed.
+
+### Sign-in
+
+Google is the only sign-in method — there's no email/password fallback,
+since the only users are the household. Set it up once in Supabase:
+
+1. In Google Cloud Console, create an OAuth client ID and add
+   `https://<your-project-ref>.supabase.co/auth/v1/callback` as an
+   authorized redirect URI.
+2. In Supabase → Authentication → Providers, enable Google and paste in
+   that client ID/secret.
+3. In Supabase → Authentication → URL Configuration, add the dashboard's
+   `index.html` URL (e.g. `http://localhost:8000/dashboard/index.html`,
+   plus whatever URL it's deployed at) to the allowed redirect URLs.
+4. Restrict who can sign in from Supabase → Authentication → Policies
+   (e.g. a `transactions` RLS policy keyed on `auth.uid()`/email), since
+   anyone with a Google account can otherwise reach the login screen.
+
+`login.html` and `index.html` share the same session check
+(`js/auth.js`): signed-out visitors are bounced to `login.html`,
+signed-in visitors are bounced away from it, and the sign-out icon in the
+dashboard's top bar ends the session.
 
 ## Running it
 

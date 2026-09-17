@@ -18,6 +18,9 @@ function renderAll() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const session = await authReady;
+  if (!session) return; // signed out — auth.js is already redirecting to login.html
+
   await accountsReady;
   if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
   state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
@@ -33,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTableEditing();
   initChat();
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+  document.getElementById('signout-button').addEventListener('click', signOut);
 
   renderAll();
 });

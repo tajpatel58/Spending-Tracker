@@ -94,9 +94,14 @@ const TRANSACTIONS = {};       // { '2026-08': [ {id,date,merchant,category,amou
 
 /**
  * Loads accounts, then transactions, then groups the transactions by
- * month into TRANSACTIONS and builds the MONTHS list.
+ * month into TRANSACTIONS and builds the MONTHS list. Waits for the
+ * auth check first — a signed-out visitor is being redirected to
+ * login.html, so there's no point loading anything.
  */
-const accountsReady = loadAccounts().then(async () => {
+const accountsReady = authReady.then(async (session) => {
+  if (!session) return;
+
+  await loadAccounts();
   const transactions = await fetchTransactions();
   transactions.forEach((transaction) => {
     const month = transaction.date.slice(0, 7);

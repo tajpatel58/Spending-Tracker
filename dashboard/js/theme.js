@@ -21,9 +21,10 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('ledger-theme', next);
   // Charts read CSS custom properties into fixed colors at creation time,
-  // so redraw them on theme change to pick up the new palette.
-  renderCategoryChart();
-  renderUserChart();
-  renderTrendChart();
-  renderBudgetChart();
+  // so redraw them on theme change to pick up the new palette. Not every
+  // page that uses this toggle (e.g. login.html) has charts to redraw.
+  if (typeof renderCategoryChart === 'function') renderCategoryChart();
+  if (typeof renderUserChart === 'function') renderUserChart();
+  if (typeof renderTrendChart === 'function') renderTrendChart();
+  if (typeof renderBudgetChart === 'function') renderBudgetChart();
 }
