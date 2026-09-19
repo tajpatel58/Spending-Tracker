@@ -21,8 +21,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const session = await authReady;
   if (!session) return; // signed out — auth.js is already redirecting to login.html
 
-  // Wired up now, ahead of the data-dependent init below, so sign-out still
-  // works even if loading accounts/transactions fails.
+  // Wired up before the data-dependent init so signing out remains available
+  // even if loading accounts or transactions fails.
+  initUserMenu(session);
   document.getElementById('signout-button').addEventListener('click', signOut);
 
   await accountsReady;
