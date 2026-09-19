@@ -16,7 +16,7 @@ household-ledger/
     auth.js                 # Google sign-in, the session guard, sign-out
     supabase-client.js      # connects to Supabase, reads transactions
     transactions-api.js     # writes edits (category/merchant/amount/hide) back
-    data.js                 # loads categories, accounts.csv, transactions
+    data.js                 # loads categories, accounts, transactions
     format.js               # currency/date formatting helpers
     state.js                # current filters/sort + derived data
     theme.js                # light/dark mode
