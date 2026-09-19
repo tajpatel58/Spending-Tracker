@@ -61,6 +61,7 @@ function parseCsvLine(line) {
 
 /** Loads accounts.csv and builds ACCOUNT_GROUPS / ACCOUNTS from it. */
 async function loadAccounts() {
+  console.info('[Ledger data] Loading accounts.csv');
   const response = await fetch('../data/accounts/accounts.csv');
   if (!response.ok) throw new Error(`Could not load accounts.csv (${response.status})`);
 
@@ -86,6 +87,11 @@ async function loadAccounts() {
   ACCOUNTS = ACCOUNT_GROUPS.flatMap((group) =>
     group.accounts.map((account) => ({ ...account, groupId: group.id, groupLabel: group.label }))
   );
+  console.info('[Ledger data] Accounts loaded', {
+    accountCount: ACCOUNTS.length,
+    groupCount: ACCOUNT_GROUPS.length,
+    accounts: ACCOUNTS,
+  });
 }
 
 // Both are filled in by `accountsReady` below, in ascending month order.
@@ -99,10 +105,18 @@ const TRANSACTIONS = {};       // { '2026-08': [ {id,date,merchant,category,amou
  * login.html, so there's no point loading anything.
  */
 const accountsReady = authReady.then(async (session) => {
-  if (!session) return;
+  if (!session) {
+    console.warn('[Ledger data] Skipping data load because there is no active session');
+    return;
+  }
 
   await loadAccounts();
+  console.info('[Ledger data] Loading transactions from Supabase');
   const transactions = await fetchTransactions();
+  console.info('[Ledger data] Transactions loaded', {
+    transactionCount: transactions.length,
+    transactions,
+  });
   transactions.forEach((transaction) => {
     const month = transaction.date.slice(0, 7);
     if (!TRANSACTIONS[month]) TRANSACTIONS[month] = [];
@@ -110,6 +124,12 @@ const accountsReady = authReady.then(async (session) => {
   });
 
   MONTHS.push(...Object.keys(TRANSACTIONS).sort().map((key) => ({ key })));
+  console.info('[Ledger data] Transactions grouped by month', {
+    months: MONTHS.map((month) => month.key),
+    transactionCountsByMonth: Object.fromEntries(
+      Object.entries(TRANSACTIONS).map(([month, items]) => [month, items.length])
+    ),
+  });
 });
 
 /** Formats a month key like '2026-08' as "August 2026". */
