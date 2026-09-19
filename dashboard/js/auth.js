@@ -72,3 +72,40 @@ async function signOut() {
   await supabaseClient.auth.signOut();
   window.location.replace('login.html');
 }
+
+/** Fills and wires the signed-in user's account menu in the dashboard header. */
+function initUserMenu(session) {
+  const user = session.user;
+  const email = user.email || '';
+  const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0] || 'Account';
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const menu = document.getElementById('user-menu');
+  const button = document.getElementById('user-menu-button');
+  const panel = document.getElementById('user-menu-panel');
+
+  document.getElementById('user-menu-name').textContent = name;
+  document.getElementById('user-menu-panel-name').textContent = name;
+  document.getElementById('user-menu-email').textContent = email;
+  document.getElementById('user-menu-avatar').textContent = initials;
+
+  const close = () => {
+    panel.hidden = true;
+    menu.classList.remove('is-open');
+    button.setAttribute('aria-expanded', 'false');
+  };
+
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    panel.hidden = !panel.hidden;
+    menu.classList.toggle('is-open', !panel.hidden);
+    button.setAttribute('aria-expanded', String(!panel.hidden));
+  });
+  panel.addEventListener('click', (event) => event.stopPropagation());
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      close();
+      button.focus();
+    }
+  });
+}

@@ -351,6 +351,92 @@ button { font-family: inherit; }
 .multiselect__clear:hover { background: var(--surface-alt); }
 
 /* ==========================================================================
+   User menu
+   ========================================================================== */
+
+.user-menu { position: relative; }
+
+.user-menu__button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  min-height: 36px;
+  padding: 4px 10px 4px 5px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition);
+}
+
+.user-menu__button:hover,
+.user-menu.is-open .user-menu__button { border-color: var(--accent); }
+.user-menu__button svg { color: var(--text-faint); flex-shrink: 0; transition: transform var(--transition); }
+.user-menu.is-open .user-menu__button svg { transform: rotate(180deg); }
+
+.user-menu__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.user-menu__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 240px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pop);
+  z-index: 25;
+}
+
+.user-menu__identity { display: flex; flex-direction: column; gap: 3px; padding: 8px; }
+.user-menu__panel-name { color: var(--text); font-size: 13px; font-weight: 600; }
+.user-menu__email { overflow: hidden; color: var(--text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.user-menu__divider { height: 1px; margin: 5px 2px; background: var(--border); }
+
+.user-menu__signout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.user-menu__signout:hover { background: var(--surface-alt); }
+
+/* ==========================================================================
    Buttons
    ========================================================================== */
 
@@ -1063,6 +1149,9 @@ button { font-family: inherit; }
   .topbar__controls #account-filter { grid-column: 2; grid-row: 1; }
   .topbar__controls .field--select { grid-column: 1; grid-row: 2; }
   .topbar__controls #theme-toggle { grid-column: 3; grid-row: 2; justify-self: end; }
+  .topbar__controls .user-menu { grid-column: 2; grid-row: 2; justify-self: end; }
+  .user-menu__button { max-width: 42px; padding-right: 5px; }
+  .user-menu__button svg, .user-menu__name { display: none; }
 
   .field--search { width: 160px; }
   .chart-tile__body { flex-direction: column; align-items: flex-start; }
