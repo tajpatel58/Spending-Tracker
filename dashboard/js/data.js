@@ -4,7 +4,7 @@
  * Loads the data the dashboard renders:
  *
  *   CATEGORIES                -> static list below
- *   ACCOUNT_GROUPS / ACCOUNTS -> ../data/accounts/accounts.csv
+ *   ACCOUNT_GROUPS / ACCOUNTS -> Supabase, via the accounts table
  *   MONTHS / TRANSACTIONS     -> Supabase, via supabase-client.js
  *
  * Merchant/category/amount are editable in place from the table (see
@@ -36,41 +36,21 @@ const CATEGORIES = [
 let ACCOUNT_GROUPS = [];
 let ACCOUNTS = [];
 
-/** Splits one CSV line into fields, handling quoted values. */
-function parseCsvLine(line) {
-  const fields = [];
-  let field = '';
-  let quoted = false;
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"' && line[i + 1] === '"') {
-      field += '"';
-      i++;
-    } else if (char === '"') {
-      quoted = !quoted;
-    } else if (char === ',' && !quoted) {
-      fields.push(field.trim());
-      field = '';
-    } else {
-      field += char;
-    }
-  }
-  fields.push(field.trim());
-  return fields;
-}
-
-/** Loads accounts.csv and builds ACCOUNT_GROUPS / ACCOUNTS from it. */
+/** Loads the accounts table and builds ACCOUNT_GROUPS / ACCOUNTS from it. */
 async function loadAccounts() {
-  console.info('[Ledger data] Loading accounts.csv');
-  const response = await fetch('../data/accounts/accounts.csv');
-  if (!response.ok) throw new Error(`Could not load accounts.csv (${response.status})`);
+  console.info('[Ledger data] Loading accounts from Supabase');
+  const { data: rows, error } = await supabaseClient
+    .from('accounts')
+    .select('account_id, account_name, user')
+    .order('user', { ascending: true })
+    .order('account_name', { ascending: true })
+    .order('account_id', { ascending: true });
 
-  const lines = (await response.text()).trim().split(/\r?\n/);
-  const headers = parseCsvLine(lines.shift());
-  const rows = lines.filter(Boolean).map((line) => {
-    const values = parseCsvLine(line);
-    return Object.fromEntries(headers.map((header, index) => [header, values[index] || '']));
-  });
+  if (error) {
+    console.error('[Ledger data] Accounts request failed:', error);
+    throw new Error(`Failed to load accounts: ${error.message}`);
+  }
+
   const groups = new Map();
 
   rows.forEach((row) => {
@@ -87,7 +67,7 @@ async function loadAccounts() {
   ACCOUNTS = ACCOUNT_GROUPS.flatMap((group) =>
     group.accounts.map((account) => ({ ...account, groupId: group.id, groupLabel: group.label }))
   );
-  console.info('[Ledger data] Accounts loaded', {
+  console.info('[Ledger data] Accounts loaded from Supabase', {
     accountCount: ACCOUNTS.length,
     groupCount: ACCOUNT_GROUPS.length,
     accounts: ACCOUNTS,
