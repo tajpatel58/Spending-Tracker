@@ -18,8 +18,15 @@ function renderAll() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Applied before the auth check resolves so the loading screen below
+  // matches the visitor's theme instead of flashing light-then-dark.
+  initTheme();
+
   const session = await authReady;
-  if (!session) return; // signed out — auth.js is already redirecting to login.html
+  if (!session) return; // signed out/unauthorized — auth.js is already redirecting to login.html
+
+  // The auth/access check passed — safe to reveal the dashboard now.
+  document.getElementById('auth-loading').remove();
 
   // Wired up before the data-dependent init so signing out remains available
   // even if loading accounts or transactions fails.
@@ -31,7 +38,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
   Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
 
-  initTheme();
   initAccountFilter();
   initMonthSelect();
   initCategoryChips();
