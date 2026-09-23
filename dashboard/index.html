@@ -11,6 +11,13 @@
 </head>
 <body>
 
+<!-- Removed once the session/access check confirms this visitor is
+     authorized — see js/main.js. Keeps the dashboard from flashing
+     briefly for signed-out or unauthorized visitors. -->
+<div class="auth-loading" id="auth-loading">
+  <div class="auth-loading__spinner" aria-hidden="true"></div>
+</div>
+
 <!-- ============ TOP BAR ============ -->
 <header class="topbar">
   <div class="topbar__inner">

@@ -107,6 +107,32 @@ body {
   transition: background var(--transition), color var(--transition);
 }
 
+/* Covers the page until the session/access check finishes, so a
+   signed-out or unauthorized visitor never sees the dashboard underneath
+   before being redirected to login.html. */
+.auth-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.auth-loading__spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  animation: auth-loading-spin 0.7s linear infinite;
+}
+
+@keyframes auth-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
 h1, h2, h3 {
   font-family: var(--font-display);
   font-weight: 600;
