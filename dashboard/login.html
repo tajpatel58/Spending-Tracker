@@ -66,6 +66,11 @@
     const button = document.getElementById('google-signin');
     const errorEl = document.getElementById('login-error');
 
+    if (new URLSearchParams(window.location.search).get('error') === 'permission_denied') {
+      errorEl.textContent = 'Permission not granted.';
+      window.history.replaceState({}, '', 'login.html');
+    }
+
     button.addEventListener('click', async () => {
       button.disabled = true;
       errorEl.textContent = '';

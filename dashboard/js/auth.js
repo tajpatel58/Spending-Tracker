@@ -12,10 +12,36 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 const IS_LOGIN_PAGE = /login\.html$/.test(window.location.pathname);
 
 /**
- * Checks whether the browser already has a logged-in Supabase session
- * and redirects to keep login.html and the dashboard mutually
- * exclusive: signed-in visitors are bounced off the login page,
- * signed-out visitors are bounced off the dashboard.
+ * Checks whether the signed-in user's email is in the `users` allow-list
+ * table — the actual access boundary is the Supabase RLS policies keyed
+ * on that table, so a row missing for this email reads as "no access"
+ * whether that's because the row genuinely isn't there or because RLS
+ * silently filtered it out. Either way, that's the answer we want.
+ *
+ * @param {import('@supabase/supabase-js').Session} session
+ * @returns {Promise<boolean>}
+ */
+async function hasDataAccess(session) {
+  const { data, error } = await supabaseClient
+    .from('users')
+    .select('email')
+    .eq('email', session.user.email)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[Ledger auth] Access check failed:', error);
+    return false;
+  }
+
+  return !!data;
+}
+
+/**
+ * Checks whether the browser already has a logged-in, authorized
+ * Supabase session and redirects to keep login.html and the dashboard
+ * mutually exclusive: signed-in and authorized visitors are bounced off
+ * the login page, everyone else (signed-out, or signed-in but not on
+ * the `users` allow-list) is bounced off the dashboard.
  *
  * @returns {Promise<import('@supabase/supabase-js').Session|null>}
  */
@@ -29,14 +55,20 @@ async function initializeAuth() {
 
   const session = data.session;
 
-  if (session && IS_LOGIN_PAGE) {
-    window.location.replace('index.html');
-    return session;
+  if (!session) {
+    if (!IS_LOGIN_PAGE) window.location.replace('login.html');
+    return null;
   }
 
-  if (!session && !IS_LOGIN_PAGE) {
-    window.location.replace('login.html');
+  if (!(await hasDataAccess(session))) {
+    await supabaseClient.auth.signOut();
+    window.location.replace('login.html?error=permission_denied');
     return null;
+  }
+
+  if (IS_LOGIN_PAGE) {
+    window.location.replace('index.html');
+    return session;
   }
 
   return session;
