@@ -22,9 +22,9 @@ def load_supabase_client():
     """
     load_env_variables()
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_ANON_KEY")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     
     if not url or not key:
-        raise ValueError("SUPABASE_URL and SUPABASE_ANON_KEY must be set in the .env file.")
+        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the .env file.")
     
     return create_client(url, key)
