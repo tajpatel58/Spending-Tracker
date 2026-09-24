@@ -158,7 +158,7 @@ button { font-family: inherit; }
 .container {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 28px 24px 100px;
+  padding: 28px calc(24px + env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
 }
 
 /* ==========================================================================
@@ -177,7 +177,7 @@ button { font-family: inherit; }
 .topbar__inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: calc(14px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 14px calc(24px + env(safe-area-inset-left));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -949,8 +949,8 @@ button { font-family: inherit; }
 
 .chat-fab {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: calc(24px + env(safe-area-inset-right));
+  bottom: calc(24px + env(safe-area-inset-bottom));
   width: 52px;
   height: 52px;
   border-radius: var(--radius-full);
@@ -970,8 +970,8 @@ button { font-family: inherit; }
 
 .chat-panel {
   position: fixed;
-  right: 24px;
-  bottom: 90px;
+  right: calc(24px + env(safe-area-inset-right));
+  bottom: calc(90px + env(safe-area-inset-bottom));
   width: 340px;
   max-height: 82vh;
   height: 640px;
@@ -1069,8 +1069,8 @@ button { font-family: inherit; }
 
 .login-page__theme-toggle {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: calc(18px + env(safe-area-inset-top));
+  right: calc(18px + env(safe-area-inset-right));
 }
 
 .login {
@@ -1287,8 +1287,26 @@ button { font-family: inherit; }
   .chart-tile__body { flex-direction: column; align-items: flex-start; }
   .chart-tile__canvas-wrap--donut { width: 180px; height: 180px; align-self: center; }
   .chart-tile__canvas-wrap--line { height: 250px; }
-  .chat-panel { width: calc(100vw - 32px); right: 16px; left: 16px; bottom: 84px; }
-  .chat-fab { right: 16px; bottom: 16px; }
+  .chat-panel {
+    width: calc(100vw - 32px);
+    right: calc(16px + env(safe-area-inset-right));
+    left: calc(16px + env(safe-area-inset-left));
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .chat-fab { right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+
+  /* iOS Safari zooms in on focus for inputs under 16px — keep all text controls at 16px here. */
+  .field--search input,
+  .field--select select,
+  .merchant-input,
+  .amount-input,
+  .category-select,
+  .chat-panel__input-row input,
+  .upload-field select { font-size: 16px; }
+
+  /* Larger touch targets on phones. */
+  .icon-btn { width: 40px; height: 40px; }
+  .user-menu__button, .multiselect__button { min-height: 40px; }
 }
 
 /* Reduced motion */
