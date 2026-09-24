@@ -24,6 +24,7 @@ household-ledger/
     charts.js               # the 4 charts (category, user, trend, budget)
     table.js                # the transactions table + in-place editing
     filters.js              # month/account/category/search/sort controls
+    upload.js               # the "Upload statement" dialog (→ Supabase Storage)
     chat.js                 # the chat widget (UI only for now, see below)
     main.js                 # entry point — wires it all up and renders
 ```
@@ -85,6 +86,50 @@ No build step. Either:
 - **Chat popup** is UI-only. Sending a message shows your message, a typing
   indicator, then a static placeholder reply — no backend call is made yet.
   See the `// API:` comment in `js/chat.js` for what to wire up.
+
+## Statement uploads
+
+The upload icon in the top bar opens a dialog. You pick a **bank**, one of
+that bank's **accounts**, the **month** (last, this or next month) and a
+PDF/CSV file. It's uploaded to the `spending-tracker` Supabase Storage
+bucket at:
+
+```
+data/transactions/raw/<User>/<Bank>/<AccountID>/<Month-YY>/<original file name>
+e.g. data/transactions/raw/Taj/Amex/123456/September-26/statement.pdf
+```
+
+`<User>` is the account's owner from the `accounts` table, not the person
+uploading. Characters other than letters, digits, `.`, `_` and `-` in any
+path part become `_`. Uploading a file with the same name into the same
+folder overwrites it. Each object's metadata holds `bank`, `account_id`,
+`month` (`YYYY-MM`), `uploaded_by` and `original_filename`.
+
+Signed-in household members need storage policies to upload. Uploads use
+`upsert`, which needs insert, select and update rights. Run this once in
+the Supabase SQL editor:
+
+```sql
+create policy "Household can upload statements" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'spending-tracker' and name like 'data/transactions/raw/%'
+    and exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can read statements" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'spending-tracker' and name like 'data/transactions/raw/%'
+    and exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can replace statements" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'spending-tracker' and name like 'data/transactions/raw/%'
+    and exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+```
+
+The Python side can read files with the service-role client, which skips
+these policies, e.g.
+`supabase_client.storage.from_("spending-tracker").list("data/transactions/raw/Taj/Amex/123456/September-26")`
+and `.download(path)`.
 
 ## Design notes
 
