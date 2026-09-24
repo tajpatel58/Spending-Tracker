@@ -62,8 +62,24 @@ function initStatementUpload() {
   const accountSelect = document.getElementById('upload-account');
   const monthSelect = document.getElementById('upload-month');
   const fileInput = document.getElementById('upload-file');
+  const filePicker = document.getElementById('upload-filepicker');
+  const fileName = document.getElementById('upload-file-name');
+  const fileClear = document.getElementById('upload-file-clear');
   const status = document.getElementById('upload-status');
   const submitBtn = document.getElementById('upload-submit');
+
+  const refreshFilePicker = () => {
+    const file = fileInput.files[0];
+    filePicker.classList.toggle('upload-filepicker--filled', !!file);
+    fileName.textContent = file ? file.name : 'Choose file…';
+    fileClear.hidden = !file;
+  };
+  fileInput.addEventListener('change', refreshFilePicker);
+  fileClear.addEventListener('click', (e) => {
+    e.preventDefault();
+    fileInput.value = '';
+    refreshFilePicker();
+  });
 
   const banks = [...new Set(ACCOUNTS.map((a) => a.bank))].sort();
   bankSelect.replaceChildren(...banks.map((bank) => new Option(bank, bank)));
@@ -122,6 +138,7 @@ function initStatementUpload() {
       if (error) throw error;
       setStatus(`Uploaded as ${path}`, 'success');
       fileInput.value = '';
+      refreshFilePicker();
     } catch (err) {
       console.error('[Ledger upload] Statement upload failed:', err);
       setStatus(err.message || 'Upload failed.', 'error');
