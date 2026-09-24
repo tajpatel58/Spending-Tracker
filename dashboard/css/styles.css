@@ -1179,21 +1179,52 @@ button { font-family: inherit; }
 .upload-field select { width: 100%; }
 .upload-field__label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
 
-.upload-field input[type="file"] {
-  font-family: var(--font-body);
+.upload-filepicker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
   font-size: 13px;
   color: var(--text-muted);
-}
-
-.upload-field input[type="file"]::file-selector-button {
-  margin-right: 10px;
-  padding: 7px 12px;
-  font: inherit;
-  font-weight: 500;
-  color: var(--text);
   background: var(--surface-alt);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.upload-filepicker__icon { flex: none; color: var(--text-faint); }
+
+.upload-filepicker__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.upload-filepicker--filled .upload-filepicker__name { color: var(--text); }
+
+.upload-filepicker__clear {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.upload-filepicker__clear:hover { color: var(--text); background: var(--surface); }
+
+.upload-filepicker input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   cursor: pointer;
 }
 
