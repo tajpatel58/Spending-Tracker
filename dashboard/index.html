@@ -51,6 +51,13 @@
         <select id="month-select" aria-label="Select month"></select>
       </label>
 
+      <button id="upload-open" class="icon-btn" type="button" aria-haspopup="dialog" aria-label="Upload statement" title="Upload statement">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 15V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 14v3.5A2.5 2.5 0 0 0 6.5 20h11a2.5 2.5 0 0 0 2.5-2.5V14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+
       <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle theme">
         <svg class="icon icon--sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/>
@@ -213,6 +220,40 @@
 
 </main>
 
+<!-- ============ STATEMENT UPLOAD ============ -->
+<dialog id="upload-dialog" class="upload-dialog" aria-labelledby="upload-title">
+  <form id="upload-form" class="upload-form">
+    <div class="upload-form__header">
+      <h3 id="upload-title">Upload statement</h3>
+      <p>Saved to Supabase Storage</p>
+    </div>
+
+    <label class="field field--select upload-field">
+      <span class="upload-field__label">Bank</span>
+      <select id="upload-bank" required></select>
+    </label>
+    <label class="field field--select upload-field">
+      <span class="upload-field__label">Account</span>
+      <select id="upload-account" required></select>
+    </label>
+    <label class="field field--select upload-field">
+      <span class="upload-field__label">Month</span>
+      <select id="upload-month" required></select>
+    </label>
+    <label class="field upload-field">
+      <span class="upload-field__label">Statement file</span>
+      <input type="file" id="upload-file" accept=".pdf,.csv" required>
+    </label>
+
+    <p id="upload-status" class="upload-status" role="status" aria-live="polite"></p>
+
+    <div class="upload-form__actions">
+      <button type="button" class="btn btn--ghost" id="upload-cancel">Close</button>
+      <button type="submit" class="btn btn--primary" id="upload-submit">Upload</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ============ CHAT WIDGET ============ -->
 <button id="chat-fab" class="chat-fab" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="chat-panel" title="Ask about your spending">
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -273,8 +314,9 @@
     10. charts.js                     — the 4 charts
     11. table.js                       — the transactions table + editing
     12. filters.js                     — month/account/category/search/sort controls
-    13. chat.js                         — the chat widget (UI only for now)
-    14. main.js                          — wires it all up and renders the page
+    13. upload.js                       — the statement upload dialog
+    14. chat.js                         — the chat widget (UI only for now)
+    15. main.js                          — wires it all up and renders the page
 -->
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
@@ -288,6 +330,7 @@
 <script src="js/charts.js"></script>
 <script src="js/table.js"></script>
 <script src="js/filters.js"></script>
+<script src="js/upload.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/main.js"></script>
 </body>
