@@ -65,6 +65,28 @@ since the only users are the household. Set it up once in Supabase:
 signed-in visitors are bounced away from it, and the sign-out icon in the
 dashboard's top bar ends the session.
 
+## Deploying to GitHub Pages
+
+`.github/workflows/deploy-pages.yml` deploys the `dashboard/` folder on
+every push to `main`. It generates `dashboard/js/config.js` from repo
+secrets at build time, so the real Supabase key is never committed to
+the repo:
+
+1. In the repo → Settings → Secrets and variables → Actions, add
+   `SUPABASE_URL` and `SUPABASE_ANON_KEY` (same values as your local
+   `config.js`).
+2. In Settings → Pages, set "Build and deployment" → Source to
+   **GitHub Actions**.
+3. Push to `main` (or run the workflow manually from the Actions tab).
+4. Once deployed, add the resulting `.../index.html` URL to Supabase →
+   Authentication → URL Configuration → Redirect URLs (see "Sign-in"
+   above) — Google sign-in will fail without this.
+
+The anon key still ends up in the shipped JS (it has to, to run in the
+browser) — this workflow only keeps it out of the git history. Access
+control still relies on Supabase RLS/the `users` allow-list, not on
+keeping the anon key secret.
+
 ## Running it
 
 No build step. Either:
