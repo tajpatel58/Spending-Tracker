@@ -1381,18 +1381,69 @@ button { font-family: inherit; }
   }
   .chat-fab { right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
 
-  /* iOS Safari zooms in on focus for inputs under 16px — keep all text controls at 16px here. */
-  .field--search input,
-  .field--select select,
-  .merchant-input,
-  .amount-input,
-  .category-select,
-  .chat-panel__input-row input,
-  .upload-field select { font-size: 16px; }
+  /* Compact type scale for phones. iOS Safari normally zooms in when an
+     input under 16px is focused; maximum-scale=1 in the viewport meta tag
+     turns that off (pinch-zoom still works), so text can go smaller here. */
+  .topbar__inner { gap: 8px; padding-top: 6px; padding-bottom: 10px; }
+  .brand { gap: 7px; }
+  .brand__mark svg { width: 18px; height: 18px; }
+  .brand__name { font-size: 15px; }
+  .icon-btn { width: 34px; height: 34px; }
+  .topbar__actions .icon-btn svg { width: 17px; height: 17px; }
+  .user-menu__button,
+  .user-menu__button:hover,
+  .user-menu.is-open .user-menu__button { padding: 4px; min-height: 0; }
+  .user-menu__avatar { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
+  .multiselect__button,
+  .topbar__filters select { min-height: 34px; padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+  .topbar__controls .hide-button { min-height: 34px; padding: 6px 12px; font-size: 13px; }
 
-  /* Larger touch targets on phones. */
-  .icon-btn { width: 40px; height: 40px; }
-  .user-menu__button, .multiselect__button { min-height: 40px; }
+  .container { padding-top: 16px; }
+  .page-heading { margin: 0 0 14px; }
+  .page-heading h1 { font-size: 18px; }
+  .page-heading__subtitle { font-size: 12px; }
+
+  .stats-grid { gap: 8px; margin-bottom: 12px; }
+  .stat-tile { padding: 12px; gap: 4px; }
+  .stat-tile__label { font-size: 10px; }
+  .stat-tile__value { font-size: 17px; }
+  .stat-tile__delta { font-size: 11px; }
+
+  .charts-grid { gap: 12px; margin-bottom: 12px; }
+  .tile__header { padding: 14px 14px 0; }
+  .tile__header h2 { font-size: 13.5px; }
+  .tile__meta { font-size: 11px; }
+  .chart-tile { padding-bottom: 14px; }
+  /* Donut and legend side by side rather than stacked. */
+  .chart-tile__body { flex-direction: row; align-items: center; gap: 16px; padding: 12px 14px 0; }
+  .chart-tile__canvas-wrap--donut { width: 124px; height: 124px; align-self: center; }
+  .chart-tile__body .legend { flex: 1; min-width: 0; }
+  .chart-tile__canvas-wrap--line { padding: 10px 14px 0; height: 210px; }
+  .legend li { font-size: 12px; }
+  .budget-list { gap: 12px; padding: 14px 14px 0; }
+  .budget-item__category { font-size: 12px; }
+  .budget-item__summary { font-size: 11px; }
+  .budget-item__track { height: 6px; }
+
+  .table-tile__header { padding: 12px 14px 10px; }
+  .table-tile__header h2 { font-size: 15px; }
+  .field--search input { padding: 6px 8px; font-size: 13px; }
+  .icon-btn--clear-filter { width: 30px; height: 30px; }
+  .chip { padding: 4px 10px 4px 8px; font-size: 11.5px; }
+  .tx-table thead th { padding: 8px; font-size: 10px; }
+  .tx-table tbody tr { padding: 9px 14px 9px 12px; }
+  .merchant-input { padding: 3px 6px; font-size: 14px; }
+  .tx-table tbody .tx-table__account { padding-left: 7px; font-size: 11.5px; }
+  .amount-edit { padding: 2px 6px; }
+  .amount-edit__prefix { display: none; }
+  .amount-input { font-size: 14px; }
+  .category-badge__label { font-size: 11.5px; }
+  .category-badge__dot { width: 6px; height: 6px; }
+  .hide-checkbox { width: 14px; height: 14px; }
+  .table-tile__footer { padding: 10px 14px; font-size: 11px; }
+
+  .chat-fab { width: 46px; height: 46px; }
+  .chat-fab svg { width: 20px; height: 20px; }
 }
 
 /* Reduced motion */
