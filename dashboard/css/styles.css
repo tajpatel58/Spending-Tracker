@@ -535,12 +535,13 @@ button { font-family: inherit; }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   margin-bottom: 16px;
 }
 
 .stat-tile {
+  min-width: 0; /* lets a long single-line note truncate instead of widening its column */
   padding: 16px 18px 18px;
   display: flex;
   flex-direction: column;
@@ -575,6 +576,7 @@ button { font-family: inherit; }
 .stat-tile__delta.is-down { color: var(--accent); }
 .stat-tile__delta.is-positive { color: var(--accent); }
 .stat-tile__delta.is-negative { color: var(--rose); }
+.stat-tile__delta--truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ==========================================================================
    Charts
@@ -1268,8 +1270,6 @@ button { font-family: inherit; }
 
 @media (max-width: 900px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  /* Five tiles in two columns: "Total saved" takes its own full-width row. */
-  .stat-tile--saved { grid-column: 1 / -1; }
   .charts-grid { grid-template-columns: 1fr; }
 }
 
