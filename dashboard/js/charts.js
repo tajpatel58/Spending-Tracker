@@ -126,7 +126,6 @@ function renderUserChart() {
 
 /** Renders the budget-vs-actual progress bars. */
 function renderBudgetChart() {
-  const totals = categoryTotals(getMonthTransactions(state.month).filter(isExpense));
   const groupNames = ['Dining Out', 'Groceries', 'Housing', 'Shopping', 'Transport', 'Health', 'Extras'];
   const groupColors = {
     'Dining Out': 'var(--cat-dining)',
@@ -137,12 +136,7 @@ function renderBudgetChart() {
     Health: 'var(--cat-health)',
     Extras: 'var(--cat-other)',
   };
-  const actualByGroup = {};
-
-  CATEGORIES.filter(isExpense).forEach((category) => {
-    const groupName = BUDGET_GROUPS[category.id] || 'Extras';
-    actualByGroup[groupName] = (actualByGroup[groupName] || 0) + (totals[category.id] || 0);
-  });
+  const actualByGroup = budgetGroupActuals(state.month);
 
   const entries = groupNames.map((name) => ({
     label: name,

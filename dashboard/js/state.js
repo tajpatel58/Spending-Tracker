@@ -59,6 +59,16 @@ function categoryTotals(txs) {
   return totals;
 }
 
+/** Expense totals for a month, grouped into the budget groups above, e.g. { Groceries: 212.40, ... }. */
+function budgetGroupActuals(month) {
+  const actual = {};
+  Object.entries(categoryTotals(getMonthTransactions(month).filter(isExpense))).forEach(([categoryId, amount]) => {
+    const group = BUDGET_GROUPS[categoryId] || 'Extras';
+    actual[group] = (actual[group] || 0) + amount;
+  });
+  return actual;
+}
+
 /**
  * Transactions for a given month, with hidden transactions and
  * unselected accounts already filtered out.

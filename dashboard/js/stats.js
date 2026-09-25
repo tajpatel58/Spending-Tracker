@@ -2,7 +2,8 @@
  * stats.js
  * ---------------------------------------------------------------------
  * Renders the stat tiles at the top of the dashboard: total spend,
- * income, total saved, transaction count, and daily average.
+ * income, total saved, transaction count, daily average, and the number
+ * of budget categories that are over budget.
  * ---------------------------------------------------------------------
  */
 
@@ -55,6 +56,14 @@ function renderStats() {
   const dim = new Date(y, m, 0).getDate();
   document.getElementById('stat-daily-avg').textContent = currency(total / dim);
   document.getElementById('stat-daily-note').textContent = `Across ${dim} days`;
+
+  const actualByGroup = budgetGroupActuals(state.month);
+  const overBudget = Object.keys(BUDGETS).filter((group) => (actualByGroup[group] || 0) > BUDGETS[group]);
+  document.getElementById('stat-over-budget').textContent = overBudget.length;
+  const overBudgetNote = document.getElementById('stat-over-budget-note');
+  overBudgetNote.textContent = overBudget.length ? overBudget.join(', ') : `All ${Object.keys(BUDGETS).length} within budget`;
+  overBudgetNote.title = overBudgetNote.textContent;
+  overBudgetNote.className = 'stat-tile__delta stat-tile__delta--truncate ' + (overBudget.length ? 'is-negative' : 'is-positive');
 
   document.getElementById('page-subtitle').textContent = `Spending summary — ${MONTH_LABEL(state.month)}`;
 }
