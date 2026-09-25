@@ -198,7 +198,9 @@ button { font-family: inherit; }
   letter-spacing: -0.01em;
 }
 
-.topbar__controls {
+.topbar__controls,
+.topbar__filters,
+.topbar__actions {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -481,6 +483,7 @@ button { font-family: inherit; }
 }
 
 .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+.icon-btn[hidden] { display: none; }
 
 .icon-btn--ghost { border-color: transparent; background: transparent; width: 30px; height: 30px; }
 .icon-btn--ghost:hover { background: var(--surface-alt); }
@@ -806,6 +809,9 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 
+/* The date, repeated inside the account cell for the phone layout (see Responsive). */
+.tx-table__meta-date { display: none; }
+
 .category-badge {
   display: inline-flex;
   align-items: center;
@@ -815,6 +821,9 @@ button { font-family: inherit; }
 }
 
 .category-badge__dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+
+/* Text stand-in for the select in the phone layout (see Responsive). */
+.category-badge__label { display: none; }
 
 .category-select {
   appearance: none;
@@ -1263,27 +1272,104 @@ button { font-family: inherit; }
 @media (max-width: 560px) {
   .container { padding: 20px 14px 100px; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .topbar__controls {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-    gap: 8px;
-  }
+  .stat-tile { padding: 14px 14px 16px; }
+  .stat-tile__value { font-size: 19px; }
 
-  .topbar__controls .multiselect,
-  .topbar__controls .field,
-  .topbar__controls .field select { min-width: 0; width: 100%; }
-  .topbar__controls .multiselect__button,
-  .topbar__controls .field select { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .topbar__controls .hide-button { grid-column: 1; grid-row: 1; justify-self: start; }
-  .topbar__controls #account-filter { grid-column: 2; grid-row: 1; }
-  .topbar__controls #upload-open { grid-column: 3; grid-row: 1; justify-self: end; }
-  .topbar__controls .field--select { grid-column: 1; grid-row: 2; }
-  .topbar__controls #theme-toggle { grid-column: 3; grid-row: 2; justify-self: end; }
-  .topbar__controls .user-menu { grid-column: 2; grid-row: 2; justify-self: end; }
-  .user-menu__button { max-width: 42px; padding-right: 5px; }
+  /* Top bar: brand + borderless icon actions on the first row, the two
+     filters side by side below, and "Hide selected" full width when shown.
+     .topbar__controls steps aside so its children join this grid. */
+  .topbar__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand actions" "filters filters" "hide hide";
+    gap: 10px;
+    padding: 8px calc(14px + env(safe-area-inset-right)) 12px calc(14px + env(safe-area-inset-left));
+  }
+  .topbar__controls { display: contents; }
+  .brand { grid-area: brand; }
+  .topbar__actions { grid-area: actions; gap: 2px; }
+  .topbar__filters { grid-area: filters; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .topbar__controls .hide-button { grid-area: hide; min-height: 40px; }
+
+  .topbar__filters .multiselect,
+  .topbar__filters .field,
+  .topbar__filters select,
+  .multiselect__button { width: 100%; min-width: 0; }
+  .multiselect__button { justify-content: space-between; font-size: 16px; }
+  #account-filter-label { overflow: hidden; text-overflow: ellipsis; }
+  .topbar__filters select { min-height: 40px; overflow: hidden; text-overflow: ellipsis; }
+  .multiselect__panel { width: calc(100vw - 28px); max-height: 65vh; overflow-y: auto; }
+
+  .topbar__actions .icon-btn { border-color: transparent; background: transparent; }
+  .topbar__actions .icon-btn:hover { border-color: transparent; background: var(--surface-alt); }
+  .user-menu__button,
+  .user-menu__button:hover,
+  .user-menu.is-open .user-menu__button { padding: 5px; border-color: transparent; background: transparent; }
+  .user-menu__avatar { width: 30px; height: 30px; flex-basis: 30px; }
   .user-menu__button svg, .user-menu__name { display: none; }
 
-  .field--search { width: 160px; }
+  /* Transactions: search fills the header row, chips scroll sideways in one line. */
+  .table-tile__header { padding: 14px 14px 10px; flex-wrap: nowrap; }
+  .table-controls { flex: 1; min-width: 0; justify-content: flex-end; }
+  .field--search { flex: 1; min-width: 0; max-width: 220px; }
+  .chip-row { flex-wrap: nowrap; overflow-x: auto; padding: 0 14px 12px; scrollbar-width: none; }
+  .chip-row::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+  .table-tile__footer { padding: 12px 14px; }
+
+  /* Each transaction becomes a two-line row, so nothing scrolls sideways:
+       [x] Merchant ................ £12.34
+           25 Sep · Taj · Amex   ● Groceries
+     The header turns into a sort bar (the account sort is desktop-only). */
+  .table-scroll { overflow: visible; }
+  .tx-table, .tx-table thead, .tx-table tbody { display: block; }
+  .tx-table thead tr { display: flex; padding: 0 6px; background: var(--surface-alt); border-bottom: 1px solid var(--border); }
+  .tx-table thead th { position: static; padding: 9px 8px; border-bottom: none; background: none; }
+  .tx-table thead th[data-sort="account"], .tx-table thead .tx-table__exclude-col { display: none; }
+  .tx-table thead .tx-table__amount-col { margin-left: auto; }
+
+  .tx-table tbody tr {
+    display: grid;
+    /* The 4th column fits the amount; the 3rd only grows if the category
+       is wider, so the merchant and the account line each get what's left. */
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "hide merchant merchant amount" "hide meta category category";
+    align-items: center;
+    column-gap: 8px;
+    padding: 8px 14px 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tx-table tbody tr:last-child { border-bottom: none; }
+  .tx-table tbody td { display: block; min-width: 0; padding: 0; border-bottom: none; }
+  .tx-table tbody .exclude-cell { grid-area: hide; }
+  .tx-table tbody .tx-table__merchant { grid-area: merchant; }
+  .tx-table tbody .tx-table__amount { grid-area: amount; justify-self: end; }
+  .tx-table tbody .tx-table__date { display: none; }
+  .tx-table tbody .tx-table__account {
+    grid-area: meta;
+    padding-left: 8px; /* lines up with the merchant input's text */
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tx-table__meta-date { display: inline; font-family: var(--font-mono); }
+  .tx-table__account-id { display: none; }
+  .tx-table tbody .tx-table__category { grid-area: category; justify-self: end; }
+  .merchant-input { min-width: 0; }
+  .amount-input { width: 8ch; }
+  /* The category shows as small text; the real select sits invisibly on
+     top so tapping still opens the native picker, and stays 16px so iOS
+     doesn't zoom in (see the note below). */
+  .tx-table__category .category-badge { position: relative; }
+  .category-badge__label {
+    display: inline;
+    padding-right: 14px;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2396A0AD' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right center;
+  }
+  .tx-table__category .category-select { position: absolute; inset: 0; width: 100%; opacity: 0; }
   .chart-tile__body { flex-direction: column; align-items: flex-start; }
   .chart-tile__canvas-wrap--donut { width: 180px; height: 180px; align-self: center; }
   .chart-tile__canvas-wrap--line { height: 250px; }
