@@ -1,4 +1,4 @@
-# Ledger — Household Spending Dashboard (Frontend)
+# Ledger — Household Spending Dashboard
 
 A static, no-build-step frontend: plain HTML, CSS, and JS — no bundler, no
 `npm install`. Open `index.html` in a browser (or serve the folder) and it

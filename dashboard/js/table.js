@@ -49,10 +49,11 @@ function renderTable() {
           <td class="tx-table__merchant">
             <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
           </td>
-          <td class="tx-table__account">${acc.groupLabel} · ${acc.bank} · ${acc.label}</td>
-          <td>
+          <td class="tx-table__account"><span class="tx-table__meta-date">${formatDate(t.date)} · </span>${acc.groupLabel} · ${acc.bank}<span class="tx-table__account-id"> · ${acc.label}</span></td>
+          <td class="tx-table__category">
             <span class="category-badge">
               <span class="category-badge__dot" style="background:${cat.color}"></span>
+              <span class="category-badge__label">${cat.label}</span>
               <select class="category-select" data-tx-id="${t.id}" aria-label="Change category for ${escapeAttr(t.merchant)}">${options}</select>
             </span>
           </td>
