@@ -1,8 +1,8 @@
 /**
  * stats.js
  * ---------------------------------------------------------------------
- * Renders the four stat tiles at the top of the dashboard: total spend,
- * income, transaction count, and daily average.
+ * Renders the stat tiles at the top of the dashboard: total spend,
+ * income, total saved, transaction count, and daily average.
  * ---------------------------------------------------------------------
  */
 
@@ -34,6 +34,17 @@ function renderStats() {
     .filter((t) => t.category === 'salary' || t.category === 'interest')
     .reduce((sum, t) => sum + t.amount, 0);
   document.getElementById('stat-income').textContent = currency(income);
+
+  const saved = income - total;
+  document.getElementById('stat-saved').textContent = saved < 0 ? `-${currency(-saved)}` : currency(saved);
+  const savedNote = document.getElementById('stat-saved-note');
+  if (income > 0) {
+    savedNote.textContent = `${((saved / income) * 100).toFixed(1)}% of income`;
+    savedNote.className = 'stat-tile__delta ' + (saved >= 0 ? 'is-positive' : 'is-negative');
+  } else {
+    savedNote.textContent = 'Income − total spend';
+    savedNote.className = 'stat-tile__delta';
+  }
 
   const expenseCount = txs.filter(isExpense).length;
   document.getElementById('stat-count').textContent = txs.length;
