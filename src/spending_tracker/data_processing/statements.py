@@ -12,14 +12,14 @@ from spending_tracker.database import transactions as transactions_db
 
 
 _BANK_TO_EXT_MAPPING = {
-    "Chase": "pdf",
+    "Chase": "csv",
     "Amex": "csv",
     "Nationwide": "csv"
 }
 
 
 _BANK_TO_DATA_LOADING_FUNCTIONS = {
-    "Chase": chase.load_raw_chase_statement_pdf,
+    "Chase": chase.load_raw_chase_statement_csv,
     "Amex": amex.load_raw_amex_statement_csv,
     "Nationwide": nationwide.load_raw_nationwide_statement_csv
 }
