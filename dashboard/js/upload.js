@@ -5,12 +5,13 @@
  * accounts, the statement month (last/this/next month) and a file; it's
  * uploaded to the `spending-tracker` Supabase Storage bucket at
  *
- *   data/transactions/raw/<User>/<Bank>/<AccountID>/<Month-YY>/<file name>
+ *   data/transactions/raw/<User>/<Bank>/<AccountID>/<Month-YY>/statement.<csv|pdf>
  *   e.g. data/transactions/raw/Taj/Amex/123456/September-26/statement.pdf
  *
  * <User> is the account's owner (from the accounts table), not whoever
- * is uploading. Uploading a file with the same name into the same
- * folder overwrites it. The upload details (bank, account_id, month,
+ * is uploading. The file is always saved as statement.csv or
+ * statement.pdf, whatever its original name, so a new upload of the same
+ * type for the same account and month overwrites the previous one. The upload details (bank, account_id, month,
  * uploaded_by, original_filename) are stored on the object's metadata.
  * ---------------------------------------------------------------------
  */
@@ -126,7 +127,7 @@ function initStatementUpload() {
     try {
       const { data: { session } } = await supabaseClient.auth.getSession();
       const account = ACCOUNTS.find((a) => a.id === accountSelect.value && a.bank === bankSelect.value);
-      const path = statementPath(account, monthSelect.value, file.name);
+      const path = statementPath(account, monthSelect.value, `statement.${extension}`);
       const { error } = await supabaseClient.storage
         .from(STATEMENTS_BUCKET)
         .upload(path, file, {
