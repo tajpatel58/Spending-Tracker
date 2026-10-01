@@ -1,6 +1,9 @@
+from pathlib import Path
 from urllib import response
+from pandas import io
 from supabase import Client
 import pandas as pd
+from spending_tracker.database.supabase_client import list_folders, list_files, list_all
 
 def upload_transactions_to_db(
     transactions_df: pd.DataFrame,
@@ -94,3 +97,22 @@ def fetch_manually_categorised_transactions_as_dict(
     ]
 
     return labelled_examples
+
+
+def fetch_transactions_from_bucket(month: str, 
+                                   bucket,
+                                   data_home: Path):
+    results = {}
+    transactions_base = "data/transactions/raw"
+    users = list_folders(transactions_base, bucket)
+    for u in users:
+        for acct_name in list_folders(f"{transactions_base}/{u}", bucket):
+            for acct_id in list_folders(f"{transactions_base}/{u}/{acct_name}", bucket):
+                month_path = f"{transactions_base}/{u}/{acct_name}/{acct_id}/{month}"
+                for name in list_files(month_path, bucket):   # empty list if month folder doesn't exist
+                    full = f"{month_path}/{name}"
+                    local_path = data_home / "transactions" / "raw" / u / acct_name / acct_id / month / name
+                    local_path.parent.mkdir(parents=True, exist_ok=True)
+                    local_path.write_bytes(bucket.download(full))
+                    results[full] = local_path
+    return results
