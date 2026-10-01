@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCategoryFilterControl();
   initSorting();
   initTableEditing();
+  initTableExport();
   initStatementUpload();
   initChat();
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);

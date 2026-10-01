@@ -19,6 +19,16 @@
  * @returns {Promise<Array<Object>>} transactions shaped for the
  *   dashboard: { id, date, merchant, category, amount, account, user, hidden }
  */
+/**
+ * Returns the dashboard category id for a stored category, or null when
+ * it's missing or not one of CATEGORIES (e.g. an LLM answer of 'unknown').
+ * Callers fall back to 'other', which the dashboard shows as "Unassigned".
+ */
+function normalizeCategory(value) {
+  const id = String(value ?? '').trim().toLowerCase();
+  return CATEGORIES.some((c) => c.id === id) ? id : null;
+}
+
 async function fetchTransactions() {
   console.info('[Ledger data] Requesting transactions and transaction metadata from Supabase');
   const [transactionsResult, metadataResult] = await Promise.all([
@@ -58,14 +68,14 @@ async function fetchTransactions() {
       const metadata = metadataByEventId.get(transaction.event_id) || {};
 
       const merchant = metadata.manual_merchant ?? metadata.llm_merchant ?? transaction.merchant;
-      const category = metadata.manual_category ?? metadata.llm_category ?? 'other';
+      const category = normalizeCategory(metadata.manual_category) ?? normalizeCategory(metadata.llm_category) ?? 'other';
       const amount = metadata.manual_amount ?? transaction.amount;
 
       return {
         id: transaction.event_id,
         date: transaction.date,
         merchant,
-        category: category || 'other',
+        category,
         amount: Number(amount),
         account: String(transaction.account_id),
         user: transaction.user,

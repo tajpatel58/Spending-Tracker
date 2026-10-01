@@ -5,6 +5,7 @@
  * a category, renaming a merchant, correcting an amount, or hiding
  * transactions. Edits update the UI immediately, then get saved through
  * transactions-api.js — if the save fails, the edit is rolled back.
+ * The export button downloads the rows currently shown as a CSV.
  * ---------------------------------------------------------------------
  */
 
@@ -192,4 +193,37 @@ function initTableEditing() {
       updateHideButton();
     }
   });
+}
+
+/** Quotes a value for CSV when it contains a comma, quote or newline. */
+function csvCell(value) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/** Downloads the transactions currently shown in the table (filters, search and sort applied) as a CSV. */
+function exportTableCsv() {
+  const txs = sortTransactions(getFilteredTransactions());
+  const header = ['Date', 'Merchant', 'User', 'Bank', 'Account', 'Category', 'Amount'];
+  const rows = txs.map((t) => {
+    const acc = accountById[t.account];
+    return [t.date, t.merchant, acc.groupLabel, acc.bank, acc.label, catById[t.category].label, t.amount.toFixed(2)];
+  });
+  const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
+
+  // The BOM makes Excel read the file as UTF-8 (e.g. for £ or accented merchants).
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `transactions-${state.month}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Wires up the table's export button. */
+function initTableExport() {
+  document.getElementById('export-table').addEventListener('click', exportTableCsv);
 }
