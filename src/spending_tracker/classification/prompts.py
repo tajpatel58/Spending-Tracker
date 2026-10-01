@@ -8,6 +8,7 @@ CATEGORIES = [
     "shopping",
     "health",
     "birthday/gifts",
+    "activities",
     "salary",
     "interest",
     "refund",
@@ -111,6 +112,9 @@ def build_classification_prompt(
                 - The cleaned merchant should normally be a short, human-readable
                 business or merchant name.
                 - Salary is likely to be a positive amount paid in and should be classified as "salary". 
+                - Use "activities" for leisure activities and experiences, e.g. cinema,
+                theatre, concerts, gigs, events, sports and activity bookings, museums,
+                attractions and day trips.
 
 
                 Transaction to classify:
