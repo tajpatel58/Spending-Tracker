@@ -26,7 +26,7 @@ def load_raw_chase_statement_csv(csv_path: Path) -> pd.DataFrame:
     expected_columns = ["Date", "Time", "Transaction Type", "Transaction Description", "Amount", "Balance"]
     
     # Use pandas to read the CSV file
-    raw_chase_df = pd.read_csv(csv_path, usecols=expected_columns, skiprows=1)
+    raw_chase_df = pd.read_csv(csv_path, usecols=expected_columns, skiprows=1, dtype=str)
 
     # Rename columns to match the expected format for further processing
     raw_chase_df.rename(columns={
