@@ -36,6 +36,11 @@ function statementMonthFolder(key) {
   return `${MONTH_NAMES[Number(m) - 1]}-${y.slice(2)}`;
 }
 
+/** Storage folder names for banks whose display name differs from the folder. */
+const BANK_FOLDERS = {
+  'Chase Bank': 'Chase',
+};
+
 /**
  * Storage path for a statement, e.g.
  * 'data/transactions/raw/Taj/Amex/123456/September-26/statement.pdf'.
@@ -46,7 +51,7 @@ function statementPath(account, monthKey, fileName) {
   return [
     STATEMENTS_PREFIX,
     safe(account.groupLabel),
-    safe(account.bank),
+    safe(BANK_FOLDERS[account.bank] ?? account.bank),
     safe(account.id),
     statementMonthFolder(monthKey),
     safe(fileName),
