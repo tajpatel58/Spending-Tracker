@@ -33,7 +33,6 @@ def find_raw_transaction_partitions(
 
     for statement_path in sorted(raw_transactions_root.rglob("statement.*")):
         relative_parts = statement_path.relative_to(raw_transactions_root).parts
-        print(relative_parts)
         if len(relative_parts) != 5:
             raise ValueError(
                 "Expected raw files at "
