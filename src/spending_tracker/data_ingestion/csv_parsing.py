@@ -36,12 +36,8 @@ def load_csv_in_batch(
     if not csv_files:
         raise FileNotFoundError(f"No CSV files found under {data_path_root}")
 
-    print(csv_files)
-
     # filter paths based on user, bank, account_id, and month
     filtered_csv_paths = filter_csv_paths(csv_files, specific_user, specific_bank, specific_account_id, specific_month)
-
-    print(filtered_csv_paths)
 
     # ensure account_id column is read as string to preserve leading zeros
     list_of_dataframes = [pd.read_csv(csv_path, dtype=dtype_kwargs) for csv_path in filtered_csv_paths]
