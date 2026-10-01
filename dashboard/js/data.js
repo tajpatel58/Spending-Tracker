@@ -26,6 +26,7 @@ const CATEGORIES = [
   { id: 'shopping',      label: 'Shopping',        color: 'var(--cat-shopping)' },
   { id: 'health',        label: 'Health',          color: 'var(--cat-health)' },
   { id: 'birthday/gifts',label: 'Birthday/Gifts',  color: 'var(--cat-birthday)' },
+  { id: 'activities',    label: 'Activities',      color: 'var(--cat-activities)' },
   { id: 'other',         label: 'Unassigned',      color: 'var(--cat-other)' },
   { id: 'salary',        label: 'Salary',          color: 'var(--cat-salary)' },
   { id: 'interest',      label: 'Interest Payments', color: 'var(--cat-interest)' },
