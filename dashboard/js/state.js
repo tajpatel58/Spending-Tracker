@@ -49,6 +49,7 @@ const BUDGET_GROUPS = {
   holiday: 'Extras',
   subscriptions: 'Extras',
   'birthday/gifts': 'Extras',
+  activities: 'Extras',
   other: 'Extras',
 };
 
