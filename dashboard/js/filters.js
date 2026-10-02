@@ -16,6 +16,7 @@ function initMonthSelect() {
   select.value = state.month;
   select.addEventListener('change', () => {
     state.month = select.value;
+    try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
     renderAll();
   });
 }
