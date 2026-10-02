@@ -8,8 +8,13 @@
  * ---------------------------------------------------------------------
  */
 
+/** The month last picked on either page, so Overview and Calendar stay in step. */
+function savedMonth() {
+  try { return sessionStorage.getItem('ledger-month'); } catch { return null; }
+}
+
 const state = {
-  month: null, // set to the most recent month once transactions load
+  month: savedMonth(), // falls back to the most recent month once transactions load
   activeCategories: new Set(CATEGORIES.map((c) => c.id)), // all active
   categoryFilter: null,
   activeAccounts: new Set(), // populated after accounts.csv loads

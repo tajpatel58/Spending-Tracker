@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Ledger — Spending Calendar</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Removed once the session/access check confirms this visitor is
+     authorized — see js/main.js. Keeps the dashboard from flashing
+     briefly for signed-out or unauthorized visitors. -->
+<div class="auth-loading" id="auth-loading">
+  <div class="auth-loading__spinner" aria-hidden="true"></div>
+</div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar__inner">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="9" height="9" rx="2" fill="var(--accent)"/>
+          <rect x="12" y="1" width="9" height="9" rx="2" fill="var(--gold)"/>
+          <rect x="1" y="12" width="9" height="9" rx="2" fill="var(--gold)"/>
+          <rect x="12" y="12" width="9" height="9" rx="2" fill="var(--accent)"/>
+        </svg>
+      </span>
+      <span class="brand__name">Ledger</span>
+    </div>
+
+    <div class="topbar__controls">
+      <div class="topbar__filters">
+        <div class="multiselect" id="account-filter">
+          <button type="button" class="multiselect__button" id="account-filter-button" aria-haspopup="listbox" aria-expanded="false">
+            <span id="account-filter-label">All accounts</span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="multiselect__panel" id="account-filter-panel" role="listbox" aria-label="Filter by account" hidden></div>
+        </div>
+
+        <label class="field field--select" for="month-select">
+          <span class="field__label">Month</span>
+          <select id="month-select" aria-label="Select month"></select>
+        </label>
+      </div>
+
+      <div class="topbar__actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+          <svg class="icon icon--sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <svg class="icon icon--moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="user-menu" id="user-menu">
+          <button class="user-menu__button" id="user-menu-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu-panel">
+            <span class="user-menu__avatar" id="user-menu-avatar" aria-hidden="true"></span>
+            <span class="user-menu__name" id="user-menu-name"></span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="user-menu__panel" id="user-menu-panel" role="menu" hidden>
+            <div class="user-menu__identity">
+              <span class="user-menu__panel-name" id="user-menu-panel-name"></span>
+              <span class="user-menu__email" id="user-menu-email"></span>
+            </div>
+            <div class="user-menu__divider"></div>
+            <button id="signout-button" class="user-menu__signout" type="button" role="menuitem">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 12H10.5M20 12l-3.5-3.5M20 12l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Sign out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MAIN ============ -->
+<main class="container">
+
+  <div class="page-heading page-heading--with-nav">
+    <div>
+      <h1>Calendar</h1>
+      <p id="page-subtitle" class="page-heading__subtitle">Daily spending</p>
+    </div>
+    <nav class="view-nav" aria-label="Views">
+      <a href="index.html" class="view-nav__link">Overview</a>
+      <a href="calendar.html" class="view-nav__link is-active" aria-current="page">Calendar</a>
+    </nav>
+  </div>
+
+  <!-- Stat tiles -->
+  <section class="stats-grid stats-grid--four" aria-label="Month summary">
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">Total spend</span>
+      <span class="stat-tile__value" id="cal-total">£0</span>
+      <span class="stat-tile__delta" id="cal-total-note">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">Daily average</span>
+      <span class="stat-tile__value" id="cal-avg">£0</span>
+      <span class="stat-tile__delta" id="cal-avg-note">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">Heaviest day</span>
+      <span class="stat-tile__value" id="cal-max">—</span>
+      <span class="stat-tile__delta" id="cal-max-note">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <span class="stat-tile__label">No-spend days</span>
+      <span class="stat-tile__value" id="cal-zero">0</span>
+      <span class="stat-tile__delta" id="cal-zero-note">—</span>
+    </div>
+  </section>
+
+  <section class="calendar-grid" aria-label="Calendar">
+    <div class="tile calendar-tile">
+      <div class="tile__header">
+        <h2 id="cal-title">Spend per day</h2>
+        <div class="heat-legend" aria-label="Colour key">
+          <span>Less</span>
+          <span class="heat-legend__swatch heat-0" title="No spend"></span>
+          <span class="heat-legend__swatch heat-1" id="heat-key-1"></span>
+          <span class="heat-legend__swatch heat-2" id="heat-key-2"></span>
+          <span class="heat-legend__swatch heat-3" id="heat-key-3"></span>
+          <span class="heat-legend__swatch heat-4" id="heat-key-4"></span>
+          <span class="heat-legend__swatch heat-5" id="heat-key-5"></span>
+          <span>More</span>
+        </div>
+      </div>
+      <div class="calendar" role="grid" aria-labelledby="cal-title">
+        <div class="calendar__weekdays" role="row">
+          <span role="columnheader">Mon</span><span role="columnheader">Tue</span><span role="columnheader">Wed</span>
+          <span role="columnheader">Thu</span><span role="columnheader">Fri</span><span role="columnheader">Sat</span>
+          <span role="columnheader">Sun</span>
+        </div>
+        <div class="calendar__days" id="calendar-days"></div>
+      </div>
+    </div>
+
+    <div class="tile day-tile" aria-live="polite">
+      <div class="tile__header">
+        <h2 id="day-title">—</h2>
+        <span class="tile__meta" id="day-meta"></span>
+      </div>
+      <ul class="day-list" id="day-list"></ul>
+      <p class="empty-state" id="day-empty" hidden>No spending on this day.</p>
+    </div>
+  </section>
+
+</main>
+
+<div class="calendar-tooltip" id="calendar-tooltip" role="tooltip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!--
+  Same load order as index.html (see the notes there), minus the
+  scripts this page doesn't use. calendar.js replaces main.js.
+-->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/data.js"></script>
+<script src="js/format.js"></script>
+<script src="js/state.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/calendar.js"></script>
+</body>
+</html>
