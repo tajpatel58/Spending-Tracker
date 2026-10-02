@@ -113,6 +113,24 @@ const accountsReady = authReady.then(async (session) => {
   });
 });
 
+/**
+ * Re-files a transaction under the month of its (new) date, adding that
+ * month to MONTHS if it's the first transaction there. Used when a date
+ * edit moves a transaction into a different month.
+ */
+function refileTransaction(transaction, previousDate) {
+  const from = previousDate.slice(0, 7);
+  const to = transaction.date.slice(0, 7);
+  if (from === to) return;
+  TRANSACTIONS[from] = (TRANSACTIONS[from] || []).filter((t) => t !== transaction);
+  if (!TRANSACTIONS[to]) {
+    TRANSACTIONS[to] = [];
+    MONTHS.push({ key: to });
+    MONTHS.sort((a, b) => a.key.localeCompare(b.key));
+  }
+  TRANSACTIONS[to].push(transaction);
+}
+
 /** Formats a month key like '2026-08' as "August 2026". */
 const MONTH_LABEL = (key) => {
   const [y, m] = key.split('-').map(Number);

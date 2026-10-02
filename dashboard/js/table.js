@@ -2,8 +2,8 @@
  * table.js
  * ---------------------------------------------------------------------
  * Renders the transactions table and handles in-place editing: changing
- * a category, renaming a merchant, correcting an amount, or hiding
- * transactions. Edits update the UI immediately, then get saved through
+ * a category, renaming a merchant, correcting an amount, moving the date
+ * (via the pop-over calendar in datepicker.js), or hiding transactions. Edits update the UI immediately, then get saved through
  * transactions-api.js — if the save fails, the edit is rolled back.
  * The export button downloads the rows currently shown as a CSV.
  * ---------------------------------------------------------------------
@@ -27,6 +27,17 @@ function sortTransactions(txs) {
   });
 }
 
+/**
+ * The clickable date shown in a row. `extraClass` distinguishes the
+ * desktop date column from the date inside the mobile account line.
+ */
+function dateButton(t, extraClass) {
+  const edited = t.date !== t.originalDate;
+  const title = edited ? `Moved from ${formatDate(t.originalDate)} — click to change` : 'Change date';
+  return `<button type="button" class="date-button ${extraClass}${edited ? ' is-edited' : ''}" data-tx-id="${t.id}"
+    aria-haspopup="dialog" aria-expanded="false" title="${title}" aria-label="Date ${formatDate(t.date)}${edited ? `, moved from ${formatDate(t.originalDate)}` : ''}. Change date">${formatDate(t.date)}</button>`;
+}
+
 /** Renders the transactions table body and footer count for the current filters. */
 function renderTable() {
   const txs = sortTransactions(getFilteredTransactions());
@@ -46,11 +57,11 @@ function renderTable() {
       ).join('');
       return `
         <tr>
-          <td class="tx-table__date">${formatDate(t.date)}</td>
+          <td class="tx-table__date">${dateButton(t, 'date-button--column')}</td>
           <td class="tx-table__merchant">
             <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
           </td>
-          <td class="tx-table__account"><span class="tx-table__meta-date">${formatDate(t.date)} · </span>${acc.groupLabel} · ${acc.bank}<span class="tx-table__account-id"> · ${acc.label}</span></td>
+          <td class="tx-table__account"><span class="tx-table__meta-date">${dateButton(t, 'date-button--meta')} · </span>${acc.groupLabel} · ${acc.bank}<span class="tx-table__account-id"> · ${acc.label}</span></td>
           <td class="tx-table__category">
             <span class="category-badge">
               <span class="category-badge__dot" style="background:${cat.color}"></span>
@@ -169,6 +180,19 @@ function initTableEditing() {
     }
   });
 
+  body.addEventListener('click', (e) => {
+    const button = e.target.closest('.date-button');
+    if (!button) return;
+    const tx = (TRANSACTIONS[state.month] || []).find((t) => t.id === button.dataset.txId);
+    if (!tx) return;
+    openDatePicker({
+      anchor: button,
+      value: tx.date,
+      original: tx.originalDate,
+      onSelect: (manualDate) => changeTransactionDate(tx, manualDate),
+    });
+  });
+
   document.getElementById('hide-selected-button').addEventListener('click', async (e) => {
     const selectedIds = [...state.selectedTransactionIds];
     if (!selectedIds.length) return;
@@ -193,6 +217,44 @@ function initTableEditing() {
       updateHideButton();
     }
   });
+}
+
+/**
+ * Moves a transaction to a new date (null = back to the bank's date).
+ * If that's a different month, the transaction is re-filed there and
+ * drops out of the current view, so a short note says where it went.
+ */
+async function changeTransactionDate(tx, manualDate) {
+  const previousDate = tx.date;
+  const hadMonths = MONTHS.length;
+  tx.date = manualDate ?? tx.originalDate;
+  refileTransaction(tx, previousDate);
+  if (MONTHS.length !== hadMonths) renderMonthOptions();
+  renderAll();
+
+  const movedMonth = tx.date.slice(0, 7) !== previousDate.slice(0, 7);
+  if (movedMonth) showTableNote(`Moved to ${formatDate(tx.date)} · ${MONTH_LABEL(tx.date.slice(0, 7))}`);
+
+  try {
+    await updateTransactionDate(tx.id, manualDate);
+  } catch (error) {
+    console.error('Could not update transaction date:', error.message || error);
+    const failedDate = tx.date;
+    tx.date = previousDate;
+    refileTransaction(tx, failedDate);
+    renderAll();
+    showTableNote('Could not save the new date', true);
+  }
+}
+
+/** Shows a brief note in the table footer (e.g. after a transaction moves month). */
+function showTableNote(text, isError = false) {
+  const note = document.getElementById('table-note');
+  note.textContent = text;
+  note.classList.toggle('is-error', isError);
+  note.hidden = false;
+  clearTimeout(showTableNote.timer);
+  showTableNote.timer = setTimeout(() => { note.hidden = true; }, 4000);
 }
 
 /** Quotes a value for CSV when it contains a comma, quote or newline. */

@@ -7,13 +7,19 @@
  * ---------------------------------------------------------------------
  */
 
-/** Populates the month dropdown and re-renders the dashboard when it changes. */
-function initMonthSelect() {
+/** Fills the month dropdown from MONTHS (newest first). Re-run if MONTHS changes. */
+function renderMonthOptions() {
   const select = document.getElementById('month-select');
   select.innerHTML = MONTHS.slice().reverse().map((m) =>
     `<option value="${m.key}">${MONTH_LABEL(m.key)}</option>`
   ).join('');
   select.value = state.month;
+}
+
+/** Populates the month dropdown and re-renders the dashboard when it changes. */
+function initMonthSelect() {
+  const select = document.getElementById('month-select');
+  renderMonthOptions();
   select.addEventListener('change', () => {
     state.month = select.value;
     try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
