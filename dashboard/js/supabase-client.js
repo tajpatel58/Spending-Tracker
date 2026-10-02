@@ -39,7 +39,7 @@ async function fetchTransactions() {
 
     supabaseClient
       .from('transactions_metadata')
-      .select('event_id, llm_merchant, llm_category, manual_merchant, manual_category, manual_amount, hidden'),
+      .select('event_id, llm_merchant, llm_category, manual_merchant, manual_category, manual_amount, manual_date, hidden'),
   ]);
 
   if (transactionsResult.error) {
@@ -70,10 +70,13 @@ async function fetchTransactions() {
       const merchant = metadata.manual_merchant ?? metadata.llm_merchant ?? transaction.merchant;
       const category = normalizeCategory(metadata.manual_category) ?? normalizeCategory(metadata.llm_category) ?? 'other';
       const amount = metadata.manual_amount ?? transaction.amount;
+      // A manual date (e.g. lined up with a calendar event) wins over the bank's date.
+      const date = metadata.manual_date ?? transaction.date;
 
       return {
         id: transaction.event_id,
-        date: transaction.date,
+        date,
+        originalDate: transaction.date,
         merchant,
         category,
         amount: Number(amount),

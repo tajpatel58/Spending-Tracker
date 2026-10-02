@@ -2,7 +2,7 @@
  * transactions-api.js
  * ---------------------------------------------------------------------
  * Writes edits made in the dashboard (category, merchant name, amount,
- * hide) back to Supabase. Each function updates the transactions_metadata
+ * date, hide) back to Supabase. Each function updates the transactions_metadata
  * row for one transaction and throws on failure, so the caller can undo
  * its optimistic UI update (see table.js).
  * ---------------------------------------------------------------------
@@ -35,6 +35,21 @@ async function updateTransactionAmount(transactionId, amount) {
   const { data, error } = await supabaseClient
     .from('transactions_metadata')
     .update({ manual_amount: amount })
+    .eq('event_id', transactionId)
+    .select('event_id');
+
+  if (error) throw error;
+  if (!data?.length) throw new Error(`No metadata row found for transaction ${transactionId}`);
+}
+
+/**
+ * Overrides a transaction's date ('YYYY-MM-DD'). Passing null clears the
+ * override so the bank's original date is used again.
+ */
+async function updateTransactionDate(transactionId, date) {
+  const { data, error } = await supabaseClient
+    .from('transactions_metadata')
+    .update({ manual_date: date })
     .eq('event_id', transactionId)
     .select('event_id');
 

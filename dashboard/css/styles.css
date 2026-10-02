@@ -1297,6 +1297,164 @@ button { font-family: inherit; }
 .btn:disabled { opacity: 0.6; cursor: wait; }
 
 /* ==========================================================================
+   Editable dates + date picker
+   ========================================================================== */
+
+.date-button {
+  padding: 3px 6px;
+  margin: -3px -6px;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.date-button:hover,
+.date-button[aria-expanded="true"] { background: var(--surface-alt); border-color: var(--border-strong); }
+.date-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* A moved date reads in the accent colour with a small dot, so overrides are easy to spot. */
+.date-button.is-edited { color: var(--accent); }
+.date-button.is-edited::after {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 0 2px 4px;
+  vertical-align: middle;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.date-button--meta { padding: 1px 4px; margin: -1px -4px; }
+
+.datepicker {
+  position: fixed;
+  z-index: 40;
+  width: 248px;
+  padding: 10px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  animation: chat-pop 140ms ease;
+}
+
+.datepicker[hidden] { display: none; }
+
+.datepicker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.datepicker__title { font-family: var(--font-display); font-size: 13.5px; font-weight: 600; }
+
+.datepicker__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.datepicker__nav:hover { color: var(--text); background: var(--surface-alt); border-color: var(--border); }
+
+.datepicker__weekdays,
+.datepicker__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.datepicker__weekdays span {
+  padding: 4px 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.datepicker__day {
+  position: relative;
+  height: 30px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.datepicker__day:hover { background: var(--surface-alt); border-color: var(--border); }
+.datepicker__day:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.datepicker__day.is-today { font-weight: 600; }
+.datepicker__day.is-selected,
+.datepicker__day.is-selected:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+/* The bank's original date carries a small dot underneath. */
+.datepicker__day.is-original::after,
+.datepicker__original-dot {
+  width: 4px;
+  height: 4px;
+  background: var(--text-faint);
+  border-radius: 50%;
+}
+
+.datepicker__day.is-original::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.datepicker__day.is-selected.is-original::after { background: #fff; }
+
+.datepicker__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.datepicker__original { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); }
+.datepicker__original-dot { display: inline-block; flex: none; }
+
+.datepicker__reset {
+  padding: 3px 8px;
+  font: inherit;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.datepicker__reset:hover { background: var(--accent-soft); }
+
+.table-note { color: var(--accent); }
+.table-note.is-error { color: var(--rose); }
+.table-note[hidden] { display: none; }
+
+/* ==========================================================================
    View nav (Overview / Calendar)
    ========================================================================== */
 
