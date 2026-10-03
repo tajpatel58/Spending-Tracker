@@ -52,13 +52,19 @@ function renderDatePicker() {
   const edited = value !== original;
   datePicker.el.innerHTML = `
     <div class="datepicker__header">
-      <button type="button" class="datepicker__nav" data-shift="-1" aria-label="Previous month">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
       <span class="datepicker__title">${MONTH_LABEL(key)}</span>
-      <button type="button" class="datepicker__nav" data-shift="1" aria-label="Next month">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4.5 2.5L8 6 4.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <div class="datepicker__controls">
+        <button type="button" class="datepicker__nav" data-shift="-1" aria-label="Previous month">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="datepicker__nav" data-shift="1" aria-label="Next month">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4.5 2.5L8 6 4.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="datepicker__divider" aria-hidden="true"></span>
+        <button type="button" class="datepicker__close" aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2L2 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
     </div>
     <div class="datepicker__weekdays" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
     <div class="datepicker__grid">${days.join('')}</div>
@@ -122,6 +128,12 @@ function initDatePicker() {
       datePicker.viewMonth = shiftMonth(datePicker.viewMonth, Number(shift.dataset.shift));
       renderDatePicker();
       positionDatePicker();
+      return;
+    }
+    if (e.target.closest('.datepicker__close')) {
+      const { anchor } = datePicker.options;
+      closeDatePicker();
+      anchor.focus({ preventScroll: true });
       return;
     }
     const day = e.target.closest('.datepicker__day');
