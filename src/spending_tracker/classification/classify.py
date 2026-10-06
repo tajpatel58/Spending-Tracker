@@ -2,7 +2,7 @@ import pandas as pd
 from spending_tracker.classification.ollama import llm_classify_transaction
 
 
-def apply_to_df(
+def transactions_apply_to_df(
     transactions_metadata_df: pd.DataFrame,
     examples: list[dict],
 ) -> pd.DataFrame:
