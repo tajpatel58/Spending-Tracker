@@ -40,7 +40,7 @@ def create_transactions_metadata_df(cleaned_transactions_df: pd.DataFrame,
     transactions_metadata_df = cleaned_transactions_df[["event_id", "merchant", "amount"] + table_schema._PARTITION_COLS]
 
     # code to utilise LLM suggestions
-    transactions_metadata_df = classify.apply_to_df(transactions_metadata_df, labelled_examples)
+    transactions_metadata_df = classify.transactions_apply_to_df(transactions_metadata_df, labelled_examples)
 
     # add NULL columns for default values of manually changed fiels
     transactions_metadata_df["manual_merchant"] = None
