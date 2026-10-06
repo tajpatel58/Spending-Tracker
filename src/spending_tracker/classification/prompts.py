@@ -16,7 +16,7 @@ CATEGORIES = [
 ]
 
 
-def build_classification_prompt(
+def build_transaction_classification_prompt(
     merchant: str,
     amount: float,
     examples: list[dict],
@@ -134,4 +134,37 @@ def build_classification_prompt(
 
                 Do not return any explanation or additional fields.
                 """.strip()
+    return prompt
+
+
+def build_calendar_event_extraction_prompt(event: dict) -> str:
+    categories = "\n".join(
+    f"- {category}"
+    for category in CATEGORIES
+    )
+
+
+    prompt = f"""You are extracting structured spending information from a Google Calendar event.
+        Valid Categories:
+        {categories}
+
+        <event>
+        <title>{event["title"]}</title>
+        <description>{event["description"] or ""}</description>
+        </event>
+
+        Your task:
+        1. Find the budget for this event. The budget is the amount of money planned or expected to be spent. It is usually in the description but may appear in the title. 
+        - Return it as a plain number (e.g. 45.50), with no currency symbols or commas.
+        - If a range is given (e.g. "£40-60"), use the upper value.
+        - If several amounts are listed and labelled as a total, use the total. Otherwise, sum the amounts that clearly belong to this event.
+        - If there is no budget, assume budget is £0. Do not guess or estimate one.
+        2. Choose exactly one category from the <categories> list that best describes what the money is being spent on. 
+        - You must use a category exactly as written in the list, with the same spelling and capitalisation.
+        - Base the choice on what the event is, using both the title and description.
+        - If nothing fits well, choose the closest match and set "confidence" to "low".
+
+        Respond with only a JSON object, with no preamble, explanation, or markdown fences:
+        {{"budget": <number>, "category": <string from the list>}}
+        """
     return prompt

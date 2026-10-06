@@ -1,7 +1,7 @@
 
 import json
 from ollama import chat
-from spending_tracker.classification.prompts import build_classification_prompt
+from spending_tracker.classification import prompts
 
 
 MODEL = "qwen3:8b"
@@ -42,7 +42,7 @@ def llm_classify_transaction(
         }
     """
 
-    prompt = build_classification_prompt(
+    prompt = prompts.build_transaction_classification_prompt(
         merchant=merchant,
         amount=amount,
         examples=examples,
@@ -107,3 +107,55 @@ def llm_classify_transaction(
         )
 
     return classification
+
+
+def llm_extract_calendar_event(event: dict) -> dict:
+    prompt = prompts.build_calendar_event_extraction_prompt(event)
+
+    response = chat(
+        model=MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        format="json",
+        think=False
+    )
+
+    content = response.message.content
+
+    try:
+        extraction = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Qwen returned invalid JSON: {content}"
+        ) from exc
+
+    # Validate required fields
+    required_fields = {
+        "budget",
+        "category",
+    }
+
+    missing_fields = required_fields - extraction.keys()
+
+    if missing_fields:
+        raise ValueError(
+            f"Qwen response is missing fields: {missing_fields}"
+        )
+
+    # Validate budget
+    if extraction["budget"] is not None and not isinstance(extraction["budget"], (int, float)):
+        raise ValueError(
+            "Budget must be a number or null."
+        )
+
+    # Validate category
+    if not isinstance(extraction["category"], str):
+        raise ValueError(
+            "Category must be a string."
+        )
+
+    return extraction
