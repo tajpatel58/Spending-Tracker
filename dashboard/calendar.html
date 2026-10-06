@@ -155,13 +155,24 @@
       </div>
     </div>
 
-    <div class="tile day-tile" aria-live="polite">
-      <div class="tile__header">
-        <h2 id="day-title">—</h2>
-        <span class="tile__meta" id="day-meta"></span>
+    <div class="day-column">
+      <div class="tile day-tile" aria-live="polite">
+        <div class="tile__header">
+          <h2 id="day-title">—</h2>
+          <span class="tile__meta" id="day-meta"></span>
+        </div>
+        <ul class="day-list" id="day-list"></ul>
+        <p class="empty-state" id="day-empty" hidden>No spending on this day.</p>
       </div>
-      <ul class="day-list" id="day-list"></ul>
-      <p class="empty-state" id="day-empty" hidden>No spending on this day.</p>
+
+      <div class="tile day-tile" aria-live="polite">
+        <div class="tile__header">
+          <h2>Events</h2>
+          <span class="tile__meta" id="day-events-meta"></span>
+        </div>
+        <ul class="day-list" id="event-list"></ul>
+        <p class="empty-state" id="event-empty" hidden>No events on this day.</p>
+      </div>
     </div>
   </section>
 

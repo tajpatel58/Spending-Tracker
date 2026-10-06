@@ -94,3 +94,33 @@ async function fetchTransactions() {
 
   return transactions;
 }
+
+// ============================================================
+// CALENDAR EVENTS
+// ============================================================
+
+/**
+ * Fetches the Google Calendar events synced into calendar_events, each
+ * with the rough budget and category the LLM extracted.
+ *
+ * @returns {Promise<Array<Object>>} { id, date, title, budget, category }
+ */
+async function fetchCalendarEvents() {
+  const { data, error } = await supabaseClient
+    .from('calendar_events')
+    .select('event_id, title, event_date, budget, category')
+    .order('event_date', { ascending: true });
+
+  if (error) {
+    console.error('[Ledger data] Calendar events request failed:', error);
+    throw new Error(`Failed to load calendar events: ${error.message}`);
+  }
+
+  return data.map((row) => ({
+    id: row.event_id,
+    date: row.event_date,
+    title: row.title,
+    budget: Number(row.budget) || 0,
+    category: normalizeCategory(row.category) ?? 'other',
+  }));
+}

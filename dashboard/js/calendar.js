@@ -6,7 +6,8 @@
  * other spending days that month (quintiles, so one big rent payment
  * doesn't wash out every other day): green for the lightest days,
  * neutral in the middle, rose for the heaviest. Clicking a day lists its
- * transactions alongside the calendar.
+ * transactions and calendar events (with their rough budgets) alongside
+ * the calendar; days with an event get a small dot.
  *
  * Reuses the dashboard's data loading (data.js), filters (state.js,
  * filters.js) and expense rules (isExpense), so totals match the
@@ -18,6 +19,43 @@ const calendarView = {
   selectedDate: null, // 'YYYY-MM-DD'; reset to the heaviest day when the month changes
   month: null,
 };
+
+/** Calendar events grouped by date: { '2026-09-14': [ {id,title,budget,category}, ... ] }. */
+const EVENTS_BY_DATE = {};
+
+/** Loads calendar_events into EVENTS_BY_DATE. A failure leaves the calendar working without events. */
+async function loadCalendarEvents() {
+  try {
+    const events = await fetchCalendarEvents();
+    events.forEach((e) => (EVENTS_BY_DATE[e.date] || (EVENTS_BY_DATE[e.date] = [])).push(e));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** Today's date as 'YYYY-MM-DD' in local time. */
+function todayIso() {
+  const today = new Date();
+  return `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+}
+
+/**
+ * Makes every month with transactions or events selectable, plus the
+ * current month (even if it's empty so far), and opens on the current
+ * month unless one was already picked this session.
+ */
+function initCalendarMonths() {
+  const currentMonth = todayIso().slice(0, 7);
+  const keys = new Set([
+    ...MONTHS.map((m) => m.key),
+    ...Object.keys(EVENTS_BY_DATE).map((date) => date.slice(0, 7)),
+    currentMonth,
+  ]);
+  MONTHS.splice(0, MONTHS.length, ...[...keys].sort().map((key) => ({ key })));
+  if (!keys.has(state.month)) state.month = currentMonth;
+}
 
 /** Zero-pads a day/month number, e.g. 7 -> '07'. */
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -96,8 +134,7 @@ function renderAll() {
     calendarView.month = month;
     calendarView.selectedDate = heaviest ? heaviest[0] : `${month}-01`;
   }
-  const today = new Date();
-  const todayIso = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+  const today = todayIso();
 
   const cells = Array.from({ length: firstWeekday }, () => '<span class="calendar__pad" aria-hidden="true"></span>');
   for (let d = 1; d <= daysInMonth; d += 1) {
@@ -106,13 +143,15 @@ function renderAll() {
     const level = heatLevel(value, thresholds);
     const classes = [
       'calendar__day', `heat-${level}`,
-      iso === todayIso ? 'is-today' : '',
+      iso === today ? 'is-today' : '',
       iso === calendarView.selectedDate ? 'is-selected' : '',
-      iso > todayIso ? 'is-future' : '',
+      iso > today ? 'is-future' : '',
     ].filter(Boolean).join(' ');
-    const label = `${longDate(iso)}: ${value ? currency(value) : 'no spending'}`;
+    const eventCount = EVENTS_BY_DATE[iso]?.length || 0;
+    const label = `${longDate(iso)}: ${value ? currency(value) : 'no spending'}${eventCount ? `, ${plural(eventCount, 'event')}` : ''}`;
     cells.push(`
       <button type="button" class="${classes}" data-date="${iso}" role="gridcell" aria-label="${label}" aria-pressed="${iso === calendarView.selectedDate}">
+        ${eventCount ? '<span class="calendar__event-dot" aria-hidden="true"></span>' : ''}
         <span class="calendar__date">${d}</span>
         <span class="calendar__amount">${value ? currencyShort(value) : ''}</span>
       </button>
@@ -123,7 +162,7 @@ function renderAll() {
   renderDayDetail(days);
 }
 
-/** Lists the selected day's expenses, largest first. */
+/** Lists the selected day's expenses (largest first) and its calendar events. */
 function renderDayDetail(days) {
   const iso = calendarView.selectedDate;
   const day = days[iso];
@@ -146,6 +185,24 @@ function renderDayDetail(days) {
       </li>
     `;
   }).join('');
+
+  const events = EVENTS_BY_DATE[iso] || [];
+  const budget = events.reduce((s, e) => s + e.budget, 0);
+  document.getElementById('day-events-meta').textContent = events.length ? `${events.length} · ${currency(budget)} budget` : '';
+  document.getElementById('event-empty').hidden = events.length > 0;
+  document.getElementById('event-list').innerHTML = events.map((e) => {
+    const cat = catById[e.category];
+    return `
+      <li class="day-list__item">
+        <span class="day-list__dot" style="background:${cat.color}" aria-hidden="true"></span>
+        <span class="day-list__main">
+          <span class="day-list__merchant">${escapeAttr(e.title)}</span>
+          <span class="day-list__meta">${cat.label}</span>
+        </span>
+        <span class="day-list__amount">${currency(e.budget)}</span>
+      </li>
+    `;
+  }).join('');
 }
 
 /** Click to select a day; hover (desktop) shows a small summary tooltip. */
@@ -165,10 +222,12 @@ function initCalendarInteractions() {
     if (!cell || !window.matchMedia('(hover: hover)').matches) return;
     const day = dailySpend(state.month)[cell.dataset.date];
     const top = day?.txs.slice().sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))[0];
+    const events = EVENTS_BY_DATE[cell.dataset.date] || [];
     tooltip.innerHTML = `
       <span class="calendar-tooltip__date">${longDate(cell.dataset.date)}</span>
       <span class="calendar-tooltip__value">${day ? currency(day.total) : 'No spending'}</span>
       ${day ? `<span class="calendar-tooltip__meta">${day.txs.length} transaction${day.txs.length === 1 ? '' : 's'} · largest ${escapeAttr(top.merchant)}</span>` : ''}
+      ${events.length ? `<span class="calendar-tooltip__meta">${plural(events.length, 'event')} · ${escapeAttr(events[0].title)}${events.length > 1 ? ' …' : ''}</span>` : ''}
     `;
     tooltip.hidden = false;
     const rect = cell.getBoundingClientRect();
@@ -191,8 +250,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initUserMenu(session);
   document.getElementById('signout-button').addEventListener('click', signOut);
 
-  await accountsReady;
-  if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
+  await Promise.all([accountsReady, loadCalendarEvents()]);
+  initCalendarMonths();
   state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
   Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
 
