@@ -54,8 +54,10 @@ def list_all(path: Path, bucket):
             return items
         offset += 100
 
+
 def list_folders(path: Path, bucket):
     return [e["name"] for e in list_all(path, bucket) if e.get("id") is None]
+
 
 def list_files(path: Path, bucket):
     return [e["name"] for e in list_all(path, bucket)
