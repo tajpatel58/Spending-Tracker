@@ -1611,12 +1611,14 @@ button { font-family: inherit; }
 
 /* Selected day */
 /* min-width: 0 stops a long merchant name widening the grid (and the page). */
-.calendar-tile, .day-tile { min-width: 0; }
-.day-tile { position: sticky; top: 92px; }
+.calendar-tile, .day-column, .day-tile { min-width: 0; }
+/* Spending and events tiles stack beside the calendar and scroll with it. */
+.day-column { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 92px; }
 .day-tile .tile__header { padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .day-tile .empty-state { padding: 28px 18px; }
 
-.day-list { list-style: none; margin: 0; padding: 4px 0; max-height: 60vh; overflow-y: auto; }
+.day-list { list-style: none; margin: 0; padding: 4px 0; max-height: 40vh; overflow-y: auto; }
+.day-list:empty { padding: 0; }
 
 .day-list__item {
   display: flex;
@@ -1632,6 +1634,17 @@ button { font-family: inherit; }
 .day-list__merchant { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .day-list__meta { font-size: 12px; color: var(--text-faint); }
 .day-list__amount { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+
+/* Marks days with at least one calendar event. */
+.calendar__event-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
 
 .calendar-tooltip {
   position: fixed;
@@ -1661,7 +1674,7 @@ button { font-family: inherit; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .charts-grid { grid-template-columns: 1fr; }
   .calendar-grid { grid-template-columns: minmax(0, 1fr); }
-  .day-tile { position: static; }
+  .day-column { position: static; }
   .day-list { max-height: none; }
 }
 
@@ -1675,6 +1688,7 @@ button { font-family: inherit; }
   .calendar__date { font-size: 11px; }
   .calendar__day.is-today .calendar__date { margin: 0; width: 18px; height: 18px; }
   .calendar__amount { font-size: 10px; max-width: 100%; }
+  .calendar__event-dot { top: 4px; right: 4px; width: 5px; height: 5px; }
   .calendar-tile .tile__header { flex-direction: column; gap: 8px; padding: 14px 14px 0; }
   .calendar-grid { gap: 12px; }
   .day-list__item { padding: 9px 14px; }
