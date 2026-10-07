@@ -7,7 +7,8 @@
  * doesn't wash out every other day): green for the lightest days,
  * neutral in the middle, rose for the heaviest. Clicking a day lists its
  * transactions and calendar events (with their rough budgets) alongside
- * the calendar; days with an event get a small dot.
+ * the calendar; days with an event get a small dot. A stat tile
+ * forecasts the month's total spend (see forecastSpend).
  *
  * Reuses the dashboard's data loading (data.js), filters (state.js,
  * filters.js) and expense rules (isExpense), so totals match the
@@ -60,6 +61,64 @@ function initCalendarMonths() {
 /** Zero-pads a day/month number, e.g. 7 -> '07'. */
 const pad2 = (n) => String(n).padStart(2, '0');
 
+/** Number of days in a month key, e.g. '2026-02' -> 28. */
+function daysIn(month) {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+/** Shifts a month key by n months, e.g. ('2026-01', -1) -> '2025-12'. */
+function shiftMonth(month, n) {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+const sumAbs = (txs) => txs.reduce((s, t) => s + Math.abs(t.amount), 0);
+
+/**
+ * Latest transaction date loaded so far, across every account. Statements
+ * arrive in batches (usually Sundays), so only days up to this date have
+ * real data — later days are still forecast even if they're in the past.
+ */
+function lastLoadedDate() {
+  return Object.values(TRANSACTIONS).flat().reduce((max, t) => (t.date > max ? t.date : max), '');
+}
+
+/**
+ * Forecasts a month's total spend:
+ *     3-month average of monthly fixed expenses
+ *   + variable spend (excl. fixed) on days already loaded
+ *   + 3-month daily average (excl. fixed) × days not loaded yet
+ *   + event budgets on days not loaded yet.
+ * Both averages cover the previous three months that have data.
+ */
+function forecastSpend(month) {
+  const spent = sumAbs(getMonthTransactions(month).filter(isVariableExpense));
+
+  const history = [1, 2, 3].map((n) => shiftMonth(month, -n)).filter((key) => TRANSACTIONS[key]?.length);
+  const historyFixed = history.reduce((s, key) => s + sumAbs(getMonthTransactions(key).filter((t) => t.category === 'fixed_expense')), 0);
+  const fixed = history.length ? historyFixed / history.length : 0;
+  const historyDays = history.reduce((s, key) => s + daysIn(key), 0);
+  const historySpend = history.reduce((s, key) => s + sumAbs(getMonthTransactions(key).filter(isVariableExpense)), 0);
+  const dailyAvg = historyDays ? historySpend / historyDays : 0;
+
+  const loadedTo = lastLoadedDate();
+  let daysLeft = 0;
+  let eventBudget = 0;
+  for (let d = 1; d <= daysIn(month); d += 1) {
+    const iso = `${month}-${pad2(d)}`;
+    if (iso <= loadedTo) continue;
+    daysLeft += 1;
+    eventBudget += (EVENTS_BY_DATE[iso] || []).reduce((s, e) => s + e.budget, 0);
+  }
+
+  return {
+    total: fixed + spent + dailyAvg * daysLeft + eventBudget,
+    fixed, spent, dailyAvg, daysLeft, eventBudget, loadedTo,
+  };
+}
+
 /** Groups a month's expenses by date: { '2026-09-14': { total, txs } }. */
 function dailySpend(month) {
   const days = {};
@@ -97,7 +156,7 @@ function longDate(iso) {
 function renderAll() {
   const month = state.month;
   const [y, m] = month.split('-').map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
+  const daysInMonth = daysIn(month);
   const firstWeekday = (new Date(y, m - 1, 1).getDay() + 6) % 7; // Monday = 0
   const days = dailySpend(month);
   const totals = Object.values(days).map((d) => d.total);
@@ -116,8 +175,17 @@ function renderAll() {
   const variableTotal = variableTotals.reduce((s, v) => s + v, 0);
   document.getElementById('cal-avg').textContent = currency(variableTotal / daysInMonth);
   document.getElementById('cal-avg-note').textContent = 'Excluding Fixed Expenses';
-  document.getElementById('cal-max').textContent = heaviest ? currency(heaviest[1].total) : '—';
-  document.getElementById('cal-max-note').textContent = heaviest ? formatDate(heaviest[0]) : '—';
+  const forecast = forecastSpend(month);
+  document.getElementById('cal-forecast').textContent = currency(forecast.total);
+  document.getElementById('cal-forecast-note').textContent = !forecast.daysLeft
+    ? 'All days loaded'
+    : `${plural(forecast.daysLeft, 'day')} forecast${forecast.loadedTo ? ` · data to ${formatDate(forecast.loadedTo)}` : ''}`;
+  document.getElementById('cal-forecast-tile').title = [
+    `Fixed expenses (3-month average): ${currency(forecast.fixed)}`,
+    `Spent so far (excl. fixed): ${currency(forecast.spent)}`,
+    `Daily average ${currency(forecast.dailyAvg)} × ${plural(forecast.daysLeft, 'day')}: ${currency(forecast.dailyAvg * forecast.daysLeft)}`,
+    `Event budgets: ${currency(forecast.eventBudget)}`,
+  ].join('\n');
   document.getElementById('cal-zero').textContent = daysInMonth - spendDays;
   document.getElementById('cal-zero-note').textContent = `of ${daysInMonth} days`;
 

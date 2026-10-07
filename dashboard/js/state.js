@@ -39,8 +39,8 @@ function isVariableExpense(t) {
 
 // Edit these monthly budget values as the household budget evolves.
 const BUDGETS = {
-  'Fixed Expenses': 850,
-  'Dining Out': 250,
+  'Fixed Expenses': 800,
+  'Dining Out': 300,
   Groceries: 300,
   Shopping: 150,
   Transport: 150,
