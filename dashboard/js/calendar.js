@@ -89,7 +89,7 @@ function lastLoadedDate() {
  * Forecasts a month's total spend:
  *     3-month average of monthly fixed expenses
  *   + variable spend (excl. fixed) on days already loaded
- *   + 3-month daily average (excl. fixed) × days not loaded yet
+ *   + 3-month daily average (excl. fixed and holidays) × days not loaded yet
  *   + event budgets on days not loaded yet.
  * Both averages cover the previous three months that have data.
  */
@@ -100,7 +100,9 @@ function forecastSpend(month) {
   const historyFixed = history.reduce((s, key) => s + sumAbs(getMonthTransactions(key).filter((t) => t.category === 'fixed_expense')), 0);
   const fixed = history.length ? historyFixed / history.length : 0;
   const historyDays = history.reduce((s, key) => s + daysIn(key), 0);
-  const historySpend = history.reduce((s, key) => s + sumAbs(getMonthTransactions(key).filter(isVariableExpense)), 0);
+  // Holidays are one-offs, so they'd inflate a "typical day" — leave them out of the average.
+  const isTypicalSpend = (t) => isVariableExpense(t) && t.category !== 'holiday';
+  const historySpend = history.reduce((s, key) => s + sumAbs(getMonthTransactions(key).filter(isTypicalSpend)), 0);
   const dailyAvg = historyDays ? historySpend / historyDays : 0;
 
   const loadedTo = lastLoadedDate();
