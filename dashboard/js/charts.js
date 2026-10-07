@@ -146,7 +146,6 @@ function renderBudgetChart() {
   document.getElementById('budget-list').innerHTML = entries.map((entry) => {
     const percentage = entry.budget ? Math.round((entry.actual / entry.budget) * 100) : 0;
     const progress = Math.min(percentage, 100);
-    const fillColor = percentage > 100 ? 'var(--rose)' : entry.color;
     return `
       <li class="budget-item">
         <div class="budget-item__header">
@@ -154,7 +153,7 @@ function renderBudgetChart() {
           <span class="budget-item__summary">${currencyShort(entry.actual)} / ${currencyShort(entry.budget)} - ${percentage}%</span>
         </div>
         <div class="budget-item__track" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100" aria-label="${entry.label} budget usage">
-          <span class="budget-item__fill" style="width:${progress}%; background:${fillColor}"></span>
+          <span class="budget-item__fill" style="width:${progress}%; background:${entry.color}"></span>
         </div>
       </li>
     `;
