@@ -42,6 +42,12 @@
   --forecast-spent: #eb6834;
   --forecast-projected: #1baf7a;
   --forecast-events: #eda100;
+  /* Spending-by-user slices (validated alongside --cat-fixed-expense) */
+  --user-1: #3a6fe0;
+  --user-2: #f06a2f;
+  --user-3: #d2449c;
+  /* "Extras" budget bar — separate from --cat-other, which stays grey for Unassigned */
+  --budget-extras: #db2777;
   --surface-alt: #FBFBFC;
   --border: #E4E7EC;
   --border-strong: #D3D8E0;
@@ -76,6 +82,10 @@
   --forecast-spent: #d95926;
   --forecast-projected: #199e70;
   --forecast-events: #c98500;
+  --user-1: #f7b024;
+  --user-2: #ff3a8f;
+  --user-3: #4089ef;
+  --budget-extras: #f356b9;
   --surface-alt: #1A1F2B;
   --border: #262C3A;
   --border-strong: #333B4C;
@@ -102,14 +112,14 @@
 
   /* Brighter category colors retain separation against dark surfaces. */
   --cat-groceries: #F59E0B;
-  --cat-dining: #F87171;
-  --cat-transport: #60A5FA;
+  --cat-dining: #fb6262;
+  --cat-transport: #4ccf71;
   --cat-holiday: #A78BFA;
   --cat-housing: #C084FC;
   --cat-subscriptions: #F472B6;
-  --cat-fixed-expense: #e371ed;
+  --cat-fixed-expense: #cb79fe;
   --cat-health: #2DD4BF;
-  --cat-shopping: #22D3EE;
+  --cat-shopping: #2288ee;
   --cat-birthday: #818CF8;
   --cat-activities: #E8D44A;
   --cat-other: #94A3B8;
