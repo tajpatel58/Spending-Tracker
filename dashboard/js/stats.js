@@ -54,8 +54,9 @@ function renderStats() {
 
   const [y, m] = state.month.split('-').map(Number);
   const dim = new Date(y, m, 0).getDate();
-  document.getElementById('stat-daily-avg').textContent = currency(total / dim);
-  document.getElementById('stat-daily-note').textContent = `Across ${dim} days`;
+  const variableTotal = txs.filter(isVariableExpense).reduce((s, t) => s + Math.abs(t.amount), 0);
+  document.getElementById('stat-daily-avg').textContent = currency(variableTotal / dim);
+  document.getElementById('stat-daily-note').textContent = 'Excluding Fixed Expenses';
 
   const actualByGroup = budgetGroupActuals(state.month);
   const overBudget = Object.keys(BUDGETS).filter((group) => (actualByGroup[group] || 0) > BUDGETS[group]);

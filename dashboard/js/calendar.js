@@ -111,8 +111,11 @@ function renderAll() {
   const heaviest = Object.entries(days).sort((a, b) => b[1].total - a[1].total)[0];
   document.getElementById('cal-total').textContent = currency(total);
   document.getElementById('cal-total-note').textContent = `${spendDays} spending day${spendDays === 1 ? '' : 's'}`;
-  document.getElementById('cal-avg').textContent = currency(total / daysInMonth);
-  document.getElementById('cal-avg-note').textContent = spendDays ? `${currency(total / spendDays)} per spending day` : '—';
+  // Averages leave out fixed expenses so rent and bills don't inflate a typical day.
+  const variableTotals = Object.values(days).map((d) => d.txs.filter(isVariableExpense).reduce((s, t) => s + Math.abs(t.amount), 0));
+  const variableTotal = variableTotals.reduce((s, v) => s + v, 0);
+  document.getElementById('cal-avg').textContent = currency(variableTotal / daysInMonth);
+  document.getElementById('cal-avg-note').textContent = 'Excluding Fixed Expenses';
   document.getElementById('cal-max').textContent = heaviest ? currency(heaviest[1].total) : '—';
   document.getElementById('cal-max-note').textContent = heaviest ? formatDate(heaviest[0]) : '—';
   document.getElementById('cal-zero').textContent = daysInMonth - spendDays;

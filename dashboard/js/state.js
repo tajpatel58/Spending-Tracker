@@ -32,6 +32,11 @@ function isExpense(t) {
   return !['salary', 'interest', 'refund'].includes(t.category);
 }
 
+/** Expenses minus fixed costs (rent, bills) — used for daily averages and the category/user donuts. */
+function isVariableExpense(t) {
+  return isExpense(t) && t.category !== 'fixed_expense';
+}
+
 // Edit these monthly budget values as the household budget evolves.
 const BUDGETS = {
   'Fixed Expenses': 850,
