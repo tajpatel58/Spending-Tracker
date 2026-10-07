@@ -15,8 +15,7 @@ function savedMonth() {
 
 const state = {
   month: savedMonth(), // falls back to the most recent month once transactions load
-  activeCategories: new Set(CATEGORIES.map((c) => c.id)), // all active
-  categoryFilter: null,
+  categories: new Set(), // table category filter; empty = every category
   activeAccounts: new Set(), // populated after accounts.csv loads
   selectedTransactionIds: new Set(),
   search: '',
@@ -103,7 +102,6 @@ function monthTotal(month) {
 /** Transactions for the current month, after category filters and search are applied. */
 function getFilteredTransactions() {
   return getMonthTransactions(state.month)
-    .filter((t) => state.activeCategories.has(t.category))
-    .filter((t) => !state.categoryFilter || t.category === state.categoryFilter)
+    .filter((t) => !state.categories.size || state.categories.has(t.category))
     .filter((t) => !state.search || t.merchant.toLowerCase().includes(state.search));
 }
