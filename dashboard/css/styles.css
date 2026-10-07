@@ -1935,13 +1935,20 @@ button { font-family: inherit; }
   .page-heading__subtitle { font-size: 12px; }
 
   .stats-grid { gap: 8px; margin-bottom: 12px; }
-  .stat-tile { padding: 12px; gap: 4px; }
+  .stat-tile { padding: 12px 12px 13px; gap: 4px; }
   .stat-tile--forecast { gap: 8px; }
   .stat-tile__text { gap: 4px; }
-  .forecast-ring { width: 40px; height: 40px; }
-  .stat-tile__label { font-size: 10px; }
-  .stat-tile__value { font-size: 17px; }
-  .stat-tile__delta { font-size: 11px; }
+  .forecast-ring { width: 36px; height: 36px; }
+  .stat-tile__label { font-size: 9.5px; letter-spacing: 0.05em; }
+  .stat-tile__value { font-size: 16px; }
+  .stat-tile__delta { font-size: 10.5px; line-height: 1.35; }
+  /* Notes wrap to a second line on phones rather than cutting off mid-word. */
+  .stat-tile__delta--truncate {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 
   .charts-grid { gap: 12px; margin-bottom: 12px; }
   .tile__header { padding: 14px 14px 0; }
