@@ -113,10 +113,97 @@ function forecastSpend(month) {
     eventBudget += (EVENTS_BY_DATE[iso] || []).reduce((s, e) => s + e.budget, 0);
   }
 
+  const projected = dailyAvg * daysLeft;
   return {
-    total: fixed + spent + dailyAvg * daysLeft + eventBudget,
-    fixed, spent, dailyAvg, daysLeft, eventBudget, loadedTo,
+    total: fixed + spent + projected + eventBudget,
+    fixed, spent, projected, dailyAvg, daysLeft, eventBudget, loadedTo,
   };
+}
+
+// The forecast's parts, in doughnut order, each with its colour token.
+const FORECAST_PARTS = [
+  { key: 'fixed', label: 'Fixed expenses', color: '--forecast-fixed' },
+  { key: 'spent', label: 'Spent so far', color: '--forecast-spent' },
+  { key: 'projected', label: 'Projected daily spend', color: '--forecast-projected' },
+  { key: 'eventBudget', label: 'Event budgets', color: '--forecast-events' },
+];
+
+// Extra line shown under the hovered part in the tooltip.
+const FORECAST_DETAIL = {
+  fixed: () => 'Average of the last 3 months',
+  spent: () => 'Excluding fixed expenses',
+  projected: (f) => `${currency(f.dailyAvg)}/day × ${plural(f.daysLeft, 'day')}`,
+  eventBudget: () => 'Events on days not yet loaded',
+};
+
+let forecastChart;
+let lastForecast = null;
+
+/**
+ * Draws the forecast breakdown doughnut. Hovering a segment shows every
+ * part in the page's tooltip, with the hovered one highlighted. Called
+ * with no argument (e.g. on theme change) it redraws the last forecast.
+ */
+function renderForecastChart(forecast = lastForecast) {
+  if (!forecast || typeof Chart === 'undefined') return;
+  lastForecast = forecast;
+  const canvas = document.getElementById('forecast-chart');
+  const values = FORECAST_PARTS.map((p) => forecast[p.key]);
+  const empty = forecast.total <= 0;
+
+  canvas.setAttribute('aria-label', `Forecast spend breakdown: ${FORECAST_PARTS
+    .map((p, i) => `${p.label} ${currency(values[i])}`).join(', ')}`);
+
+  if (forecastChart) forecastChart.destroy();
+  forecastChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        // An empty forecast still shows a faint track rather than nothing.
+        data: empty ? [1] : values,
+        backgroundColor: empty ? [cssVar('--border')] : FORECAST_PARTS.map((p) => cssVar(p.color)),
+        borderWidth: 2,
+        borderColor: cssVar('--surface'),
+        hoverOffset: 0,
+      }],
+    },
+    options: {
+      cutout: '64%',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 250 },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false, external: empty ? undefined : showForecastTooltip },
+      },
+    },
+  });
+}
+
+/** Chart.js external tooltip: lists every forecast part in #calendar-tooltip. */
+function showForecastTooltip({ chart, tooltip }) {
+  const el = document.getElementById('calendar-tooltip');
+  if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) { el.hidden = true; return; }
+  const active = tooltip.dataPoints[0].dataIndex;
+  const f = lastForecast;
+
+  el.innerHTML = `
+    <span class="calendar-tooltip__date">Forecast · ${f.loadedTo ? `data to ${formatDate(f.loadedTo)}` : 'no data loaded'}</span>
+    ${FORECAST_PARTS.map((p, i) => `
+      <span class="forecast-tip__row${i === active ? ' is-active' : ''}">
+        <span class="forecast-tip__swatch" style="background:var(${p.color})"></span>
+        <span>${p.label}</span>
+        <span class="forecast-tip__amount">${currency(f[p.key])}</span>
+      </span>
+      ${i === active && FORECAST_DETAIL[p.key] ? `<span class="forecast-tip__detail">${FORECAST_DETAIL[p.key](f)}</span>` : ''}
+    `).join('')}
+  `;
+  el.hidden = false;
+  const rect = chart.canvas.getBoundingClientRect();
+  const tipRect = el.getBoundingClientRect();
+  const left = Math.min(Math.max(8, rect.left + rect.width / 2 - tipRect.width / 2), window.innerWidth - tipRect.width - 8);
+  el.style.left = `${left}px`;
+  el.style.top = `${Math.max(8, rect.top - tipRect.height - 8)}px`;
 }
 
 /** Groups a month's expenses by date: { '2026-09-14': { total, txs } }. */
@@ -179,13 +266,8 @@ function renderAll() {
   document.getElementById('cal-forecast').textContent = currency(forecast.total);
   document.getElementById('cal-forecast-note').textContent = !forecast.daysLeft
     ? 'All days loaded'
-    : `${plural(forecast.daysLeft, 'day')} forecast${forecast.loadedTo ? ` · data to ${formatDate(forecast.loadedTo)}` : ''}`;
-  document.getElementById('cal-forecast-tile').title = [
-    `Fixed expenses (3-month average): ${currency(forecast.fixed)}`,
-    `Spent so far (excl. fixed): ${currency(forecast.spent)}`,
-    `Daily average ${currency(forecast.dailyAvg)} × ${plural(forecast.daysLeft, 'day')}: ${currency(forecast.dailyAvg * forecast.daysLeft)}`,
-    `Event budgets: ${currency(forecast.eventBudget)}`,
-  ].join('\n');
+    : `${plural(forecast.daysLeft, 'day')} forecast`;
+  renderForecastChart(forecast);
   document.getElementById('cal-zero').textContent = daysInMonth - spendDays;
   document.getElementById('cal-zero-note').textContent = `of ${daysInMonth} days`;
 
