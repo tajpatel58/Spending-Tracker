@@ -5,6 +5,7 @@ CATEGORIES = [
     "housing",
     "holiday",
     "subscriptions",
+    "fixed_expense",
     "shopping",
     "health",
     "birthday/gifts",

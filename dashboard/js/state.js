@@ -34,12 +34,11 @@ function isExpense(t) {
 
 // Edit these monthly budget values as the household budget evolves.
 const BUDGETS = {
+  'Fixed Expenses': 850,
   'Dining Out': 250,
   Groceries: 300,
-  Housing: 500,
-  Shopping: 250,
-  Transport: 250,
-  Health: 200,
+  Shopping: 150,
+  Transport: 150,
   Extras: 400,
 };
 
@@ -47,12 +46,13 @@ const BUDGETS = {
 const BUDGET_GROUPS = {
   dining: 'Dining Out',
   groceries: 'Groceries',
-  housing: 'Housing',
+  housing: 'Fixed Expenses',
   shopping: 'Shopping',
   transport: 'Transport',
-  health: 'Health',
+  health: 'Extras',
   holiday: 'Extras',
   subscriptions: 'Extras',
+  fixed_expense: 'Fixed Expenses',
   'birthday/gifts': 'Extras',
   activities: 'Extras',
   other: 'Extras',
