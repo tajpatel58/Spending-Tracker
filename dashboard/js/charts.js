@@ -126,14 +126,13 @@ function renderUserChart() {
 
 /** Renders the budget-vs-actual progress bars. */
 function renderBudgetChart() {
-  const groupNames = ['Dining Out', 'Groceries', 'Housing', 'Shopping', 'Transport', 'Health', 'Extras'];
+  const groupNames = Object.keys(BUDGETS); // chart order follows BUDGETS in state.js
   const groupColors = {
+    'Fixed Expenses': 'var(--cat-fixed-expense)',
     'Dining Out': 'var(--cat-dining)',
     Groceries: 'var(--cat-groceries)',
-    Housing: 'var(--cat-housing)',
     Shopping: 'var(--cat-shopping)',
     Transport: 'var(--cat-transport)',
-    Health: 'var(--cat-health)',
     Extras: 'var(--cat-other)',
   };
   const actualByGroup = budgetGroupActuals(state.month);
