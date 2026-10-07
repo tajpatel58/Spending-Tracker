@@ -40,9 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initAccountFilter();
   initMonthSelect();
-  initCategoryChips();
+  initCategoryFilter();
   initSearch();
-  initCategoryFilterControl();
   initSorting();
   initTableEditing();
   initTableExport();

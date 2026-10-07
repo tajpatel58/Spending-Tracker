@@ -70,10 +70,8 @@ function renderCategoryChart() {
 
 /** Filters the transactions table down to a single category. */
 function setCategoryFilter(categoryId) {
-  state.categoryFilter = categoryId;
-  state.activeCategories.add(categoryId);
-  document.querySelector(`.chip[data-cat="${categoryId}"]`)?.classList.add('is-active');
-  updateCategoryFilterControl();
+  state.categories = new Set([categoryId]);
+  syncTableFilters();
   renderTable();
 }
 

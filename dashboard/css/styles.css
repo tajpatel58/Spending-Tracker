@@ -287,6 +287,25 @@ button { font-family: inherit; }
 
 .field--search input::placeholder { color: var(--text-faint); }
 
+.field__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-right: -4px;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--border);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.field__clear:hover { color: var(--text); background: var(--border-strong); }
+.field__clear[hidden] { display: none; }
+
 /* ==========================================================================
    Multiselect dropdown (accounts filter)
    ========================================================================== */
@@ -751,9 +770,50 @@ button { font-family: inherit; }
 
 .table-controls { display: flex; align-items: center; gap: 8px; }
 
-.icon-btn--clear-filter {
-  color: var(--rose);
+/* Category filter (transactions table) */
+.category-filter .multiselect__button { height: 36px; padding: 0 12px; background: var(--surface); }
+.category-filter__icon { color: var(--text-faint); }
+.category-filter.is-filtered .multiselect__button { border-color: var(--accent); }
+.category-filter.is-filtered .category-filter__icon { color: var(--accent); }
+.category-filter__count {
+  display: none; /* shown on phones, where the label is hidden */
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  background: var(--accent);
+  border-radius: var(--radius-full);
 }
+.category-filter__count[hidden] { display: none; }
+.category-filter.is-open .multiselect__button .category-filter__icon { transform: none; } /* only the caret flips */
+.category-filter__panel { left: auto; right: 0; min-width: 230px; }
+.category-filter__options { max-height: 300px; overflow-y: auto; }
+.category-filter__panel .chip__dot { width: 8px; height: 8px; flex: none; }
+
+/* Active filters: removable category chips + "Clear all" */
+.active-filters { align-items: center; }
+.active-filters[hidden] { display: none; }
+.chip--removable { gap: 7px; padding-right: 10px; color: var(--text); }
+.chip--removable svg { color: var(--text-faint); transition: color var(--transition); }
+.chip--removable:hover { border-color: var(--border-strong); background: var(--surface-alt); }
+.chip--removable:hover svg { color: var(--text); }
+.active-filters__search { font-size: 12px; color: var(--text-muted); padding: 0 2px; white-space: nowrap; }
+.active-filters__clear {
+  flex: none;
+  padding: 5px 4px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.active-filters__clear:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .icon-btn--clear-filter:hover {
   color: var(--rose);
@@ -1767,6 +1827,12 @@ button { font-family: inherit; }
   .chip-row { flex-wrap: nowrap; overflow-x: auto; padding: 0 14px 12px; scrollbar-width: none; }
   .chip-row::-webkit-scrollbar { display: none; }
   .chip { flex: none; }
+  /* Category filter collapses to its icon (plus a count badge when filtering). */
+  .category-filter__label, .category-filter__caret { display: none; }
+  .category-filter__count:not([hidden]) { display: inline-block; }
+  .category-filter .multiselect__button { padding: 0 10px; }
+  .category-filter__panel { min-width: 0; width: min(260px, calc(100vw - 28px)); }
+  .category-filter__options { max-height: 50vh; }
   .table-tile__footer { padding: 12px 14px; }
 
   /* Each transaction becomes a two-line row, so nothing scrolls sideways:
@@ -1883,7 +1949,7 @@ button { font-family: inherit; }
   .table-tile__header { padding: 12px 14px 10px; }
   .table-tile__header h2 { font-size: 15px; }
   .field--search input { padding: 6px 8px; font-size: 13px; }
-  .icon-btn--clear-filter { width: 30px; height: 30px; }
+  .category-filter .multiselect__button { height: 32px; padding: 0 9px; gap: 6px; }
   .chip { padding: 4px 10px 4px 8px; font-size: 11.5px; }
   .tx-table thead th { padding: 8px; font-size: 10px; }
   .tx-table tbody tr { padding: 9px 14px 9px 12px; }

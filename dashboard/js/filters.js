@@ -2,8 +2,8 @@
  * filters.js
  * ---------------------------------------------------------------------
  * Wires up every control that changes what's shown: the month
- * dropdown, the account filter, the category chips, search, the
- * "clear category filter" button, and table column sorting.
+ * dropdown, the account filter, the table's category filter and
+ * search (each with a quick way to clear it), and table column sorting.
  * ---------------------------------------------------------------------
  */
 
@@ -152,57 +152,129 @@ function initAccountFilter() {
   updateLabel();
 }
 
-/** Builds the category filter chips above the table and toggles `state.activeCategories`. */
-function initCategoryChips() {
-  const row = document.getElementById('category-filters');
-  row.innerHTML = CATEGORIES.map((c) => `
-    <button class="chip is-active" type="button" data-cat="${c.id}">
-      <span class="chip__dot" style="background:${c.color}"></span>${c.label}
-    </button>
-  `).join('');
+/**
+ * Builds the category multiselect above the transactions table. Nothing
+ * ticked means every category is shown; the ticked ones also appear as
+ * removable chips under the header, next to a "Clear all" link.
+ */
+function initCategoryFilter() {
+  const wrap = document.getElementById('category-filter');
+  const button = document.getElementById('category-filter-button');
+  const panel = document.getElementById('category-filter-panel');
 
-  row.addEventListener('click', (e) => {
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    const id = chip.dataset.cat;
-    if (state.activeCategories.has(id)) {
-      state.activeCategories.delete(id);
-      chip.classList.remove('is-active');
-    } else {
-      state.activeCategories.add(id);
-      chip.classList.add('is-active');
-    }
+  panel.innerHTML = `
+    <div class="category-filter__options">
+      ${CATEGORIES.map((c) => `
+        <label class="multiselect__option">
+          <input type="checkbox" value="${c.id}">
+          <span class="chip__dot" style="background:${c.color}" aria-hidden="true"></span>
+          <span>${c.label}</span>
+        </label>
+      `).join('')}
+    </div>
+    <div class="multiselect__divider"></div>
+    <button type="button" class="multiselect__clear" id="category-filter-clear">Clear selection</button>
+  `;
+
+  const close = () => { panel.hidden = true; wrap.classList.remove('is-open'); button.setAttribute('aria-expanded', 'false'); };
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    panel.hidden = !panel.hidden;
+    wrap.classList.toggle('is-open', !panel.hidden);
+    button.setAttribute('aria-expanded', String(!panel.hidden));
+  });
+  panel.addEventListener('click', (event) => event.stopPropagation());
+  panel.addEventListener('change', (event) => {
+    const { value, checked } = event.target;
+    checked ? state.categories.add(value) : state.categories.delete(value);
+    syncTableFilters();
     renderTable();
   });
+  document.getElementById('category-filter-clear').addEventListener('click', () => {
+    state.categories.clear();
+    syncTableFilters();
+    renderTable();
+  });
+  document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) close(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+
+  // Active-filter chips: × removes one category, "Clear all" resets categories and search.
+  document.getElementById('active-filters').addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-remove-cat]');
+    if (chip) state.categories.delete(chip.dataset.removeCat);
+    else if (event.target.closest('#clear-all-filters')) {
+      state.categories.clear();
+      clearSearch();
+    } else return;
+    syncTableFilters();
+    renderTable();
+  });
+
+  syncTableFilters();
 }
 
-/** Wires up the merchant search box (debounced) to filter the table. */
+/** Wires up the merchant search box (debounced), its × button and Escape to clear. */
 function initSearch() {
   const input = document.getElementById('search-input');
   let t;
   input.addEventListener('input', () => {
+    document.getElementById('search-clear').hidden = !input.value;
     clearTimeout(t);
     t = setTimeout(() => {
       state.search = input.value.trim().toLowerCase();
+      syncTableFilters();
       renderTable();
     }, 150);
   });
-}
-
-/** Shows/hides the "clear category filter" button based on whether a chart drill-down filter is active. */
-function updateCategoryFilterControl() {
-  const button = document.getElementById('clear-category-filter');
-  if (!button) return;
-  button.hidden = !state.categoryFilter;
-}
-
-/** Wires up the "clear category filter" button (set via chart double-click, see charts.js). */
-function initCategoryFilterControl() {
-  document.getElementById('clear-category-filter').addEventListener('click', () => {
-    state.categoryFilter = null;
-    updateCategoryFilterControl();
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !input.value) return;
+    event.stopPropagation();
+    clearSearch();
+    syncTableFilters();
     renderTable();
   });
+  document.getElementById('search-clear').addEventListener('click', (event) => {
+    event.preventDefault(); // it sits inside the search <label>
+    clearSearch();
+    syncTableFilters();
+    renderTable();
+    input.focus();
+  });
+}
+
+/** Empties the search box and its filter (callers re-render). */
+function clearSearch() {
+  const input = document.getElementById('search-input');
+  input.value = '';
+  state.search = '';
+  document.getElementById('search-clear').hidden = true;
+}
+
+/** Updates the category dropdown, its label/count and the active-filter chips to match `state`. */
+function syncTableFilters() {
+  const selected = CATEGORIES.filter((c) => state.categories.has(c.id));
+  document.querySelectorAll('#category-filter-panel input[type="checkbox"]').forEach((box) => {
+    box.checked = state.categories.has(box.value);
+  });
+
+  document.getElementById('category-filter-label').textContent =
+    !selected.length ? 'All categories' : selected.length === 1 ? selected[0].label : `${selected.length} categories`;
+  const count = document.getElementById('category-filter-count');
+  count.textContent = selected.length;
+  count.hidden = !selected.length;
+  document.getElementById('category-filter').classList.toggle('is-filtered', selected.length > 0);
+
+  const row = document.getElementById('active-filters');
+  row.hidden = !selected.length && !state.search;
+  row.innerHTML = selected.map((c) => `
+    <button type="button" class="chip chip--removable" data-remove-cat="${c.id}" aria-label="Remove ${c.label} filter">
+      <span class="chip__dot" style="background:${c.color}" aria-hidden="true"></span>${c.label}
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+    </button>
+  `).join('') + (state.search ? `<span class="active-filters__search">“${escapeAttr(state.search)}”</span>` : '')
+    + '<button type="button" class="active-filters__clear" id="clear-all-filters">Clear all</button>';
 }
 
 /** Wires up clicking a table column header to sort by that column. */
