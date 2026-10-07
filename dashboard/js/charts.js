@@ -98,7 +98,7 @@ function renderUserChart() {
     .sort((a, b) => b.total - a.total);
 
   // Colours follow the user (alphabetical), not their rank, so they don't swap month to month.
-  const palette = [cssVar('--accent'), cssVar('--gold'), cssVar('--rose')];
+  const palette = [cssVar('--user-1'), cssVar('--user-2'), cssVar('--user-3')];
   const userNames = Object.keys(totals).filter((u) => u !== FIXED_EXPENSES_LABEL).sort();
   const colorFor = (user) => (user === FIXED_EXPENSES_LABEL
     ? cssVar('--cat-fixed-expense')
@@ -145,7 +145,7 @@ function renderBudgetChart() {
     Groceries: 'var(--cat-groceries)',
     Shopping: 'var(--cat-shopping)',
     Transport: 'var(--cat-transport)',
-    Extras: 'var(--cat-other)',
+    Extras: 'var(--budget-extras)',
   };
   const actualByGroup = budgetGroupActuals(state.month);
 
