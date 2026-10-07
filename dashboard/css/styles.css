@@ -37,6 +37,11 @@
 [data-theme="light"] {
   --bg: #F5F6F9;
   --surface: #FFFFFF;
+  /* Forecast doughnut segments (colour-blind-safe, validated against --surface) */
+  --forecast-fixed: #2a78d6;
+  --forecast-spent: #eb6834;
+  --forecast-projected: #1baf7a;
+  --forecast-events: #eda100;
   --surface-alt: #FBFBFC;
   --border: #E4E7EC;
   --border-strong: #D3D8E0;
@@ -67,6 +72,10 @@
 [data-theme="dark"] {
   --bg: #0D1015;
   --surface: #151923;
+  --forecast-fixed: #3987e5;
+  --forecast-spent: #d95926;
+  --forecast-projected: #199e70;
+  --forecast-events: #c98500;
   --surface-alt: #1A1F2B;
   --border: #262C3A;
   --border-strong: #333B4C;
@@ -598,6 +607,23 @@ button { font-family: inherit; }
 .stat-tile__delta.is-positive { color: var(--accent); }
 .stat-tile__delta.is-negative { color: var(--rose); }
 .stat-tile__delta--truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Forecast tile: figures on the left, breakdown doughnut on the right. */
+.stat-tile--forecast { flex-direction: row; align-items: center; gap: 12px; }
+.stat-tile__text { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.forecast-ring { position: relative; flex: none; width: 64px; height: 64px; }
+
+.forecast-tip__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.forecast-tip__row.is-active { color: var(--text); font-weight: 500; }
+.forecast-tip__swatch { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.forecast-tip__amount { margin-left: auto; padding-left: 12px; font-family: var(--font-mono); }
+.forecast-tip__detail { font-size: 11px; color: var(--text-faint); padding-left: 16px; }
 
 /* ==========================================================================
    Charts
@@ -1831,6 +1857,9 @@ button { font-family: inherit; }
 
   .stats-grid { gap: 8px; margin-bottom: 12px; }
   .stat-tile { padding: 12px; gap: 4px; }
+  .stat-tile--forecast { gap: 8px; }
+  .stat-tile__text { gap: 4px; }
+  .forecast-ring { width: 40px; height: 40px; }
   .stat-tile__label { font-size: 10px; }
   .stat-tile__value { font-size: 17px; }
   .stat-tile__delta { font-size: 11px; }
