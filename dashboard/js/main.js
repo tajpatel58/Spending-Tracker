@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initAccountFilter();
   initMonthSelect();
-  initCategoryFilter();
+  initTableFilters();
   initSearch();
   initSorting();
   initTableEditing();

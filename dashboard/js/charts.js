@@ -75,8 +75,6 @@ function setCategoryFilter(categoryId) {
   renderTable();
 }
 
-const FIXED_EXPENSES_LABEL = 'Fixed Expenses';
-
 /**
  * Renders the "spending by user" donut chart and its legend. Fixed
  * expenses get their own slice rather than counting towards a user, so
@@ -88,7 +86,7 @@ function renderUserChart() {
   allTransactions
     .filter((transaction) => !transaction.hidden && isExpense(transaction))
     .forEach((transaction) => {
-      const user = transaction.category === 'fixed_expense' ? FIXED_EXPENSES_LABEL : (transaction.user || 'Unknown');
+      const user = spendOwner(transaction);
       totals[user] = (totals[user] || 0) + Math.abs(transaction.amount);
     });
 
@@ -97,13 +95,8 @@ function renderUserChart() {
     .filter((entry) => entry.total > 0)
     .sort((a, b) => b.total - a.total);
 
-  // Colours follow the user (alphabetical), not their rank, so they don't swap month to month.
-  const palette = [cssVar('--user-1'), cssVar('--user-2'), cssVar('--user-3')];
-  const userNames = Object.keys(totals).filter((u) => u !== FIXED_EXPENSES_LABEL).sort();
-  const colorFor = (user) => (user === FIXED_EXPENSES_LABEL
-    ? cssVar('--cat-fixed-expense')
-    : palette[userNames.indexOf(user) % palette.length]);
-  const colors = entries.map((entry) => colorFor(entry.user));
+  // Colours follow the user (see spendOwnerColor), not their rank, so they don't swap month to month.
+  const colors = entries.map((entry) => cssVar(spendOwnerColor(entry.user).slice(4, -1)));
   const ctx = document.getElementById('user-chart');
 
   if (userChart) userChart.destroy();

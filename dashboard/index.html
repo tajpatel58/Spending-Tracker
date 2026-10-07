@@ -213,18 +213,31 @@
             </svg>
           </button>
         </label>
-        <div class="multiselect category-filter" id="category-filter">
+        <div class="multiselect table-filter" id="category-filter">
           <button type="button" class="multiselect__button" id="category-filter-button" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by category">
-            <svg class="category-filter__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg class="table-filter__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
-            <span class="category-filter__label" id="category-filter-label">All categories</span>
-            <span class="category-filter__count" id="category-filter-count" hidden></span>
-            <svg class="category-filter__caret" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+            <span class="table-filter__label">All categories</span>
+            <span class="table-filter__count" hidden></span>
+            <svg class="table-filter__caret" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
               <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <div class="multiselect__panel category-filter__panel" id="category-filter-panel" role="listbox" aria-multiselectable="true" aria-label="Filter by category" hidden></div>
+          <div class="multiselect__panel table-filter__panel" id="category-filter-panel" role="listbox" aria-multiselectable="true" aria-label="Filter by category" hidden></div>
+        </div>
+        <div class="multiselect table-filter" id="user-filter">
+          <button type="button" class="multiselect__button" id="user-filter-button" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by user">
+            <svg class="table-filter__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.6" stroke="currentColor" stroke-width="2"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="table-filter__label">All users</span>
+            <span class="table-filter__count" hidden></span>
+            <svg class="table-filter__caret" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="multiselect__panel table-filter__panel" id="user-filter-panel" role="listbox" aria-multiselectable="true" aria-label="Filter by user" hidden></div>
         </div>
         <button type="button" class="icon-btn" id="export-table" aria-label="Export transactions as CSV" title="Export as CSV">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
