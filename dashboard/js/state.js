@@ -16,6 +16,7 @@ function savedMonth() {
 const state = {
   month: savedMonth(), // falls back to the most recent month once transactions load
   categories: new Set(), // table category filter; empty = every category
+  users: new Set(),      // table user filter (see spendOwner); empty = everyone
   activeAccounts: new Set(), // populated after accounts.csv loads
   selectedTransactionIds: new Set(),
   search: '',
@@ -25,6 +26,28 @@ const state = {
 // Lookup tables used throughout the rendering code.
 const accountById = {}; // filled in once accounts.csv has loaded
 const catById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
+
+// Fixed expenses are grouped as their own "user" in the Spending by user
+// chart and the table's user filter, rather than counting towards a person.
+const FIXED_EXPENSES_LABEL = 'Fixed Expenses';
+
+/** Who a transaction's spend belongs to: 'Fixed Expenses', or its user. */
+function spendOwner(t) {
+  return t.category === 'fixed_expense' ? FIXED_EXPENSES_LABEL : (t.user || 'Unknown');
+}
+
+/** Every spend owner across all loaded transactions: Fixed Expenses, then users A–Z. */
+function spendOwners() {
+  const users = new Set(Object.values(TRANSACTIONS).flat().map((t) => t.user || 'Unknown'));
+  return [FIXED_EXPENSES_LABEL, ...[...users].sort()];
+}
+
+/** A spend owner's colour as a CSS var() — fixed by name, so it never changes month to month. */
+function spendOwnerColor(owner) {
+  if (owner === FIXED_EXPENSES_LABEL) return 'var(--cat-fixed-expense)';
+  const index = spendOwners().indexOf(owner) - 1; // -1 skips Fixed Expenses
+  return `var(--user-${(Math.max(index, 0) % 3) + 1})`;
+}
 
 /** True for anything that counts as spending rather than income. */
 function isExpense(t) {
@@ -107,5 +130,6 @@ function monthTotal(month) {
 function getFilteredTransactions() {
   return getMonthTransactions(state.month)
     .filter((t) => !state.categories.size || state.categories.has(t.category))
+    .filter((t) => !state.users.size || state.users.has(spendOwner(t)))
     .filter((t) => !state.search || t.merchant.toLowerCase().includes(state.search));
 }

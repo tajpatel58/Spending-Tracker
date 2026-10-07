@@ -2,8 +2,8 @@
  * filters.js
  * ---------------------------------------------------------------------
  * Wires up every control that changes what's shown: the month
- * dropdown, the account filter, the table's category filter and
- * search (each with a quick way to clear it), and table column sorting.
+ * dropdown, the account filter, the table's category and user filters
+ * and search (each with a quick way to clear it), and table column sorting.
  * ---------------------------------------------------------------------
  */
 
@@ -153,57 +153,34 @@ function initAccountFilter() {
 }
 
 /**
- * Builds the category multiselect above the transactions table. Nothing
- * ticked means every category is shown; the ticked ones also appear as
- * removable chips under the header, next to a "Clear all" link.
+ * The transactions table's dropdown filters. In each, nothing ticked means
+ * "show all"; ticked items also appear as removable chips under the header,
+ * next to a "Clear all" link that resets every filter and the search.
  */
-function initCategoryFilter() {
-  const wrap = document.getElementById('category-filter');
-  const button = document.getElementById('category-filter-button');
-  const panel = document.getElementById('category-filter-panel');
+const TABLE_FILTERS = [
+  {
+    key: 'categories', id: 'category-filter', all: 'All categories', noun: 'categories',
+    items: () => CATEGORIES.map((c) => ({ id: c.id, label: c.label, color: c.color })),
+  },
+  {
+    // Same grouping and colours as the Spending by user chart.
+    key: 'users', id: 'user-filter', all: 'All users', noun: 'users',
+    items: () => spendOwners().map((owner) => ({ id: owner, label: owner, color: spendOwnerColor(owner) })),
+  },
+];
 
-  panel.innerHTML = `
-    <div class="category-filter__options">
-      ${CATEGORIES.map((c) => `
-        <label class="multiselect__option">
-          <input type="checkbox" value="${c.id}">
-          <span class="chip__dot" style="background:${c.color}" aria-hidden="true"></span>
-          <span>${c.label}</span>
-        </label>
-      `).join('')}
-    </div>
-    <div class="multiselect__divider"></div>
-    <button type="button" class="multiselect__clear" id="category-filter-clear">Clear selection</button>
-  `;
+function initTableFilters() {
+  TABLE_FILTERS.forEach(initTableFilter);
 
-  const close = () => { panel.hidden = true; wrap.classList.remove('is-open'); button.setAttribute('aria-expanded', 'false'); };
-  button.addEventListener('click', (event) => {
-    event.stopPropagation();
-    panel.hidden = !panel.hidden;
-    wrap.classList.toggle('is-open', !panel.hidden);
-    button.setAttribute('aria-expanded', String(!panel.hidden));
-  });
-  panel.addEventListener('click', (event) => event.stopPropagation());
-  panel.addEventListener('change', (event) => {
-    const { value, checked } = event.target;
-    checked ? state.categories.add(value) : state.categories.delete(value);
-    syncTableFilters();
-    renderTable();
-  });
-  document.getElementById('category-filter-clear').addEventListener('click', () => {
-    state.categories.clear();
-    syncTableFilters();
-    renderTable();
-  });
-  document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) close(); });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+  document.addEventListener('click', () => closeTableFilters());
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeTableFilters(); });
 
-  // Active-filter chips: × removes one category, "Clear all" resets categories and search.
+  // Active-filter chips: × removes one item, "Clear all" resets every filter and the search.
   document.getElementById('active-filters').addEventListener('click', (event) => {
-    const chip = event.target.closest('[data-remove-cat]');
-    if (chip) state.categories.delete(chip.dataset.removeCat);
+    const chip = event.target.closest('[data-remove-key]');
+    if (chip) state[chip.dataset.removeKey].delete(chip.dataset.removeId);
     else if (event.target.closest('#clear-all-filters')) {
-      state.categories.clear();
+      TABLE_FILTERS.forEach((filter) => state[filter.key].clear());
       clearSearch();
     } else return;
     syncTableFilters();
@@ -211,6 +188,60 @@ function initCategoryFilter() {
   });
 
   syncTableFilters();
+}
+
+/** Builds one dropdown: "Clear selection" first (no scrolling to reach it), then the options. */
+function initTableFilter(filter) {
+  const wrap = document.getElementById(filter.id);
+  const button = wrap.querySelector('.multiselect__button');
+  const panel = wrap.querySelector('.multiselect__panel');
+
+  panel.innerHTML = `
+    <button type="button" class="multiselect__clear" data-clear>Clear selection</button>
+    <div class="multiselect__divider"></div>
+    <div class="table-filter__options">
+      ${filter.items().map((item) => `
+        <label class="multiselect__option">
+          <input type="checkbox" value="${escapeAttr(item.id)}">
+          <span class="chip__dot" style="background:${item.color}" aria-hidden="true"></span>
+          <span>${escapeAttr(item.label)}</span>
+        </label>
+      `).join('')}
+    </div>
+  `;
+
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const opening = panel.hidden;
+    closeTableFilters();
+    if (opening) {
+      panel.hidden = false;
+      wrap.classList.add('is-open');
+      button.setAttribute('aria-expanded', 'true');
+    }
+  });
+  panel.addEventListener('click', (event) => event.stopPropagation());
+  panel.addEventListener('change', (event) => {
+    const { value, checked } = event.target;
+    checked ? state[filter.key].add(value) : state[filter.key].delete(value);
+    syncTableFilters();
+    renderTable();
+  });
+  panel.querySelector('[data-clear]').addEventListener('click', () => {
+    state[filter.key].clear();
+    syncTableFilters();
+    renderTable();
+  });
+}
+
+/** Closes every open table filter dropdown. */
+function closeTableFilters() {
+  TABLE_FILTERS.forEach((filter) => {
+    const wrap = document.getElementById(filter.id);
+    wrap.querySelector('.multiselect__panel').hidden = true;
+    wrap.classList.remove('is-open');
+    wrap.querySelector('.multiselect__button').setAttribute('aria-expanded', 'false');
+  });
 }
 
 /** Wires up the merchant search box (debounced), its × button and Escape to clear. */
@@ -250,30 +281,34 @@ function clearSearch() {
   document.getElementById('search-clear').hidden = true;
 }
 
-/** Updates the category dropdown, its label/count and the active-filter chips to match `state`. */
+/** Updates each filter dropdown (ticks, label, count) and the active-filter chips to match `state`. */
 function syncTableFilters() {
-  const selected = CATEGORIES.filter((c) => state.categories.has(c.id));
-  document.querySelectorAll('#category-filter-panel input[type="checkbox"]').forEach((box) => {
-    box.checked = state.categories.has(box.value);
+  const chips = [];
+  TABLE_FILTERS.forEach((filter) => {
+    const wrap = document.getElementById(filter.id);
+    const selected = filter.items().filter((item) => state[filter.key].has(item.id));
+    wrap.querySelectorAll('input[type="checkbox"]').forEach((box) => { box.checked = state[filter.key].has(box.value); });
+    wrap.querySelector('.table-filter__label').textContent =
+      !selected.length ? filter.all : selected.length === 1 ? selected[0].label : `${selected.length} ${filter.noun}`;
+    const count = wrap.querySelector('.table-filter__count');
+    count.textContent = selected.length;
+    count.hidden = !selected.length;
+    wrap.classList.toggle('is-filtered', selected.length > 0);
+
+    selected.forEach((item) => chips.push(`
+      <button type="button" class="chip chip--removable" data-remove-key="${filter.key}" data-remove-id="${escapeAttr(item.id)}" aria-label="Remove ${escapeAttr(item.label)} filter">
+        <span class="chip__dot" style="background:${item.color}" aria-hidden="true"></span>${escapeAttr(item.label)}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+    `));
   });
 
-  document.getElementById('category-filter-label').textContent =
-    !selected.length ? 'All categories' : selected.length === 1 ? selected[0].label : `${selected.length} categories`;
-  const count = document.getElementById('category-filter-count');
-  count.textContent = selected.length;
-  count.hidden = !selected.length;
-  document.getElementById('category-filter').classList.toggle('is-filtered', selected.length > 0);
-
   const row = document.getElementById('active-filters');
-  row.hidden = !selected.length && !state.search;
-  row.innerHTML = selected.map((c) => `
-    <button type="button" class="chip chip--removable" data-remove-cat="${c.id}" aria-label="Remove ${c.label} filter">
-      <span class="chip__dot" style="background:${c.color}" aria-hidden="true"></span>${c.label}
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-      </svg>
-    </button>
-  `).join('') + (state.search ? `<span class="active-filters__search">“${escapeAttr(state.search)}”</span>` : '')
+  row.hidden = !chips.length && !state.search;
+  row.innerHTML = chips.join('')
+    + (state.search ? `<span class="active-filters__search">“${escapeAttr(state.search)}”</span>` : '')
     + '<button type="button" class="active-filters__clear" id="clear-all-filters">Clear all</button>';
 }
 
