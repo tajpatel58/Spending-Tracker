@@ -1593,7 +1593,16 @@ button { font-family: inherit; }
    Calendar page
    ========================================================================== */
 
-.stats-grid--four { grid-template-columns: repeat(4, 1fr); }
+/* Calendar stats: "so far" tiles in one row of three; for the current month
+   the forward-looking tiles (forecast, max per day) sit below, two across. */
+.stats-grid--four { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.stats-grid--four > .stat-tile { grid-column: span 2; }
+.stats-grid--four > .stat-tile--ahead { order: 1; }
+
+/* Thin progress bar towards a target (Forecast savings). */
+.target-bar { display: block; height: 4px; margin: 2px 0; background: var(--border); border-radius: var(--radius-full); overflow: hidden; }
+.target-bar__fill { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width var(--transition); }
+.stat-tile[hidden] { display: none; }
 
 .calendar-grid {
   display: grid;
@@ -1763,6 +1772,10 @@ button { font-family: inherit; }
   .charts-grid { grid-template-columns: 1fr; }
   .calendar-grid { grid-template-columns: minmax(0, 1fr); }
   .day-column { position: static; }
+  .stats-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-grid--four > .stat-tile, .stats-grid--four > .stat-tile--ahead { grid-column: auto; order: 0; }
+  /* Outside the current month only three tiles show, so No-spend days spans the row. */
+  .stats-grid--four:not(.is-current-month) > .stat-tile:last-child { grid-column: span 2; }
   .day-list { max-height: none; }
 }
 
