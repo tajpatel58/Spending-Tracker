@@ -43,8 +43,8 @@ const MONTHLY_SPEND_TARGET = 2000;   // drives the Calendar's "Max spend per day
 // Edit these monthly budget values as the household budget evolves.
 const BUDGETS = {
   'Fixed Expenses': 800,
-  'Dining Out': 300,
-  Groceries: 300,
+  'Dining Out': 250,
+  Groceries: 250,
   Shopping: 150,
   Transport: 150,
   Extras: 400,
