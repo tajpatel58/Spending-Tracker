@@ -9,9 +9,6 @@
 
 let categoryChart, trendChart, userChart;
 
-/** Expenses shown in the category and user donuts — fixed expenses are left out. */
-const isChartExpense = (t) => isExpense(t) && t.category !== 'fixed_expense';
-
 /**
  * Renders the "spending by category" donut chart and its legend.
  * Double-clicking a slice or legend row filters the transactions table
@@ -20,9 +17,9 @@ const isChartExpense = (t) => isExpense(t) && t.category !== 'fixed_expense';
  */
 function renderCategoryChart() {
   const txs = getMonthTransactions(state.month);
-  const totals = categoryTotals(txs.filter(isChartExpense));
+  const totals = categoryTotals(txs.filter(isVariableExpense));
   const entries = CATEGORIES
-    .filter((c) => isChartExpense({ category: c.id }))
+    .filter((c) => isVariableExpense({ category: c.id }))
     .map((c) => ({ ...c, total: totals[c.id] || 0 }))
     .filter((c) => c.total > 0)
     .sort((a, b) => b.total - a.total);
@@ -85,7 +82,7 @@ function renderUserChart() {
   const allTransactions = TRANSACTIONS[state.month] || [];
   const totals = {};
   allTransactions
-    .filter((transaction) => !transaction.hidden && isChartExpense(transaction))
+    .filter((transaction) => !transaction.hidden && isVariableExpense(transaction))
     .forEach((transaction) => {
       const user = transaction.user || 'Unknown';
       totals[user] = (totals[user] || 0) + Math.abs(transaction.amount);
