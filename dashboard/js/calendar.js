@@ -206,6 +206,63 @@ function showForecastTooltip({ chart, tooltip }) {
   el.style.top = `${Math.max(8, rect.top - tipRect.height - 8)}px`;
 }
 
+/**
+ * "Max spend per day": what's left of MONTHLY_SPEND_TARGET after the
+ * 3-month fixed-expense average and this month's spend so far (excl.
+ * fixed), spread over the days whose transactions haven't loaded yet.
+ */
+function renderMaxSpendPerDay(forecast) {
+  const value = document.getElementById('cal-max-day');
+  const note = document.getElementById('cal-max-day-note');
+  const remaining = MONTHLY_SPEND_TARGET - forecast.fixed - forecast.spent;
+  note.className = 'stat-tile__delta stat-tile__delta--truncate';
+
+  if (remaining <= 0) {
+    value.textContent = currency(0);
+    note.textContent = `${currency(-remaining)} over ${currencyShort(MONTHLY_SPEND_TARGET)} target`;
+    note.classList.add('is-negative');
+  } else if (!forecast.daysLeft) {
+    value.textContent = '—';
+    note.textContent = `${currency(remaining)} under target`;
+  } else {
+    value.textContent = currency(remaining / forecast.daysLeft);
+    note.textContent = `${currencyShort(remaining)} left · ${plural(forecast.daysLeft, 'day')}`;
+  }
+  value.closest('.stat-tile').title = `${currencyShort(MONTHLY_SPEND_TARGET)} target − ${currency(forecast.fixed)} fixed (3-month average) − ${currency(forecast.spent)} spent so far`;
+}
+
+/** Salary + interest received in a month (after the account filter). */
+function monthIncome(month) {
+  return getMonthTransactions(month)
+    .filter((t) => t.category === 'salary' || t.category === 'interest')
+    .reduce((s, t) => s + t.amount, 0);
+}
+
+/**
+ * "Forecast savings": income minus forecast spend, against
+ * MONTHLY_SAVINGS_TARGET. Uses this month's income once salary has
+ * landed, otherwise the average of the previous three months with data.
+ */
+function renderForecastSavings(month, forecast) {
+  const salaryIn = getMonthTransactions(month).some((t) => t.category === 'salary');
+  const history = [1, 2, 3].map((n) => shiftMonth(month, -n)).filter((key) => TRANSACTIONS[key]?.length);
+  const income = salaryIn || !history.length
+    ? monthIncome(month)
+    : history.reduce((s, key) => s + monthIncome(key), 0) / history.length;
+  const savings = income - forecast.total;
+  const gap = savings - MONTHLY_SAVINGS_TARGET;
+
+  document.getElementById('cal-savings').textContent = savings < 0 ? `-${currency(-savings)}` : currency(savings);
+  document.getElementById('cal-savings-bar').style.width = `${Math.max(0, Math.min(1, savings / MONTHLY_SAVINGS_TARGET)) * 100}%`;
+  const note = document.getElementById('cal-savings-note');
+  note.className = `stat-tile__delta stat-tile__delta--truncate ${gap >= 0 ? 'is-positive' : 'is-negative'}`;
+  note.textContent = gap >= 0
+    ? `${currencyShort(gap)} above ${currencyShort(MONTHLY_SAVINGS_TARGET)} target`
+    : `${currencyShort(-gap)} short of ${currencyShort(MONTHLY_SAVINGS_TARGET)} target`;
+  document.getElementById('cal-savings-tile').title =
+    `Income ${currency(income)} (${salaryIn ? 'this month' : '3-month average — salary not in yet'}) − forecast spend ${currency(forecast.total)}`;
+}
+
 /** Groups a month's expenses by date: { '2026-09-14': { total, txs } }. */
 function dailySpend(month) {
   const days = {};
@@ -262,12 +319,22 @@ function renderAll() {
   const variableTotal = variableTotals.reduce((s, v) => s + v, 0);
   document.getElementById('cal-avg').textContent = currency(variableTotal / daysInMonth);
   document.getElementById('cal-avg-note').textContent = 'Excluding Fixed Expenses';
-  const forecast = forecastSpend(month);
-  document.getElementById('cal-forecast').textContent = currency(forecast.total);
-  document.getElementById('cal-forecast-note').textContent = !forecast.daysLeft
-    ? 'All days loaded'
-    : `${plural(forecast.daysLeft, 'day')} forecast`;
-  renderForecastChart(forecast);
+  // Forecast and daily limit only make sense for the month we're in.
+  const isCurrentMonth = month === todayIso().slice(0, 7);
+  document.getElementById('cal-forecast-tile').hidden = !isCurrentMonth;
+  document.getElementById('cal-max-day-tile').hidden = !isCurrentMonth;
+  document.getElementById('cal-savings-tile').hidden = !isCurrentMonth;
+  document.querySelector('.stats-grid--four').classList.toggle('is-current-month', isCurrentMonth);
+  if (isCurrentMonth) {
+    const forecast = forecastSpend(month);
+    document.getElementById('cal-forecast').textContent = currency(forecast.total);
+    document.getElementById('cal-forecast-note').textContent = !forecast.daysLeft
+      ? 'All days loaded'
+      : `${plural(forecast.daysLeft, 'day')} forecast`;
+    renderForecastChart(forecast);
+    renderMaxSpendPerDay(forecast);
+    renderForecastSavings(month, forecast);
+  }
   document.getElementById('cal-zero').textContent = daysInMonth - spendDays;
   document.getElementById('cal-zero-note').textContent = `of ${daysInMonth} days`;
 

@@ -75,14 +75,20 @@ function setCategoryFilter(categoryId) {
   renderTable();
 }
 
-/** Renders the "spending by user" donut chart and its legend. */
+const FIXED_EXPENSES_LABEL = 'Fixed Expenses';
+
+/**
+ * Renders the "spending by user" donut chart and its legend. Fixed
+ * expenses get their own slice rather than counting towards a user, so
+ * spend splits into Fixed Expenses plus each user (e.g. Joint, Taj).
+ */
 function renderUserChart() {
   const allTransactions = TRANSACTIONS[state.month] || [];
   const totals = {};
   allTransactions
-    .filter((transaction) => !transaction.hidden && isVariableExpense(transaction))
+    .filter((transaction) => !transaction.hidden && isExpense(transaction))
     .forEach((transaction) => {
-      const user = transaction.user || 'Unknown';
+      const user = transaction.category === 'fixed_expense' ? FIXED_EXPENSES_LABEL : (transaction.user || 'Unknown');
       totals[user] = (totals[user] || 0) + Math.abs(transaction.amount);
     });
 
@@ -90,7 +96,14 @@ function renderUserChart() {
     .map(([user, total]) => ({ user, total }))
     .filter((entry) => entry.total > 0)
     .sort((a, b) => b.total - a.total);
-  const colors = entries.map((_, index) => [cssVar('--accent'), cssVar('--gold'), cssVar('--rose')][index % 3]);
+
+  // Colours follow the user (alphabetical), not their rank, so they don't swap month to month.
+  const palette = [cssVar('--accent'), cssVar('--gold'), cssVar('--rose')];
+  const userNames = Object.keys(totals).filter((u) => u !== FIXED_EXPENSES_LABEL).sort();
+  const colorFor = (user) => (user === FIXED_EXPENSES_LABEL
+    ? cssVar('--cat-fixed-expense')
+    : palette[userNames.indexOf(user) % palette.length]);
+  const colors = entries.map((entry) => colorFor(entry.user));
   const ctx = document.getElementById('user-chart');
 
   if (userChart) userChart.destroy();
@@ -112,7 +125,8 @@ function renderUserChart() {
     },
   });
 
-  document.getElementById('user-chart-meta').textContent = `${entries.length} users`;
+  const userCount = entries.filter((entry) => entry.user !== FIXED_EXPENSES_LABEL).length;
+  document.getElementById('user-chart-meta').textContent = `${userCount} user${userCount === 1 ? '' : 's'}`;
   document.getElementById('user-legend').innerHTML = entries.map((entry, index) => `
     <li>
       <span class="legend__swatch" style="background:${colors[index]}"></span>
