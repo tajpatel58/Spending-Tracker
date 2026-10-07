@@ -263,6 +263,45 @@ function renderForecastSavings(month, forecast) {
     `Income ${currency(income)} (${salaryIn ? 'this month' : '3-month average — salary not in yet'}) − forecast spend ${currency(forecast.total)}`;
 }
 
+/**
+ * "Vs last month": spend so far (excl. fixed expenses) against last
+ * month's by the same day of the month. "So far" ends at the last loaded day, so a part-loaded
+ * month isn't compared with all of last month.
+ */
+function renderVsLastMonth(month) {
+  const value = document.getElementById('cal-vs-last');
+  const note = document.getElementById('cal-vs-last-note');
+  note.className = 'stat-tile__delta stat-tile__delta--truncate';
+
+  const prev = shiftMonth(month, -1);
+  const loadedTo = lastLoadedDate();
+  const cutoffDay = loadedTo >= `${month}-${pad2(daysIn(month))}` ? daysIn(month)
+    : loadedTo.startsWith(month) ? Number(loadedTo.slice(8, 10)) : 0;
+  if (!cutoffDay || !TRANSACTIONS[prev]?.length) {
+    value.textContent = '—';
+    note.textContent = cutoffDay ? `No data for ${MONTH_LABEL(prev).split(' ')[0]}` : 'No data loaded yet';
+    return;
+  }
+
+  const prevCutoff = `${prev}-${pad2(Math.min(cutoffDay, daysIn(prev)))}`;
+  const spendTo = (key, last) => sumAbs(getMonthTransactions(key).filter((t) => isVariableExpense(t) && t.date <= last));
+  const current = spendTo(month, `${month}-${pad2(cutoffDay)}`);
+  const previous = spendTo(prev, prevCutoff);
+  const diff = current - previous;
+
+  const when = cutoffDay === daysIn(month) ? MONTH_LABEL(prev).split(' ')[0] : `by ${formatDate(prevCutoff)}`;
+  if (Math.abs(diff) < 0.005) {
+    value.textContent = currency(0);
+    note.textContent = `Same as ${when}`;
+  } else {
+    value.textContent = `${diff < 0 ? '−' : '+'}${currency(Math.abs(diff))}`;
+    const pct = previous ? `${Math.abs((diff / previous) * 100).toFixed(1)}% ` : '';
+    note.textContent = `${pct}${diff < 0 ? 'less' : 'more'} than ${when}`;
+    note.classList.add(diff < 0 ? 'is-positive' : 'is-negative');
+  }
+  value.closest('.stat-tile').title = `${currency(current)} spent vs ${currency(previous)} ${when === MONTH_LABEL(prev).split(' ')[0] ? `in ${when}` : when}`;
+}
+
 /** Groups a month's expenses by date: { '2026-09-14': { total, txs } }. */
 function dailySpend(month) {
   const days = {};
@@ -335,8 +374,7 @@ function renderAll() {
     renderMaxSpendPerDay(forecast);
     renderForecastSavings(month, forecast);
   }
-  document.getElementById('cal-zero').textContent = daysInMonth - spendDays;
-  document.getElementById('cal-zero-note').textContent = `of ${daysInMonth} days`;
+  renderVsLastMonth(month);
 
   // ---- Legend ranges (shown on hover) ----
   const [t1, t2, t3, t4] = thresholds;

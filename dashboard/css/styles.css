@@ -1774,7 +1774,7 @@ button { font-family: inherit; }
   .day-column { position: static; }
   .stats-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats-grid--four > .stat-tile, .stats-grid--four > .stat-tile--ahead { grid-column: auto; order: 0; }
-  /* Outside the current month only three tiles show, so No-spend days spans the row. */
+  /* Outside the current month only three tiles show, so the last one spans the row. */
   .stats-grid--four:not(.is-current-month) > .stat-tile:last-child { grid-column: span 2; }
   .day-list { max-height: none; }
 }
@@ -1949,6 +1949,15 @@ button { font-family: inherit; }
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
+  /* A full-width last tile (other months) puts its note beside the value, so the row isn't half empty. */
+  .stats-grid--four:not(.is-current-month) > .stat-tile:last-child {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 14px;
+  }
+  .stats-grid--four:not(.is-current-month) > .stat-tile:last-child .stat-tile__label { grid-column: 1 / -1; }
+  .stats-grid--four:not(.is-current-month) > .stat-tile:last-child .stat-tile__delta { text-align: right; }
 
   .charts-grid { gap: 12px; margin-bottom: 12px; }
   .tile__header { padding: 14px 14px 0; }
