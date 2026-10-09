@@ -17,7 +17,7 @@
  */
 
 const calendarView = {
-  selectedDate: null, // 'YYYY-MM-DD'; reset to the heaviest day when the month changes
+  selectedDate: null, // 'YYYY-MM-DD'; reset when the month changes — today in the current month, else the heaviest day
   month: null,
 };
 
@@ -390,11 +390,11 @@ function renderAll() {
   keyTitles.forEach((title, i) => { document.getElementById(`heat-key-${i + 1}`).title = title; });
 
   // ---- Day cells ----
+  const today = todayIso();
   if (calendarView.month !== month || !calendarView.selectedDate?.startsWith(month)) {
     calendarView.month = month;
-    calendarView.selectedDate = heaviest ? heaviest[0] : `${month}-01`;
+    calendarView.selectedDate = today.startsWith(month) ? today : heaviest ? heaviest[0] : `${month}-01`;
   }
-  const today = todayIso();
 
   const cells = Array.from({ length: firstWeekday }, () => '<span class="calendar__pad" aria-hidden="true"></span>');
   for (let d = 1; d <= daysInMonth; d += 1) {
