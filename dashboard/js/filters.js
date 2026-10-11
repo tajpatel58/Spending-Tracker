@@ -1,29 +1,57 @@
 /**
  * filters.js
  * ---------------------------------------------------------------------
- * Wires up every control that changes what's shown: the month
- * dropdown, the account filter, the table's category and user filters
+ * Wires up every control that changes what's shown: the ‹ Month ›
+ * stepper, the account filter, the table's category and user filters
  * and search (each with a quick way to clear it), and table column sorting.
  * ---------------------------------------------------------------------
  */
 
-/** Fills the month dropdown from MONTHS (newest first). Re-run if MONTHS changes. */
+/**
+ * Fills the month list from MONTHS (newest first) and updates the
+ * ‹ Month › stepper's label and arrows. Re-run if MONTHS changes.
+ */
 function renderMonthOptions() {
   const select = document.getElementById('month-select');
   select.innerHTML = MONTHS.slice().reverse().map((m) =>
     `<option value="${m.key}">${MONTH_LABEL(m.key)}</option>`
   ).join('');
   select.value = state.month;
+
+  const index = MONTHS.findIndex((m) => m.key === state.month);
+  document.getElementById('month-label').textContent = MONTH_LABEL(state.month);
+  document.getElementById('month-prev').disabled = index <= 0;
+  document.getElementById('month-next').disabled = index === -1 || index >= MONTHS.length - 1;
 }
 
-/** Populates the month dropdown and re-renders the dashboard when it changes. */
+/** Switches the dashboard to a month ('YYYY-MM'), remembering it for the other page. */
+function setMonth(key) {
+  if (!key || key === state.month) return;
+  state.month = key;
+  try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
+  renderMonthOptions();
+  renderAll();
+}
+
+/**
+ * Wires up the ‹ Month › stepper: arrows step one month, clicking the
+ * month name opens the full list, and ←/→ step months when you're not typing.
+ */
 function initMonthSelect() {
   const select = document.getElementById('month-select');
+  const step = (delta) => {
+    const index = MONTHS.findIndex((m) => m.key === state.month);
+    setMonth(MONTHS[index + delta]?.key);
+  };
   renderMonthOptions();
-  select.addEventListener('change', () => {
-    state.month = select.value;
-    try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
-    renderAll();
+  select.addEventListener('change', () => setMonth(select.value));
+  document.getElementById('month-prev').addEventListener('click', () => step(-1));
+  document.getElementById('month-next').addEventListener('click', () => step(1));
+  document.addEventListener('keydown', (event) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.target.closest('input, select, textarea, [contenteditable="true"]')) return;
+    if (event.key === 'ArrowLeft') step(-1);
+    if (event.key === 'ArrowRight') step(1);
   });
 }
 

@@ -35,6 +35,25 @@
       <span class="brand__name">Ledger</span>
     </div>
 
+    <nav class="view-nav" aria-label="Views">
+      <a href="index.html" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="4" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <span>Overview</span>
+      </a>
+      <a href="calendar.html" class="view-nav__link is-active" aria-current="page">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="5.5" width="16" height="14.5" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Calendar</span>
+      </a>
+    </nav>
+
     <div class="topbar__controls">
       <div class="topbar__filters">
         <div class="multiselect" id="account-filter">
@@ -47,10 +66,19 @@
           <div class="multiselect__panel" id="account-filter-panel" role="listbox" aria-label="Filter by account" hidden></div>
         </div>
 
-        <label class="field field--select" for="month-select">
-          <span class="field__label">Month</span>
-          <select id="month-select" aria-label="Select month"></select>
-        </label>
+        <div class="month-stepper" role="group" aria-label="Month">
+          <button type="button" class="month-stepper__btn" id="month-prev" aria-label="Previous month" title="Previous month">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <!-- The label shows the month; an invisible <select> on top of it opens the full month list. -->
+          <label class="month-stepper__label">
+            <span id="month-label">—</span>
+            <select id="month-select" aria-label="Jump to month"></select>
+          </label>
+          <button type="button" class="month-stepper__btn" id="month-next" aria-label="Next month" title="Next month">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="topbar__actions">
@@ -95,15 +123,11 @@
 <!-- ============ MAIN ============ -->
 <main class="container">
 
-  <div class="page-heading page-heading--with-nav">
+  <div class="page-heading">
     <div>
       <h1>Calendar</h1>
       <p id="page-subtitle" class="page-heading__subtitle">Daily spending</p>
     </div>
-    <nav class="view-nav" aria-label="Views">
-      <a href="index.html" class="view-nav__link">Overview</a>
-      <a href="calendar.html" class="view-nav__link is-active" aria-current="page">Calendar</a>
-    </nav>
   </div>
 
   <!-- Stat tiles -->

@@ -220,8 +220,10 @@ button { font-family: inherit; }
   padding: calc(14px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 14px calc(24px + env(safe-area-inset-left));
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 28px;
 }
+
+.topbar__controls { margin-left: auto; }
 
 .brand {
   display: flex;
@@ -272,6 +274,58 @@ button { font-family: inherit; }
 .field--select select:hover { border-color: var(--accent); }
 
 .field__label { position: absolute; left: -9999px; }
+
+/* ‹ Month › stepper. The month name hosts an invisible <select>, so
+   clicking it opens the native month list for jumping further. */
+.month-stepper {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.month-stepper__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 100%;
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+.month-stepper__btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.month-stepper__btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.month-stepper__btn:hover:not(:disabled) { color: var(--text); background: var(--surface-alt); }
+.month-stepper__btn:disabled { color: var(--border-strong); cursor: default; }
+.month-stepper__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.month-stepper__label {
+  position: relative;
+  min-width: 118px;
+  padding: 0 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--text);
+  cursor: pointer;
+}
+.month-stepper__label:hover { color: var(--accent); }
+.month-stepper__label select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px; /* stops iOS zooming when the list opens */
+}
+.month-stepper__label:has(select:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
 .field--search {
   position: relative;
@@ -1568,36 +1622,28 @@ button { font-family: inherit; }
 .table-note[hidden] { display: none; }
 
 /* ==========================================================================
-   View nav (Overview / Calendar)
+   View nav (Overview / Calendar) — in the top bar on desktop, a bottom
+   tab bar on phones (see the 560px breakpoint)
    ========================================================================== */
 
-.page-heading--with-nav {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.view-nav {
-  display: inline-flex;
-  padding: 3px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
+.view-nav { display: flex; align-items: center; gap: 2px; }
 
 .view-nav__link {
-  padding: 5px 12px;
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transition: color var(--transition), background var(--transition);
 }
 
-.view-nav__link:hover { color: var(--text); }
+.view-nav__link:hover { color: var(--text); background: var(--surface-alt); }
 .view-nav__link.is-active { color: var(--text); background: var(--surface-alt); box-shadow: inset 0 0 0 1px var(--border); }
+.view-nav__icon { display: none; }
 
 /* ==========================================================================
    Calendar page
@@ -1790,8 +1836,30 @@ button { font-family: inherit; }
 }
 
 @media (max-width: 560px) {
-  .container { padding: 20px 14px 100px; }
-  .page-heading--with-nav { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .container { padding: 20px 14px calc(110px + env(safe-area-inset-bottom)); }
+
+  /* Overview / Calendar become a bottom tab bar. The header's blur would
+     make it the tab bar's containing block (pinning the bar inside the
+     header), so phones get a near-solid header instead. */
+  .topbar { backdrop-filter: none; background: color-mix(in srgb, var(--bg) 97%, transparent); }
+  .view-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 6px calc(24px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+  }
+  .view-nav__link { flex-direction: column; gap: 3px; padding: 6px 0 4px; font-size: 11px; justify-content: center; }
+  .view-nav__link:hover { background: none; }
+  .view-nav__link.is-active { color: var(--accent); background: none; box-shadow: none; }
+  .view-nav__icon { display: block; }
   .calendar { padding: 10px 10px 12px; }
   .calendar__weekdays, .calendar__days { gap: 3px; }
   .calendar__weekdays span { padding-left: 0; text-align: center; font-size: 10px; }
@@ -1827,12 +1895,12 @@ button { font-family: inherit; }
   .topbar__controls .hide-button { grid-area: hide; min-height: 40px; }
 
   .topbar__filters .multiselect,
-  .topbar__filters .field,
-  .topbar__filters select,
+  .topbar__filters .month-stepper,
   .multiselect__button { width: 100%; min-width: 0; }
+  .month-stepper { height: 40px; }
+  .month-stepper__label { flex: 1; min-width: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; }
   .multiselect__button { justify-content: space-between; font-size: 16px; }
   #account-filter-label { overflow: hidden; text-overflow: ellipsis; }
-  .topbar__filters select { min-height: 40px; overflow: hidden; text-overflow: ellipsis; }
   .multiselect__panel { width: calc(100vw - 28px); max-height: 65vh; overflow-y: auto; }
 
   .topbar__actions .icon-btn { border-color: transparent; background: transparent; }
@@ -1921,7 +1989,7 @@ button { font-family: inherit; }
     left: calc(16px + env(safe-area-inset-left));
     bottom: calc(84px + env(safe-area-inset-bottom));
   }
-  .chat-fab { right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .chat-fab { right: calc(16px + env(safe-area-inset-right)); bottom: calc(76px + env(safe-area-inset-bottom)); } /* clears the tab bar */
 
   /* Compact type scale for phones. iOS Safari normally zooms in when an
      input under 16px is focused; maximum-scale=1 in the viewport meta tag
@@ -1936,8 +2004,10 @@ button { font-family: inherit; }
   .user-menu__button:hover,
   .user-menu.is-open .user-menu__button { padding: 4px; min-height: 0; }
   .user-menu__avatar { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
-  .multiselect__button,
-  .topbar__filters select { min-height: 34px; padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+  .multiselect__button { min-height: 34px; padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+  .month-stepper { height: 34px; }
+  .month-stepper__label { font-size: 13px; }
+  .month-stepper__btn { width: 30px; }
   .topbar__controls .hide-button { min-height: 34px; padding: 6px 12px; font-size: 13px; }
 
   .container { padding-top: 16px; }
