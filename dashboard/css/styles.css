@@ -1649,9 +1649,6 @@ button { font-family: inherit; }
 
 .datepicker__reset:hover { background: var(--accent-soft); }
 
-.table-note { color: var(--accent); }
-.table-note.is-error { color: var(--rose); }
-.table-note[hidden] { display: none; }
 
 /* ==========================================================================
    View nav (Overview / Calendar) — in the top bar on desktop, a bottom
@@ -2442,6 +2439,111 @@ body.chat-page {
   .chat-page.chat-has-messages .topbar__inner { padding-bottom: 8px; }
 }
 
+
+/* ==========================================================================
+   Toasts (toast.js) — inverted pill, bottom centre
+   ========================================================================== */
+
+.toast-region {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--space-4));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.toast {
+  --toast-fg: var(--surface);
+  --toast-soft: color-mix(in srgb, var(--surface) 14%, transparent);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 280px;
+  max-width: 460px;
+  padding: 10px 8px 10px 12px;
+  overflow: hidden;
+  font-size: 13.5px;
+  color: var(--toast-fg);
+  background: var(--text);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3);
+  pointer-events: auto;
+  animation: toast-in 280ms var(--ease-out) both;
+}
+.toast.is-leaving { animation: toast-out 180ms ease both; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(6px) scale(0.98); } }
+
+.toast__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.toast--error .toast__icon { background: var(--rose); }
+.toast--info .toast__icon { color: var(--toast-fg); background: var(--toast-soft); }
+.toast__message { flex: 1; min-width: 0; line-height: 1.4; overflow-wrap: anywhere; }
+.toast__action {
+  flex: none;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--toast-fg);
+  background: var(--toast-soft);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+.toast__action:hover { background: color-mix(in srgb, var(--surface) 22%, transparent); }
+.toast__action:active { transform: scale(0.96); }
+.toast__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: color-mix(in srgb, var(--surface) 60%, transparent);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.toast__close:hover { color: var(--toast-fg); background: var(--toast-soft); }
+.toast__action:focus-visible, .toast__close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Time left before it dismisses itself; pauses on hover/focus. */
+.toast__timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--surface) 35%, transparent);
+  transform-origin: left center;
+  animation: toast-timer var(--toast-duration, 5000ms) linear forwards;
+}
+.toast.is-paused .toast__timer { animation-play-state: paused; }
+@keyframes toast-timer { to { transform: scaleX(0); } }
+
+@media (max-width: 560px) {
+  .toast-region { width: calc(100vw - 2 * var(--space-4)); bottom: calc(var(--space-4) + env(safe-area-inset-bottom)); }
+  .toast { min-width: 0; max-width: none; width: 100%; }
+}
 
 /* ==========================================================================
    Motion — entrances, bars, page transitions and press feedback

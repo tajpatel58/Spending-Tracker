@@ -4,7 +4,8 @@
  * Renders the transactions table and handles in-place editing: changing
  * a category, renaming a merchant, correcting an amount, moving the date
  * (via the pop-over calendar in datepicker.js), or hiding transactions. Edits update the UI immediately, then get saved through
- * transactions-api.js — if the save fails, the edit is rolled back.
+ * transactions-api.js; a toast confirms each one with Undo (toast.js),
+ * and if the save fails the edit is rolled back.
  *
  * Kept visually quiet: edit controls appear on row hover, each row's
  * merchant initial doubles as its select-to-hide checkbox, and when
@@ -186,59 +187,42 @@ function initTableEditing() {
     if (!tx) return;
 
     if (target.classList.contains('category-select')) {
-      if (tx.category === target.value) return;
-
-      const previousCategory = tx.category;
-      tx.category = target.value;
-      renderStats();
-      renderCategoryChart();
-      renderUserChart();
-      renderBudgetChart();
-      renderTable();
-
-      try {
-        await updateTransactionCategory(txId, target.value);
-      } catch (error) {
-        console.error('Could not update transaction category:', error);
-        tx.category = previousCategory;
-        renderStats();
-        renderCategoryChart();
-        renderUserChart();
-        renderBudgetChart();
-        renderTable();
-      }
+      const previous = tx.category;
+      const next = target.value;
+      if (previous === next) return;
+      const rerender = () => { renderStats(); renderCategoryChart(); renderUserChart(); renderBudgetChart(); renderTable(); };
+      editWithUndo({
+        apply: () => { tx.category = next; rerender(); },
+        revert: () => { tx.category = previous; rerender(); },
+        save: () => updateTransactionCategory(txId, next),
+        unsave: () => updateTransactionCategory(txId, previous),
+        message: `Moved ${tx.merchant} to ${catById[next].label}`,
+      });
 
     } else if (target.classList.contains('merchant-input')) {
-      const newName = target.value.trim();
-      if (!newName || tx.merchant === newName) { target.value = tx.merchant; return; }
-      const previousMerchant = tx.merchant;
-      tx.merchant = newName;
-      renderTable();
-
-      try {
-        await updateTransactionMerchant(txId, newName);
-      } catch (error) {
-        console.error('Could not update transaction merchant:', error);
-        tx.merchant = previousMerchant;
-        renderTable();
-      }
+      const previous = tx.merchant;
+      const next = target.value.trim();
+      if (!next || previous === next) { target.value = previous; return; }
+      editWithUndo({
+        apply: () => { tx.merchant = next; renderTable(); },
+        revert: () => { tx.merchant = previous; renderTable(); },
+        save: () => updateTransactionMerchant(txId, next),
+        unsave: () => updateTransactionMerchant(txId, previous),
+        message: `Renamed ${previous} to ${next}`,
+      });
 
     } else if (target.classList.contains('amount-input')) {
-      const parsed = Math.round(parseFloat(target.value) * 100) / 100;
-      if (!Number.isFinite(parsed)) { target.value = tx.amount.toFixed(2); return; }
-      if (tx.amount === parsed) return;
-      const previousAmount = tx.amount;
-      tx.amount = parsed;
-      renderAll();
-
-      try {
-        await updateTransactionAmount(txId, parsed);
-      } catch (error) {
-        console.error('Could not update transaction amount:', error.message || error);
-        tx.amount = previousAmount;
-        renderAll();
-      }
-
+      const next = Math.round(parseFloat(target.value) * 100) / 100;
+      if (!Number.isFinite(next)) { target.value = tx.amount.toFixed(2); return; }
+      const previous = tx.amount;
+      if (previous === next) return;
+      editWithUndo({
+        apply: () => { tx.amount = next; renderAll(); },
+        revert: () => { tx.amount = previous; renderAll(); },
+        save: () => updateTransactionAmount(txId, next),
+        unsave: () => updateTransactionAmount(txId, previous),
+        message: `${tx.merchant} changed to ${currency(Math.abs(next))}`,
+      });
     }
   });
 
@@ -255,68 +239,87 @@ function initTableEditing() {
     });
   });
 
-  document.getElementById('hide-selected-button').addEventListener('click', async (e) => {
+  document.getElementById('hide-selected-button').addEventListener('click', (e) => {
     const selectedIds = [...state.selectedTransactionIds];
     if (!selectedIds.length) return;
-
-    const button = e.currentTarget;
-    button.disabled = true;
-    button.textContent = 'Hiding...';
-    try {
-      await hideTransactions(selectedIds);
-      selectedIds.forEach((transactionId) => {
-        Object.values(TRANSACTIONS).forEach((transactions) => {
-          const transaction = transactions.find((item) => item.id === transactionId);
-          if (transaction) transaction.hidden = true;
-        });
+    const setHidden = (hidden) => selectedIds.forEach((transactionId) => {
+      Object.values(TRANSACTIONS).forEach((transactions) => {
+        const transaction = transactions.find((item) => item.id === transactionId);
+        if (transaction) transaction.hidden = hidden;
       });
-      state.selectedTransactionIds.clear();
-      button.disabled = false;
-      renderAll();
-    } catch (error) {
-      console.error('Could not hide selected transactions:', error);
-      button.disabled = false;
-      updateHideButton();
-    }
+    });
+
+    editWithUndo({
+      apply: () => { setHidden(true); state.selectedTransactionIds.clear(); renderAll(); },
+      revert: () => { setHidden(false); renderAll(); },
+      save: () => hideTransactions(selectedIds),
+      unsave: () => unhideTransactions(selectedIds),
+      message: `${selectedIds.length} transaction${selectedIds.length === 1 ? '' : 's'} hidden`,
+      failMessage: "Couldn't hide those transactions",
+    });
   });
 }
 
 /**
- * Moves a transaction to a new date (null = back to the bank's date).
- * If that's a different month, the transaction is re-filed there and
- * drops out of the current view, so a short note says where it went.
+ * Moves a transaction to a new date (null = back to the bank's date). If
+ * that's a different month it's re-filed there and drops out of the
+ * current view, so the toast says where it went.
  */
-async function changeTransactionDate(tx, manualDate) {
+function changeTransactionDate(tx, manualDate) {
   const previousDate = tx.date;
-  const hadMonths = MONTHS.length;
-  tx.date = manualDate ?? tx.originalDate;
-  refileTransaction(tx, previousDate);
-  if (MONTHS.length !== hadMonths) renderMonthOptions();
-  renderAll();
+  const previousManual = previousDate === tx.originalDate ? null : previousDate;
+  const nextDate = manualDate ?? tx.originalDate;
+  if (nextDate === previousDate) return;
 
-  const movedMonth = tx.date.slice(0, 7) !== previousDate.slice(0, 7);
-  if (movedMonth) showTableNote(`Moved to ${formatDate(tx.date)} · ${MONTH_LABEL(tx.date.slice(0, 7))}`);
-
-  try {
-    await updateTransactionDate(tx.id, manualDate);
-  } catch (error) {
-    console.error('Could not update transaction date:', error.message || error);
-    const failedDate = tx.date;
-    tx.date = previousDate;
-    refileTransaction(tx, failedDate);
+  const moveTo = (date) => {
+    const from = tx.date;
+    const hadMonths = MONTHS.length;
+    tx.date = date;
+    refileTransaction(tx, from);
+    if (MONTHS.length !== hadMonths) renderMonthOptions();
     renderAll();
-    showTableNote('Could not save the new date', true);
-  }
+  };
+  const otherMonth = nextDate.slice(0, 7) !== previousDate.slice(0, 7);
+  editWithUndo({
+    apply: () => moveTo(nextDate),
+    revert: () => moveTo(previousDate),
+    save: () => updateTransactionDate(tx.id, manualDate),
+    unsave: () => updateTransactionDate(tx.id, previousManual),
+    message: `${tx.merchant} moved to ${formatDate(nextDate)}${otherMonth ? ` · ${MONTH_LABEL(nextDate.slice(0, 7))}` : ''}`,
+  });
 }
 
-/** Shows a brief note in the table footer (e.g. after a transaction moves month). */
-function showTableNote(text, isError = false) {
-  const note = document.getElementById('table-note');
-  note.textContent = text;
-  note.classList.toggle('is-error', isError);
-  note.hidden = false;
-  clearTimeout(showTableNote.timer);
-  showTableNote.timer = setTimeout(() => { note.hidden = true; }, 4000);
+/**
+ * Applies an edit straight away, saves it, and shows a toast with Undo.
+ * If the save fails the edit is rolled back and an error toast explains.
+ * Undo reverses it on screen and in Supabase (waiting for the save first).
+ */
+function editWithUndo({ apply, revert, save, unsave, message, failMessage = "Couldn't save that change" }) {
+  apply();
+  const saving = save();
+  showToast({
+    message,
+    action: {
+      label: 'Undo',
+      onClick: async () => {
+        revert();
+        try {
+          await saving.catch(() => {}); // nothing to undo server-side if the save itself failed
+          await unsave();
+          showToast({ message: 'Change undone', tone: 'info', duration: 2500 });
+        } catch (error) {
+          console.error('Could not undo the change:', error);
+          apply();
+          showToast({ message: "Couldn't undo — the change was kept", tone: 'error' });
+        }
+      },
+    },
+  });
+  saving.catch((error) => {
+    console.error('Could not save the change:', error);
+    revert();
+    showToast({ message: `${failMessage} — it's been reverted`, tone: 'error' });
+  });
 }
 
 /** Quotes a value for CSV when it contains a comma, quote or newline. */
