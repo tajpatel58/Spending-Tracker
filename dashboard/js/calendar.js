@@ -4,8 +4,8 @@
  * Entry point for calendar.html — a month calendar of spend per day.
  * Each day is shaded by how heavy its spending was compared with the
  * other spending days that month (quintiles, so one big rent payment
- * doesn't wash out every other day): green for the lightest days,
- * neutral in the middle, rose for the heaviest. Clicking a day lists its
+ * doesn't wash out every other day): a single green, light for the
+ * lightest days through to deep green for the heaviest. Clicking a day lists its
  * transactions and calendar events (with their rough budgets) alongside
  * the calendar; days with an event get a small dot. A stat tile
  * forecasts the month's total spend (see forecastSpend).
