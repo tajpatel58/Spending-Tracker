@@ -10,7 +10,7 @@
  * ---------------------------------------------------------------------
  */
 
-const TOAST_DURATION = 5000;
+const TOAST_DURATION = 10000;
 
 const TOAST_ICONS = {
   success: '<path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
