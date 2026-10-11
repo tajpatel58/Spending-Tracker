@@ -8,8 +8,6 @@
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
-  --tabbar-height: 58px; /* phone bottom tab bar, excluding the safe area */
-
   /* Spacing scale (4px grid; 2/6/10px only for tight component detail).
      Every gap, padding and margin should be one of these values. */
   --space-1: 4px;
@@ -1885,36 +1883,27 @@ button { font-family: inherit; }
 }
 
 @media (max-width: 560px) {
-  .container { padding: 20px 16px calc(110px + env(safe-area-inset-bottom)); }
+  .container { padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
 
-  /* Overview / Calendar become a bottom tab bar. The header's blur would
-     make it the tab bar's containing block (pinning the bar inside the
-     header), so phones get a near-solid header instead. */
-  .topbar { backdrop-filter: none; background: color-mix(in srgb, var(--bg) 97%, transparent); }
+  /* Overview / Calendar / Assistant become a full-width segmented
+     control in the header, on its own row under the logo. */
   .view-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 30;
+    grid-area: nav;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    padding: 6px calc(24px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
-    background: color-mix(in srgb, var(--surface) 90%, transparent);
-    backdrop-filter: blur(12px);
-    border-top: 1px solid var(--border);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    padding: 3px;
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+    border-radius: 10px;
   }
-  .view-nav__link { flex-direction: column; gap: 4px; padding: 6px 0 4px; font-size: 11px; justify-content: center; }
-  /* Slides away while scrolling down (see nav.js). */
-  .view-nav {
-    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 280ms ease;
-    will-change: transform;
-  }
-  .view-nav.is-hidden { transform: translateY(calc(100% + 1px)); }
+  .view-nav__link { justify-content: center; gap: 6px; padding: 6px 0; font-size: 13px; border-radius: 8px; }
   .view-nav__link:hover { background: none; }
-  .view-nav__link.is-active { color: var(--accent); background: none; box-shadow: none; }
-  .view-nav__icon { display: block; }
+  .view-nav__link.is-active {
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgba(20, 23, 31, 0.08), 0 0 0 0.5px var(--border);
+  }
+  .view-nav__icon { display: block; width: 15px; height: 15px; }
   .calendar { padding: 10px 10px 12px; }
   .calendar__weekdays, .calendar__days { gap: 4px; }
   .calendar__weekdays span { padding-left: 0; text-align: center; font-size: 10px; }
@@ -1939,7 +1928,7 @@ button { font-family: inherit; }
   .topbar__inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "brand actions" "filters filters" "hide hide";
+    grid-template-areas: "brand actions" "nav nav" "filters filters" "hide hide";
     gap: 10px;
     padding: 8px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left));
   }
@@ -2404,13 +2393,11 @@ body.chat-page {
   /* 16px stops iOS zooming into the field on focus. */
   .composer__input { font-size: 16px; }
   .composer { border-radius: 22px; }
-  /* Sit above the bottom tab bar… */
   .chat__dock {
-    padding: 0 calc(var(--space-3) + env(safe-area-inset-right)) calc(var(--tabbar-height) + var(--space-2) + env(safe-area-inset-bottom)) calc(var(--space-3) + env(safe-area-inset-left));
+    padding: 0 calc(var(--space-3) + env(safe-area-inset-right)) calc(var(--space-2) + env(safe-area-inset-bottom)) calc(var(--space-3) + env(safe-area-inset-left));
   }
   .chat__disclaimer { display: none; }
-  /* …and while typing, hide the tab bar so the composer sits right on the keyboard. */
-  .chat-page.keyboard-open .view-nav { display: none; }
+  /* While typing, the keyboard covers the home-bar area, so drop that padding. */
   .chat-page.keyboard-open .chat__dock { padding-bottom: var(--space-2); }
   /* Once a conversation starts, give it the whole width under a compact top bar. */
   .chat-page.chat-has-messages .topbar__inner { padding-bottom: 8px; }

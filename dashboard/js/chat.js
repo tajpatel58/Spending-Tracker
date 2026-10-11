@@ -11,7 +11,7 @@
  *
  * iPhone notes: the page is sized to the *visual* viewport, so the
  * composer stays above the on-screen keyboard (iOS Safari doesn't
- * resize the layout for it), and the bottom tab bar hides while typing.
+ * resize the layout for it).
  * ---------------------------------------------------------------------
  */
 
@@ -304,7 +304,7 @@ function initChatPage(session) {
 /**
  * Sizes the page to the visual viewport. iOS Safari doesn't shrink the
  * layout when the keyboard opens, so without this the composer would sit
- * behind it. Also flags `keyboard-open` (hides the bottom tab bar).
+ * behind it. Also flags `keyboard-open` (trims the composer's home-bar padding).
  */
 function fitToVisualViewport() {
   const vv = window.visualViewport;
