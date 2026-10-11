@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTableEditing();
     initTableExport();
     initStatementUpload();
-    initChat();
 
     renderAll();
     finishLoading();
