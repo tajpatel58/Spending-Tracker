@@ -772,23 +772,6 @@ button { font-family: inherit; }
 .stat-tile__delta.is-negative { color: var(--rose); }
 .stat-tile__delta--truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Forecast tile: figures on the left, breakdown doughnut on the right. */
-.stat-tile--forecast { flex-direction: row; align-items: center; gap: 12px; }
-.stat-tile__text { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
-.forecast-ring { position: relative; flex: none; width: 64px; height: 64px; }
-
-.forecast-tip__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-faint);
-}
-.forecast-tip__row.is-active { color: var(--text); font-weight: 500; }
-.forecast-tip__swatch { flex: none; width: 8px; height: 8px; border-radius: 50%; }
-.forecast-tip__amount { margin-left: auto; padding-left: 12px; font-family: var(--font-mono); }
-.forecast-tip__detail { font-size: 11px; color: var(--text-faint); padding-left: 16px; }
-
 /* ==========================================================================
    Charts
    ========================================================================== */
@@ -1696,11 +1679,60 @@ button { font-family: inherit; }
    Calendar page
    ========================================================================== */
 
-/* Calendar stats: "so far" tiles in one row of three; for the current month
-   the forward-looking tiles (forecast, max per day) sit below, two across. */
-.stats-grid--four { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.stats-grid--four > .stat-tile { grid-column: span 2; }
-.stats-grid--four > .stat-tile--ahead { order: 1; }
+/* Calendar stats. Other months: three tiles in a row. Current month: four
+   small tiles, then the two breakdown cards side by side underneath. */
+.stats-grid--four { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.stats-grid--four > .stat-tile { grid-column: span 4; }
+.stats-grid--four.is-current-month > .stat-tile { grid-column: span 3; }
+.stats-grid--four > .breakdown-card { grid-column: span 6; order: 1; }
+
+/* ---- Breakdown cards (Forecast spend, Max spend per day) ---- */
+.breakdown-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+}
+.breakdown-card[hidden] { display: none; }
+.breakdown-card__head { display: flex; flex-direction: column; gap: 6px; }
+.breakdown-card__head h2.stat-tile__label { margin: 0; font-family: var(--font-body); }
+.breakdown-card__value { font-size: 30px; }
+.breakdown-card__unit { margin-left: 4px; font-size: 15px; font-weight: 500; color: var(--text-faint); }
+
+.breakdown-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  overflow: hidden;
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+.breakdown-bar__seg { flex-basis: 0; min-width: 3px; transition: flex-grow 300ms ease; }
+
+.breakdown-list { display: flex; flex-direction: column; }
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 14px 8px minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 10px;
+  padding: 8px 0;
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+}
+.breakdown-row:first-child { border-top: none; padding-top: 0; }
+.breakdown-row__op { font-family: var(--font-mono); font-size: 13px; color: var(--text-faint); text-align: center; }
+.breakdown-row__swatch { width: 8px; height: 8px; border-radius: 2px; align-self: center; }
+.breakdown-row__label { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--text); font-weight: 500; }
+.breakdown-row__label small { font-size: 11.5px; font-weight: 400; color: var(--text-faint); }
+.breakdown-row__amount { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.breakdown-row--subtotal { border-top-color: var(--border-strong); }
+.breakdown-row--subtotal .breakdown-row__label,
+.breakdown-row--subtotal .breakdown-row__amount { font-weight: 600; }
+.breakdown-row--total { padding-top: 10px; border-top-color: var(--border-strong); }
+.breakdown-row--total .breakdown-row__label { font-weight: 600; }
+.breakdown-row--total .breakdown-row__amount { font-size: 14px; font-weight: 600; color: var(--accent); }
+.breakdown-row.is-negative .breakdown-row__amount { color: var(--rose); }
 
 /* Thin progress bar towards a target (Forecast savings). */
 .target-bar { display: block; height: 4px; margin: 2px 0; background: var(--border); border-radius: var(--radius-full); overflow: hidden; }
@@ -1876,7 +1908,8 @@ button { font-family: inherit; }
   .calendar-grid { grid-template-columns: minmax(0, 1fr); }
   .day-column { position: static; }
   .stats-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .stats-grid--four > .stat-tile, .stats-grid--four > .stat-tile--ahead { grid-column: auto; order: 0; }
+  .stats-grid--four > .stat-tile, .stats-grid--four.is-current-month > .stat-tile { grid-column: auto; }
+  .stats-grid--four > .breakdown-card { grid-column: 1 / -1; }
   /* Outside the current month only three tiles show, so the last one spans the row. */
   .stats-grid--four:not(.is-current-month) > .stat-tile:last-child { grid-column: span 2; }
   .day-list { max-height: none; }
@@ -2055,9 +2088,9 @@ button { font-family: inherit; }
 
   .stats-grid { gap: 8px; margin-bottom: 12px; }
   .stat-tile { padding: 12px 12px 12px; gap: 4px; }
-  .stat-tile--forecast { gap: 8px; }
-  .stat-tile__text { gap: 4px; }
-  .forecast-ring { width: 36px; height: 36px; }
+  .breakdown-card { padding: var(--space-4); gap: var(--space-3); }
+  .breakdown-card__value { font-size: 24px; }
+  .breakdown-row { font-size: 12.5px; column-gap: 8px; }
   .stat-tile__label { font-size: 9.5px; letter-spacing: 0.05em; }
   .stat-tile__value { font-size: 16px; }
   .stat-tile__delta { font-size: 10.5px; line-height: 1.35; }

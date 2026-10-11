@@ -27,5 +27,4 @@ function toggleTheme() {
   if (typeof renderUserChart === 'function') renderUserChart();
   if (typeof renderTrendChart === 'function') renderTrendChart();
   if (typeof renderBudgetChart === 'function') renderBudgetChart();
-  if (typeof renderForecastChart === 'function') renderForecastChart();
 }

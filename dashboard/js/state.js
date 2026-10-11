@@ -83,8 +83,9 @@ function isVariableExpense(t) {
 }
 
 // Monthly targets. Spending covers everything, fixed expenses included.
-const MONTHLY_SAVINGS_TARGET = 4400; // drives the Calendar's "Forecast savings"
-const MONTHLY_SPEND_TARGET = 2000;   // drives the Calendar's "Max spend per day"
+// Monthly savings target. Drives the Calendar's "Forecast savings", and
+// "Max spend per day" (last month's salary minus this is what can be spent).
+const MONTHLY_SAVINGS_TARGET = 4400;
 
 // Edit these monthly budget values as the household budget evolves.
 const BUDGETS = {

@@ -146,22 +146,27 @@
       <span class="stat-tile__value" id="cal-avg">£0</span>
       <span class="stat-tile__delta stat-tile__delta--truncate" id="cal-avg-note">—</span>
     </div>
-    <div class="tile stat-tile stat-tile--forecast stat-tile--ahead" id="cal-forecast-tile" hidden>
-      <div class="stat-tile__text">
-        <span class="stat-tile__label">Forecast spend</span>
-        <span class="stat-tile__value" id="cal-forecast">—</span>
-        <span class="stat-tile__delta stat-tile__delta--truncate" id="cal-forecast-note">—</span>
+    <!-- Current month only: the two forward-looking numbers, each with a
+         bar and a worked sum showing how it's calculated (calendar.js). -->
+    <section class="tile breakdown-card" id="cal-forecast-tile" aria-labelledby="cal-forecast-title" hidden>
+      <div class="breakdown-card__head">
+        <h2 class="stat-tile__label" id="cal-forecast-title">Forecast spend</h2>
+        <span class="breakdown-card__value stat-tile__value" id="cal-forecast">—</span>
+        <span class="stat-tile__delta" id="cal-forecast-note">—</span>
       </div>
-      <div class="forecast-ring">
-        <canvas id="forecast-chart" role="img" aria-label="Forecast spend breakdown"></canvas>
+      <div class="breakdown-bar" id="cal-forecast-bar" role="img"></div>
+      <div class="breakdown-list" id="cal-forecast-list"></div>
+    </section>
+    <section class="tile breakdown-card" id="cal-max-day-tile" aria-labelledby="cal-max-day-title" hidden>
+      <div class="breakdown-card__head">
+        <h2 class="stat-tile__label" id="cal-max-day-title">Max spend per day</h2>
+        <span class="breakdown-card__value stat-tile__value" id="cal-max-day">—</span>
+        <span class="stat-tile__delta" id="cal-max-day-note">—</span>
       </div>
-    </div>
-    <div class="tile stat-tile stat-tile--ahead" id="cal-max-day-tile" hidden>
-      <span class="stat-tile__label">Max spend per day</span>
-      <span class="stat-tile__value" id="cal-max-day">—</span>
-      <span class="stat-tile__delta stat-tile__delta--truncate" id="cal-max-day-note">—</span>
-    </div>
-    <div class="tile stat-tile stat-tile--ahead" id="cal-savings-tile" hidden>
+      <div class="breakdown-bar" id="cal-max-day-bar" role="img"></div>
+      <div class="breakdown-list" id="cal-max-day-list"></div>
+    </section>
+    <div class="tile stat-tile" id="cal-savings-tile" hidden>
       <span class="stat-tile__label">Forecast savings</span>
       <span class="stat-tile__value" id="cal-savings">—</span>
       <span class="target-bar" aria-hidden="true"><span class="target-bar__fill" id="cal-savings-bar"></span></span>
@@ -233,7 +238,6 @@
 <div class="calendar-tooltip" id="calendar-tooltip" role="tooltip" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
 <!--
   Same load order as index.html (see the notes there), minus the

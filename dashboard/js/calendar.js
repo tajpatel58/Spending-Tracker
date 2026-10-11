@@ -108,129 +108,130 @@ function forecastSpend(month) {
   const loadedTo = lastLoadedDate();
   let daysLeft = 0;
   let eventBudget = 0;
+  let eventCount = 0;
   for (let d = 1; d <= daysIn(month); d += 1) {
     const iso = `${month}-${pad2(d)}`;
     if (iso <= loadedTo) continue;
     daysLeft += 1;
     eventBudget += (EVENTS_BY_DATE[iso] || []).reduce((s, e) => s + e.budget, 0);
+    eventCount += (EVENTS_BY_DATE[iso] || []).length;
   }
 
   const projected = dailyAvg * daysLeft;
   return {
     total: fixed + spent + projected + eventBudget,
-    fixed, spent, projected, dailyAvg, daysLeft, eventBudget, loadedTo,
+    fixed, spent, projected, dailyAvg, daysLeft, eventBudget, eventCount, loadedTo,
   };
 }
 
-// The forecast's parts, in doughnut order, each with its colour token.
-const FORECAST_PARTS = [
-  { key: 'fixed', label: 'Fixed expenses', color: '--forecast-fixed' },
-  { key: 'spent', label: 'Spent so far', color: '--forecast-spent' },
-  { key: 'projected', label: 'Projected daily spend', color: '--forecast-projected' },
-  { key: 'eventBudget', label: 'Event budgets', color: '--forecast-events' },
-];
-
-// Extra line shown under the hovered part in the tooltip.
-const FORECAST_DETAIL = {
-  fixed: () => 'Average of the last 3 months',
-  spent: () => 'Excluding fixed expenses',
-  projected: (f) => `${currency(f.dailyAvg)}/day × ${plural(f.daysLeft, 'day')}`,
-  eventBudget: () => 'Events on days not yet loaded',
-};
-
-let forecastChart;
-let lastForecast = null;
+const monthName = (key) => MONTH_LABEL(key).split(' ')[0];
 
 /**
- * Draws the forecast breakdown doughnut. Hovering a segment shows every
- * part in the page's tooltip, with the hovered one highlighted. Called
- * with no argument (e.g. on theme change) it redraws the last forecast.
+ * Renders a breakdown card's visual: a stacked bar (one segment per
+ * part, sized by amount) and a worked sum underneath — one row per part
+ * with its operator, explanation and amount, then the result.
+ *
+ *   rows: [{ op: '+', label, detail?, amount, color?, kind?: 'subtotal' | 'total' }]
+ *   segments: [{ label, amount, color }] — what the bar shows
  */
-function renderForecastChart(forecast = lastForecast) {
-  if (!forecast || typeof Chart === 'undefined') return;
-  lastForecast = forecast;
-  const canvas = document.getElementById('forecast-chart');
-  const values = FORECAST_PARTS.map((p) => forecast[p.key]);
-  const empty = forecast.total <= 0;
+function renderBreakdown(prefix, segments, rows) {
+  const bar = document.getElementById(`${prefix}-bar`);
+  const total = segments.reduce((s, seg) => s + Math.max(0, seg.amount), 0);
+  bar.innerHTML = total > 0
+    ? segments.filter((seg) => seg.amount > 0).map((seg) => `
+        <span class="breakdown-bar__seg" style="flex-grow:${seg.amount};background:var(${seg.color})" title="${escapeAttr(seg.label)}: ${currency(seg.amount)}"></span>
+      `).join('')
+    : '';
+  bar.setAttribute('aria-label', segments.map((seg) => `${seg.label} ${currency(seg.amount)}`).join(', '));
 
-  canvas.setAttribute('aria-label', `Forecast spend breakdown: ${FORECAST_PARTS
-    .map((p, i) => `${p.label} ${currency(values[i])}`).join(', ')}`);
-
-  if (forecastChart) forecastChart.destroy();
-  forecastChart = new Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      datasets: [{
-        // An empty forecast still shows a faint track rather than nothing.
-        data: empty ? [1] : values,
-        backgroundColor: empty ? [cssVar('--border')] : FORECAST_PARTS.map((p) => cssVar(p.color)),
-        borderWidth: 2,
-        borderColor: cssVar('--surface'),
-        hoverOffset: 0,
-      }],
-    },
-    options: {
-      cutout: '64%',
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 250 },
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false, external: empty ? undefined : showForecastTooltip },
-      },
-    },
-  });
+  document.getElementById(`${prefix}-list`).innerHTML = rows.map((row) => `
+    <div class="breakdown-row${row.kind ? ` breakdown-row--${row.kind}` : ''}${row.negative ? ' is-negative' : ''}">
+      <span class="breakdown-row__op" aria-hidden="true">${row.op || ''}</span>
+      <span class="breakdown-row__swatch"${row.color ? ` style="background:var(${row.color})"` : ''} aria-hidden="true"></span>
+      <span class="breakdown-row__label">${row.label}${row.detail ? `<small>${row.detail}</small>` : ''}</span>
+      <span class="breakdown-row__amount">${row.amount}</span>
+    </div>
+  `).join('');
 }
 
-/** Chart.js external tooltip: lists every forecast part in #calendar-tooltip. */
-function showForecastTooltip({ chart, tooltip }) {
-  const el = document.getElementById('calendar-tooltip');
-  if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) { el.hidden = true; return; }
-  const active = tooltip.dataPoints[0].dataIndex;
-  const f = lastForecast;
+/** Forecast spend card: what the month's total is expected to be, and why. */
+function renderForecastBreakdown(forecast) {
+  document.getElementById('cal-forecast').textContent = currency(forecast.total);
+  document.getElementById('cal-forecast-note').textContent = forecast.daysLeft
+    ? `${plural(forecast.daysLeft, 'day')} still to come${forecast.loadedTo ? ` · data to ${formatDate(forecast.loadedTo)}` : ''}`
+    : 'Every day has loaded';
 
-  el.innerHTML = `
-    <span class="calendar-tooltip__date">Forecast · ${f.loadedTo ? `data to ${formatDate(f.loadedTo)}` : 'no data loaded'}</span>
-    ${FORECAST_PARTS.map((p, i) => `
-      <span class="forecast-tip__row${i === active ? ' is-active' : ''}">
-        <span class="forecast-tip__swatch" style="background:var(${p.color})"></span>
-        <span>${p.label}</span>
-        <span class="forecast-tip__amount">${currency(f[p.key])}</span>
-      </span>
-      ${i === active && FORECAST_DETAIL[p.key] ? `<span class="forecast-tip__detail">${FORECAST_DETAIL[p.key](f)}</span>` : ''}
-    `).join('')}
-  `;
-  el.hidden = false;
-  const rect = chart.canvas.getBoundingClientRect();
-  const tipRect = el.getBoundingClientRect();
-  const left = Math.min(Math.max(8, rect.left + rect.width / 2 - tipRect.width / 2), window.innerWidth - tipRect.width - 8);
-  el.style.left = `${left}px`;
-  el.style.top = `${Math.max(8, rect.top - tipRect.height - 8)}px`;
+  const parts = [
+    { label: 'Fixed expenses', detail: 'Average of the last 3 months', amount: forecast.fixed, color: '--forecast-fixed' },
+    { label: 'Spent so far', detail: 'Excluding fixed expenses', amount: forecast.spent, color: '--forecast-spent' },
+    { label: 'Projected spending', detail: `${currency(forecast.dailyAvg)}/day × ${plural(forecast.daysLeft, 'day')} · excl. fixed & holidays`, amount: forecast.projected, color: '--forecast-projected' },
+    { label: 'Upcoming events', detail: forecast.eventCount ? `${plural(forecast.eventCount, 'event')} still to come` : 'No events still to come', amount: forecast.eventBudget, color: '--forecast-events' },
+  ];
+  renderBreakdown('cal-forecast', parts, [
+    ...parts.map((p, i) => ({ ...p, op: i ? '+' : '', amount: currency(p.amount) })),
+    { op: '=', label: 'Forecast spend', amount: currency(forecast.total), kind: 'total' },
+  ]);
 }
 
 /**
- * "Max spend per day": what's left of MONTHLY_SPEND_TARGET after the
- * 3-month fixed-expense average and this month's spend so far (excl.
- * fixed), spread over the days whose transactions haven't loaded yet.
+ * "Max spend per day": how much can be spent on each day not loaded yet
+ * while still hitting the savings target.
+ *
+ *   allowed   = last month's salary − MONTHLY_SAVINGS_TARGET
+ *   remaining = allowed − spent so far (excl. fixed)
+ *                       − fixed expenses (3-month average)
+ *                       − budgets of events still to come (days not loaded yet)
+ *   max/day   = remaining ÷ days not loaded yet
  */
-function renderMaxSpendPerDay(forecast) {
+function renderMaxSpendPerDay(month, forecast) {
   const value = document.getElementById('cal-max-day');
   const note = document.getElementById('cal-max-day-note');
-  const remaining = MONTHLY_SPEND_TARGET - forecast.fixed - forecast.spent;
-  note.className = 'stat-tile__delta stat-tile__delta--truncate';
+  note.className = 'stat-tile__delta';
+
+  const prev = shiftMonth(month, -1);
+  const salary = getMonthTransactions(prev)
+    .filter((t) => t.category === 'salary')
+    .reduce((s, t) => s + t.amount, 0);
+  if (salary <= 0) {
+    value.textContent = '—';
+    note.textContent = `Needs last month's salary — none found in ${monthName(prev)}`;
+    renderBreakdown('cal-max-day', [], []);
+    return;
+  }
+
+  const allowed = salary - MONTHLY_SAVINGS_TARGET;
+  const remaining = allowed - forecast.spent - forecast.fixed - forecast.eventBudget;
+  const perDay = forecast.daysLeft ? remaining / forecast.daysLeft : null;
 
   if (remaining <= 0) {
     value.textContent = currency(0);
-    note.textContent = `${currency(-remaining)} over ${currencyShort(MONTHLY_SPEND_TARGET)} target`;
+    note.textContent = `${currency(-remaining)} over budget`;
     note.classList.add('is-negative');
-  } else if (!forecast.daysLeft) {
+  } else if (perDay === null) {
     value.textContent = '—';
-    note.textContent = `${currency(remaining)} under target`;
+    note.textContent = `Every day has loaded · ${currency(remaining)} under budget`;
   } else {
-    value.textContent = currency(remaining / forecast.daysLeft);
-    note.textContent = `${currencyShort(remaining)} left · ${plural(forecast.daysLeft, 'day')}`;
+    value.innerHTML = `${currency(perDay)}<span class="breakdown-card__unit">/day</span>`;
+    note.textContent = `${currency(remaining)} left over ${plural(forecast.daysLeft, 'day')}`;
   }
-  value.closest('.stat-tile').title = `${currencyShort(MONTHLY_SPEND_TARGET)} target − ${currency(forecast.fixed)} fixed (3-month average) − ${currency(forecast.spent)} spent so far`;
+
+  // The bar is the month's spending budget, split into what's committed and what's left.
+  const committed = [
+    { label: 'Spent so far', amount: forecast.spent, color: '--forecast-spent' },
+    { label: 'Fixed expenses', amount: forecast.fixed, color: '--forecast-fixed' },
+    { label: 'Upcoming events', amount: forecast.eventBudget, color: '--forecast-events' },
+  ];
+  const segments = [...committed, { label: 'Left to spend', amount: Math.max(0, remaining), color: '--forecast-projected' }];
+  renderBreakdown('cal-max-day', segments, [
+    { op: '', label: 'Available to spend', detail: `${currencyShort(salary)} ${monthName(prev)} salary − ${currencyShort(MONTHLY_SAVINGS_TARGET)} savings target`, amount: currency(allowed), kind: 'subtotal' },
+    { op: '−', ...committed[0], detail: 'Excluding fixed expenses', amount: currency(forecast.spent) },
+    { op: '−', ...committed[1], detail: 'Average of the last 3 months', amount: currency(forecast.fixed) },
+    { op: '−', ...committed[2], detail: forecast.eventCount ? `${plural(forecast.eventCount, 'event')} still to come` : 'No events still to come', amount: currency(forecast.eventBudget) },
+    { op: '=', label: 'Left to spend', color: remaining > 0 ? '--forecast-projected' : null, amount: remaining < 0 ? `−${currency(-remaining)}` : currency(remaining), kind: 'subtotal', negative: remaining < 0 },
+    ...(perDay !== null && remaining > 0 ? [
+      { op: '÷', label: 'Max spend per day', detail: `${currency(remaining)} ÷ ${plural(forecast.daysLeft, 'day')} without transactions yet`, amount: currency(perDay), kind: 'total' },
+    ] : []),
+  ]);
 }
 
 /** Salary + interest received in a month (after the account filter). */
@@ -368,12 +369,8 @@ function renderAll() {
   document.querySelector('.stats-grid--four').classList.toggle('is-current-month', isCurrentMonth);
   if (isCurrentMonth) {
     const forecast = forecastSpend(month);
-    document.getElementById('cal-forecast').textContent = currency(forecast.total);
-    document.getElementById('cal-forecast-note').textContent = !forecast.daysLeft
-      ? 'All days loaded'
-      : `${plural(forecast.daysLeft, 'day')} forecast`;
-    renderForecastChart(forecast);
-    renderMaxSpendPerDay(forecast);
+    renderForecastBreakdown(forecast);
+    renderMaxSpendPerDay(month, forecast);
     renderForecastSavings(month, forecast);
   }
   renderVsLastMonth(month);
