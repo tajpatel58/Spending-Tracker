@@ -110,7 +110,9 @@ def clean_chase_transaction_dataframe(chase_df: pd.DataFrame, **kwargs) -> pd.Da
 
     # Clean the 'transaction_details' column
     chase_df["merchant"] = chase_df["transaction_details"]
-    chase_df[["type", "other_details"]] = chase_df["transaction_type"].str.split(" | ", n=1, expand=True)
+    type_split = chase_df["transaction_type"].str.split(" | ", n=1, expand=True, regex=False).reindex(columns=[0, 1])
+    chase_df["type"] = type_split[0]
+    chase_df["other_details"] = type_split[1].astype(object).where(type_split[1].notna(), None)
 
     # remove round ups
     chase_df = chase_df[~chase_df["merchant"].str.contains("Round up")]
