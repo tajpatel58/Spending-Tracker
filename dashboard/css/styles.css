@@ -1712,19 +1712,21 @@ button { font-family: inherit; }
 
 .breakdown-list { display: flex; flex-direction: column; }
 .breakdown-row {
+  --row-line: 20px; /* height of the title line; the sign and square centre on it */
   display: grid;
-  grid-template-columns: 14px 8px minmax(0, 1fr) auto;
-  align-items: baseline;
-  column-gap: 10px;
+  grid-template-columns: 12px 8px minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 8px;
+  line-height: var(--row-line);
   padding: 8px 0;
   font-size: 13px;
   border-top: 1px solid var(--border);
 }
 .breakdown-row:first-child { border-top: none; padding-top: 0; }
-.breakdown-row__op { font-family: var(--font-mono); font-size: 13px; color: var(--text-faint); text-align: center; }
-.breakdown-row__swatch { width: 8px; height: 8px; border-radius: 2px; align-self: center; }
+.breakdown-row__op { font-family: var(--font-mono); font-size: 13px; line-height: var(--row-line); color: var(--text-faint); text-align: center; }
+.breakdown-row__swatch { width: 8px; height: 8px; margin-top: calc((var(--row-line) - 8px) / 2); border-radius: 2px; }
 .breakdown-row__label { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--text); font-weight: 500; }
-.breakdown-row__label small { font-size: 11.5px; font-weight: 400; color: var(--text-faint); }
+.breakdown-row__label small { font-size: 11.5px; font-weight: 400; line-height: 1.4; color: var(--text-faint); }
 .breakdown-row__amount { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
 .breakdown-row--subtotal { border-top-color: var(--border-strong); }
 .breakdown-row--subtotal .breakdown-row__label,
@@ -2090,7 +2092,7 @@ button { font-family: inherit; }
   .stat-tile { padding: 12px 12px 12px; gap: 4px; }
   .breakdown-card { padding: var(--space-4); gap: var(--space-3); }
   .breakdown-card__value { font-size: 24px; }
-  .breakdown-row { font-size: 12.5px; column-gap: 8px; }
+  .breakdown-row { font-size: 12.5px; column-gap: 6px; }
   .stat-tile__label { font-size: 9.5px; letter-spacing: 0.05em; }
   .stat-tile__value { font-size: 16px; }
   .stat-tile__delta { font-size: 10.5px; line-height: 1.35; }
