@@ -5,6 +5,10 @@
  * a category, renaming a merchant, correcting an amount, moving the date
  * (via the pop-over calendar in datepicker.js), or hiding transactions. Edits update the UI immediately, then get saved through
  * transactions-api.js — if the save fails, the edit is rolled back.
+ *
+ * Kept visually quiet: edit controls appear on row hover, each row's
+ * merchant initial doubles as its select-to-hide checkbox, and when
+ * sorted by date rows sit under day headings with that day's total.
  * The export button downloads the rows currently shown as a CSV.
  * ---------------------------------------------------------------------
  */
@@ -38,25 +42,41 @@ function dateButton(t, extraClass) {
     aria-haspopup="dialog" aria-expanded="false" title="${title}" aria-label="Date ${formatDate(t.date)}${edited ? `, moved from ${formatDate(t.originalDate)}` : ''}. Change date">${formatDate(t.date)}</button>`;
 }
 
-/** Renders the transactions table body and footer count for the current filters. */
-function renderTable() {
-  const txs = sortTransactions(getFilteredTransactions());
-  const body = document.getElementById('tx-table-body');
-  const empty = document.getElementById('empty-state');
+/** Day heading label: "Today", "Yesterday", else e.g. "Thu 8 Oct". */
+function dayHeading(iso) {
+  const day = new Date(iso + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((today - day) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
 
-  if (!txs.length) {
-    body.innerHTML = '';
-    empty.hidden = false;
-  } else {
-    empty.hidden = true;
-    body.innerHTML = txs.map((t) => {
-      const cat = catById[t.category];
-      const acc = accountById[t.account];
-      const options = CATEGORIES.map((c) =>
-        `<option value="${c.id}" ${c.id === t.category ? 'selected' : ''}>${c.label}</option>`
-      ).join('');
-      return `
-        <tr>
+/** Width for an amount input so the £ sits right beside the number (mono font, so 1ch per character). */
+const amountWidth = (value) => `${Math.max(4, String(value).length) + 0.5}ch`;
+
+/** One transaction row. */
+function transactionRow(t) {
+  const cat = catById[t.category];
+  const acc = accountById[t.account];
+  const options = CATEGORIES.map((c) =>
+    `<option value="${c.id}" ${c.id === t.category ? 'selected' : ''}>${c.label}</option>`
+  ).join('');
+  const selected = state.selectedTransactionIds.has(t.id);
+  const initial = (t.merchant.trim()[0] || '?').toUpperCase();
+  const amount = t.amount.toFixed(2);
+  return `
+        <tr class="${selected ? 'is-selected' : ''}">
+          <td class="tx-table__select">
+            <label class="tx-avatar" style="--avatar-color:${cat.color}" title="Select to hide">
+              <input type="checkbox" class="hide-checkbox" data-tx-id="${t.id}" ${selected ? 'checked' : ''} aria-label="Select ${escapeAttr(t.merchant)} to hide">
+              <span class="tx-avatar__initial" aria-hidden="true">${escapeAttr(initial)}</span>
+              <svg class="tx-avatar__check" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </label>
+          </td>
           <td class="tx-table__date">${dateButton(t, 'date-button--column')}</td>
           <td class="tx-table__merchant">
             <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
@@ -72,15 +92,43 @@ function renderTable() {
           <td class="tx-table__amount">
             <span class="amount-edit">
               <span class="amount-edit__prefix">£</span>
-              <input type="number" step="0.01" class="amount-input" data-tx-id="${t.id}" value="${t.amount.toFixed(2)}" aria-label="Edit amount">
+              <input type="number" step="0.01" class="amount-input" data-tx-id="${t.id}" value="${amount}" style="width:${amountWidth(amount)}" aria-label="Edit amount">
             </span>
-          </td>
-          <td class="exclude-cell">
-            <input type="checkbox" class="hide-checkbox" data-tx-id="${t.id}" ${state.selectedTransactionIds.has(t.id) ? 'checked' : ''} aria-label="Select transaction to hide">
           </td>
         </tr>
       `;
-    }).join('');
+}
+
+/** Renders the transactions table body and footer count for the current filters. */
+function renderTable() {
+  const txs = sortTransactions(getFilteredTransactions());
+  const body = document.getElementById('tx-table-body');
+  const empty = document.getElementById('empty-state');
+  const grouped = state.sort.key === 'date';
+  document.querySelector('.tx-table').classList.toggle('is-grouped', grouped);
+  document.querySelector('.tx-table').classList.toggle('has-selection', state.selectedTransactionIds.size > 0);
+
+  if (!txs.length) {
+    body.innerHTML = '';
+    empty.hidden = false;
+  } else {
+    empty.hidden = true;
+    const rows = [];
+    txs.forEach((t, i) => {
+      // Sorted by date: start a day heading (with that day's spend) whenever the date changes.
+      if (grouped && t.date !== txs[i - 1]?.date) {
+        const daySpend = txs.filter((x) => x.date === t.date && isExpense(x)).reduce((s, x) => s + Math.abs(x.amount), 0);
+        rows.push(`
+        <tr class="tx-group">
+          <td colspan="6">
+            <span class="tx-group__day">${dayHeading(t.date)}</span>
+            <span class="tx-group__total">${daySpend ? currency(daySpend) : ''}</span>
+          </td>
+        </tr>`);
+      }
+      rows.push(transactionRow(t));
+    });
+    body.innerHTML = rows.join('');
   }
 
   const total = txs
@@ -107,6 +155,11 @@ function updateHideButton() {
 function initTableEditing() {
   const body = document.getElementById('tx-table-body');
 
+  // Keep amount inputs snug to their £ as they're edited.
+  body.addEventListener('input', (e) => {
+    if (e.target.classList.contains('amount-input')) e.target.style.width = amountWidth(e.target.value);
+  });
+
   body.addEventListener('change', async (e) => {
     const target = e.target;
     const txId = target.dataset.txId;
@@ -115,6 +168,8 @@ function initTableEditing() {
     if (target.classList.contains('hide-checkbox')) {
       if (target.checked) state.selectedTransactionIds.add(txId);
       else state.selectedTransactionIds.delete(txId);
+      target.closest('tr').classList.toggle('is-selected', target.checked);
+      document.querySelector('.tx-table').classList.toggle('has-selection', state.selectedTransactionIds.size > 0);
       updateHideButton();
       return;
     }
