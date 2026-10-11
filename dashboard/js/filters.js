@@ -27,10 +27,12 @@ function renderMonthOptions() {
 /** Switches the dashboard to a month ('YYYY-MM'), remembering it for the other page. */
 function setMonth(key) {
   if (!key || key === state.month) return;
+  const direction = key > state.month ? 1 : -1;
   state.month = key;
   try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
   renderMonthOptions();
   renderAll();
+  if (typeof motion !== 'undefined') motion.monthChanged(direction);
 }
 
 /**
