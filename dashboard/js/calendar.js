@@ -429,7 +429,7 @@ function renderDayDetail(days) {
   document.getElementById('day-meta').textContent = day ? `${txs.length} · ${currency(day.total)}` : '';
   document.getElementById('day-empty').hidden = txs.length > 0;
   const notLoaded = iso > lastLoadedDate();
-  document.getElementById('day-empty-title').textContent = notLoaded ? 'Not loaded yet' : 'No spending on this day';
+  document.getElementById('day-empty-title').textContent = notLoaded ? 'Not loaded yet' : 'No Spending';
   document.getElementById('day-empty-hint').textContent = notLoaded
     ? "This day's transactions haven't come in yet."
     : 'A no-spend day.';
@@ -487,8 +487,8 @@ function initCalendarInteractions() {
     const events = EVENTS_BY_DATE[cell.dataset.date] || [];
     tooltip.innerHTML = `
       <span class="calendar-tooltip__date">${longDate(cell.dataset.date)}</span>
-      <span class="calendar-tooltip__value">${day ? currency(day.total) : 'No spending'}</span>
-      ${day ? `<span class="calendar-tooltip__meta">${day.txs.length} transaction${day.txs.length === 1 ? '' : 's'} · largest ${escapeAttr(top.merchant)}</span>` : ''}
+      <span class="calendar-tooltip__value">${day ? currency(day.total) : 'No Spending'}</span>
+      ${day ? `<span class="calendar-tooltip__meta">${day.txs.length} transaction${day.txs.length === 1 ? '' : 's'} · largest: ${escapeAttr(top.merchant)}</span>` : ''}
       ${events.length ? `<span class="calendar-tooltip__meta">${plural(events.length, 'event')} · ${escapeAttr(events[0].title)}${events.length > 1 ? ' …' : ''}</span>` : ''}
     `;
     tooltip.hidden = false;
