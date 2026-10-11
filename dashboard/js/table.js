@@ -111,6 +111,13 @@ function renderTable() {
   if (!txs.length) {
     body.innerHTML = '';
     empty.hidden = false;
+    // Filters hiding everything get a one-click way out; an empty month just says so.
+    const filtered = state.search || state.categories.size || state.users.size;
+    document.getElementById('empty-state-title').textContent = filtered ? 'No transactions found' : 'No transactions this month';
+    document.getElementById('empty-state-hint').textContent = filtered
+      ? 'Try a different search or clear your filters.'
+      : 'Upload a statement to see this month\'s spending.';
+    document.getElementById('empty-clear-filters').hidden = !filtered;
   } else {
     empty.hidden = true;
     const rows = [];

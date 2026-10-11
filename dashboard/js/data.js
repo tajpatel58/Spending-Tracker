@@ -114,6 +114,10 @@ const accountsReady = authReady.then(async (session) => {
   });
 });
 
+// Failures are handled where it's awaited (main.js / calendar.js show a
+// Retry message); this stops the browser also logging an "unhandled" error.
+accountsReady.catch(() => {});
+
 /**
  * Re-files a transaction under the month of its (new) date, adding that
  * month to MONTHS if it's the first transaction there. Used when a date

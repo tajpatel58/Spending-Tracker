@@ -49,6 +49,29 @@ function spendOwnerColor(owner) {
   return `var(--user-${(Math.max(index, 0) % 3) + 1})`;
 }
 
+/** Clears the loading placeholders once the page has rendered real data. */
+function finishLoading() {
+  document.body.classList.remove('is-loading');
+  document.body.removeAttribute('aria-busy');
+}
+
+/** Swaps the loading placeholders for a short message with a Retry button. */
+function showLoadError(error) {
+  console.error('[Ledger] Failed to load the dashboard:', error);
+  finishLoading();
+  // Blank the figures so the page doesn't show placeholder "£0"s as if they were real.
+  document.querySelectorAll('.stat-tile__value').forEach((el) => { el.textContent = '—'; });
+  document.querySelectorAll('.stat-tile__delta').forEach((el) => { el.textContent = ''; });
+  const banner = document.createElement('div');
+  banner.className = 'load-error';
+  banner.setAttribute('role', 'alert');
+  banner.innerHTML = `
+    <span>Couldn't load your spending data.</span>
+    <button type="button" class="load-error__retry">Retry</button>`;
+  banner.querySelector('button').addEventListener('click', () => window.location.reload());
+  document.querySelector('main').prepend(banner);
+}
+
 /** True for anything that counts as spending rather than income. */
 function isExpense(t) {
   return !['salary', 'interest', 'refund'].includes(t.category);
