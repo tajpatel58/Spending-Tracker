@@ -203,6 +203,14 @@ function initTableFilters() {
   document.addEventListener('click', () => closeTableFilters());
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeTableFilters(); });
 
+  // The table's empty state offers the same reset as "Clear all".
+  document.getElementById('empty-clear-filters').addEventListener('click', () => {
+    TABLE_FILTERS.forEach((filter) => state[filter.key].clear());
+    clearSearch();
+    syncTableFilters();
+    renderTable();
+  });
+
   // Active-filter chips: × removes one item, "Clear all" resets every filter and the search.
   document.getElementById('active-filters').addEventListener('click', (event) => {
     const chip = event.target.closest('[data-remove-key]');

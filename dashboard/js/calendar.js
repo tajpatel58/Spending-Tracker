@@ -431,6 +431,11 @@ function renderDayDetail(days) {
   document.getElementById('day-title').textContent = longDate(iso);
   document.getElementById('day-meta').textContent = day ? `${txs.length} · ${currency(day.total)}` : '';
   document.getElementById('day-empty').hidden = txs.length > 0;
+  const notLoaded = iso > lastLoadedDate();
+  document.getElementById('day-empty-title').textContent = notLoaded ? 'Not loaded yet' : 'No spending on this day';
+  document.getElementById('day-empty-hint').textContent = notLoaded
+    ? "This day's transactions haven't come in yet."
+    : 'A no-spend day.';
   document.getElementById('day-list').innerHTML = txs.map((t) => {
     const cat = catById[t.category];
     const acc = accountById[t.account];
@@ -502,23 +507,29 @@ function initCalendarInteractions() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
+  // Placeholder day cells while the data loads (replaced by renderAll).
+  document.getElementById('calendar-days').innerHTML = '<span class="calendar__skeleton"></span>'.repeat(35);
 
   const session = await authReady;
   if (!session) return; // auth.js is already redirecting to login.html
 
-  document.getElementById('auth-loading').remove();
   initUserMenu(session);
   document.getElementById('signout-button').addEventListener('click', signOut);
-
-  await Promise.all([accountsReady, loadCalendarEvents()]);
-  initCalendarMonths();
-  state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
-  Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
-
-  initAccountFilter();
-  initMonthSelect();
-  initCalendarInteractions();
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
-  renderAll();
+  try {
+    await Promise.all([accountsReady, loadCalendarEvents()]);
+    initCalendarMonths();
+    state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
+    Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
+
+    initAccountFilter();
+    initMonthSelect();
+    initCalendarInteractions();
+
+    renderAll();
+    finishLoading();
+  } catch (error) {
+    showLoadError(error);
+  }
 });
