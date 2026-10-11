@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Ledger mark: the same four squares as the app icon, on its dark tile. -->
+  <rect width="32" height="32" rx="7" fill="#0D1015"/>
+  <rect x="7" y="7" width="8.2" height="8.2" rx="2.2" fill="#34B583"/>
+  <rect x="16.8" y="7" width="8.2" height="8.2" rx="2.2" fill="#D6B876"/>
+  <rect x="7" y="16.8" width="8.2" height="8.2" rx="2.2" fill="#D6B876"/>
+  <rect x="16.8" y="16.8" width="8.2" height="8.2" rx="2.2" fill="#34B583"/>
+</svg>
