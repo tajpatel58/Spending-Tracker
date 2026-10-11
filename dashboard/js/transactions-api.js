@@ -66,3 +66,13 @@ async function hideTransactions(transactionIds) {
 
   if (error) throw error;
 }
+
+/** Brings hidden transactions back (used by Undo after hiding). */
+async function unhideTransactions(transactionIds) {
+  const { error } = await supabaseClient
+    .from('transactions_metadata')
+    .update({ hidden: false })
+    .in('event_id', transactionIds);
+
+  if (error) throw error;
+}

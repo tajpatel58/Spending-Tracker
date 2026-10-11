@@ -301,7 +301,6 @@
 
     <div class="table-tile__footer">
       <span id="table-count-label">0 transactions</span>
-      <span class="table-note" id="table-note" role="status" hidden></span>
     </div>
   </section>
 
@@ -375,6 +374,7 @@
     10. charts.js                     — the 4 charts
     10b. datepicker.js                 — pop-over calendar for changing a date
     11. table.js                       — the transactions table + editing
+        (toast.js, loaded just before it, shows the "… · Undo" confirmations)
     12. filters.js                     — month/account/category/search/sort controls
     13. upload.js                       — the statement upload dialog
     14. main.js                          — wires it all up and renders the page
@@ -392,6 +392,7 @@
 <script src="js/stats.js"></script>
 <script src="js/datepicker.js"></script>
 <script src="js/charts.js"></script>
+<script src="js/toast.js"></script>
 <script src="js/table.js"></script>
 <script src="js/filters.js"></script>
 <script src="js/upload.js"></script>
