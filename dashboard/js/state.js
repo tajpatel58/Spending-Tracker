@@ -53,6 +53,7 @@ function spendOwnerColor(owner) {
 function finishLoading() {
   document.body.classList.remove('is-loading');
   document.body.removeAttribute('aria-busy');
+  if (typeof motion !== 'undefined') motion.reveal();
 }
 
 /** Swaps the loading placeholders for a short message with a Retry button. */

@@ -388,7 +388,8 @@ function renderAll() {
 
   // ---- Day cells ----
   const today = todayIso();
-  if (calendarView.month !== month || !calendarView.selectedDate?.startsWith(month)) {
+  const monthChanged = calendarView.month !== month;
+  if (monthChanged || !calendarView.selectedDate?.startsWith(month)) {
     calendarView.month = month;
     calendarView.selectedDate = today.startsWith(month) ? today : heaviest ? heaviest[0] : `${month}-01`;
   }
@@ -407,14 +408,23 @@ function renderAll() {
     const eventCount = EVENTS_BY_DATE[iso]?.length || 0;
     const label = `${longDate(iso)}: ${value ? currency(value) : 'no spending'}${eventCount ? `, ${plural(eventCount, 'event')}` : ''}`;
     cells.push(`
-      <button type="button" class="${classes}" data-date="${iso}" role="gridcell" aria-label="${label}" aria-pressed="${iso === calendarView.selectedDate}">
+      <button type="button" class="${classes}" data-date="${iso}" role="gridcell" aria-label="${label}" aria-pressed="${iso === calendarView.selectedDate}" style="--cell-i:${firstWeekday + d - 1}">
         ${eventCount ? '<span class="calendar__event-dot" aria-hidden="true"></span>' : ''}
         <span class="calendar__date">${d}</span>
         <span class="calendar__amount">${value ? currencyShort(value) : ''}</span>
       </button>
     `);
   }
-  document.getElementById('calendar-days').innerHTML = cells.join('');
+  const grid = document.getElementById('calendar-days');
+  grid.innerHTML = cells.join('');
+  // A new month's cells cascade in (only on month changes, not on every day click).
+  if (monthChanged) {
+    grid.classList.remove('is-entering');
+    void grid.offsetWidth; // restart the animation
+    grid.classList.add('is-entering');
+    clearTimeout(grid.enterTimer);
+    grid.enterTimer = setTimeout(() => grid.classList.remove('is-entering'), 900);
+  }
 
   renderDayDetail(days);
 }

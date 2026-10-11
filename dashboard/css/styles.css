@@ -26,6 +26,7 @@
   --radius-md: 12px;
   --radius-full: 999px;
   --transition: 150ms ease;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* quick start, soft landing — used for all entrances */
 
   /* Category palette — consistent across themes */
   --cat-groceries: #D97706;
@@ -1739,7 +1740,7 @@ button { font-family: inherit; }
 
 /* Thin progress bar towards a target (Forecast savings). */
 .target-bar { display: block; height: 4px; margin: 2px 0; background: var(--border); border-radius: var(--radius-full); overflow: hidden; }
-.target-bar__fill { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width var(--transition); }
+.target-bar__fill { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width 700ms var(--ease-out); }
 .stat-tile[hidden] { display: none; }
 
 .calendar-grid {
@@ -2441,7 +2442,67 @@ body.chat-page {
   .chat-page.chat-has-messages .topbar__inner { padding-bottom: 8px; }
 }
 
+
+/* ==========================================================================
+   Motion — entrances, bars, page transitions and press feedback
+   (figures counting and the first-load reveal are driven by js/motion.js)
+   ========================================================================== */
+
+/* First load: cards rise into place one after another. */
+.is-revealing main .page-heading,
+.is-revealing main .tile {
+  animation: rise-in 560ms var(--ease-out) both;
+  animation-delay: calc(var(--reveal-i, 0) * 45ms);
+}
+@keyframes rise-in { from { opacity: 0; transform: translateY(12px); } }
+
+/* Bars grow from the left each time they're drawn. */
+.budget-item__fill,
+.breakdown-bar__seg {
+  transform-origin: left center;
+  animation: grow-x 750ms var(--ease-out) both;
+}
+.budget-item:nth-child(2) .budget-item__fill { animation-delay: 40ms; }
+.budget-item:nth-child(3) .budget-item__fill { animation-delay: 80ms; }
+.budget-item:nth-child(4) .budget-item__fill { animation-delay: 120ms; }
+.budget-item:nth-child(5) .budget-item__fill { animation-delay: 160ms; }
+.budget-item:nth-child(6) .budget-item__fill { animation-delay: 200ms; }
+@keyframes grow-x { from { transform: scaleX(0); } }
+
+/* A new month's calendar cells cascade in. */
+.calendar__days.is-entering .calendar__day {
+  animation: cell-in 420ms var(--ease-out) both;
+  animation-delay: calc(var(--cell-i, 0) * 9ms);
+}
+@keyframes cell-in { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+
+/* The selected day's lists fade in as you move between days. */
+.day-list__item { animation: fade-in 260ms ease both; }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* Press feedback on controls. */
+.icon-btn, .multiselect__button, .month-stepper__btn, .chip, .view-nav__link,
+.empty-state__action, .chat__suggestion, .calendar__day, .google-btn {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 150ms;
+}
+.icon-btn:active, .multiselect__button:active, .month-stepper__btn:active:not(:disabled),
+.chip:active, .view-nav__link:active, .empty-state__action:active, .google-btn:active { transform: scale(0.97); }
+.calendar__day:active { transform: scale(0.98); }
+
+/* Moving between Overview, Calendar and Assistant: a soft cross-fade, with
+   the header held still and the active tab sliding to its new place. */
+@view-transition { navigation: auto; }
+.topbar { view-transition-name: topbar; }
+.view-nav__link.is-active { view-transition-name: nav-active; }
+::view-transition-old(root) { animation: 160ms ease both vt-fade-out; }
+::view-transition-new(root) { animation: 320ms var(--ease-out) both vt-rise-in; }
+::view-transition-group(nav-active) { animation-duration: 340ms; animation-timing-function: var(--ease-out); }
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-rise-in { from { opacity: 0; transform: translateY(8px); } }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  * { animation-duration: 0.001ms !important; animation-delay: 0s !important; transition-duration: 0.001ms !important; }
+  @view-transition { navigation: none; }
 }
