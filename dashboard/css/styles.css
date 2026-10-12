@@ -707,7 +707,33 @@ button { font-family: inherit; }
    Page heading
    ========================================================================== */
 
-.page-heading { margin: 4px 0 20px; }
+.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); margin: 4px 0 20px; }
+
+/* "Updated 9:14am" — data freshness; click to refresh (sync.js). */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 6px 12px 6px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--tile-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.sync-status[hidden] { display: none; }
+.sync-status:hover { color: var(--text); border-color: var(--border-strong); }
+.sync-status:active { transform: scale(0.97); }
+.sync-status:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sync-status__icon { color: var(--accent); }
+.sync-status.is-syncing { cursor: progress; }
+.sync-status.is-syncing .sync-status__icon { animation: sync-spin 900ms linear infinite; }
+@keyframes sync-spin { to { transform: rotate(360deg); } }
 .page-heading h1 { font-size: 22px; }
 .page-heading__subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 13.5px; }
 
@@ -2154,6 +2180,7 @@ button { font-family: inherit; }
 
   .container { padding-top: 16px; }
   .page-heading { margin: 0 0 16px; }
+  .sync-status { padding: 5px 10px 5px 8px; font-size: 11.5px; }
   .page-heading h1 { font-size: 18px; }
   .page-heading__subtitle { font-size: 12px; }
 

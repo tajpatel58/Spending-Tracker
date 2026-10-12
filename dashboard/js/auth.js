@@ -11,6 +11,13 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 const IS_LOGIN_PAGE = /login\.html$/.test(window.location.pathname);
 
+// The dashboard keeps a copy of your data on this device so pages open
+// instantly (see data.js). It's wiped whenever the session ends.
+const LEDGER_DATA_CACHE_KEY = 'ledger-data';
+function clearLocalData() {
+  try { localStorage.removeItem(LEDGER_DATA_CACHE_KEY); } catch { /* storage unavailable */ }
+}
+
 /**
  * Checks whether the signed-in user's email is in the `users` allow-list
  * table — the actual access boundary is the Supabase RLS policies keyed
@@ -56,11 +63,13 @@ async function initializeAuth() {
   const session = data.session;
 
   if (!session) {
+    clearLocalData(); // signed out (or the session expired) — don't leave data on the device
     if (!IS_LOGIN_PAGE) window.location.replace('login.html');
     return null;
   }
 
   if (!(await hasDataAccess(session))) {
+    clearLocalData();
     await supabaseClient.auth.signOut();
     window.location.replace('login.html?error=permission_denied');
     return null;
@@ -101,6 +110,7 @@ async function signInWithGoogle() {
 
 /** Signs out and returns to the login page. */
 async function signOut() {
+  clearLocalData();
   await supabaseClient.auth.signOut();
   window.location.replace('login.html');
 }

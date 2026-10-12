@@ -49,6 +49,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderAll();
     finishLoading();
+    initSync({
+      onChange: () => {
+        if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
+        renderMonthOptions();
+        renderAll();
+      },
+    });
   } catch (error) {
     showLoadError(error);
   }

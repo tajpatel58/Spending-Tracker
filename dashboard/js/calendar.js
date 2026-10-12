@@ -24,14 +24,10 @@ const calendarView = {
 /** Calendar events grouped by date: { '2026-09-14': [ {id,title,budget,category}, ... ] }. */
 const EVENTS_BY_DATE = {};
 
-/** Loads calendar_events into EVENTS_BY_DATE. A failure leaves the calendar working without events. */
-async function loadCalendarEvents() {
-  try {
-    const events = await fetchCalendarEvents();
-    events.forEach((e) => (EVENTS_BY_DATE[e.date] || (EVENTS_BY_DATE[e.date] = [])).push(e));
-  } catch (err) {
-    console.error(err);
-  }
+/** Groups the loaded calendar events (CALENDAR_EVENTS, from data.js) by date into EVENTS_BY_DATE. */
+function indexEvents() {
+  Object.keys(EVENTS_BY_DATE).forEach((date) => delete EVENTS_BY_DATE[date]);
+  CALENDAR_EVENTS.forEach((e) => (EVENTS_BY_DATE[e.date] || (EVENTS_BY_DATE[e.date] = [])).push(e));
 }
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -525,7 +521,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
   try {
-    await Promise.all([accountsReady, loadCalendarEvents()]);
+    await accountsReady;
+    indexEvents();
     initCalendarMonths();
     state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
     Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
@@ -536,6 +533,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderAll();
     finishLoading();
+    initSync({
+      onChange: () => {
+        indexEvents();
+        initCalendarMonths();
+        renderMonthOptions();
+        renderAll();
+      },
+    });
   } catch (error) {
     showLoadError(error);
   }
