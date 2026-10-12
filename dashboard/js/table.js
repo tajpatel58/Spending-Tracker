@@ -74,7 +74,7 @@ function transactionRow(t) {
               <input type="checkbox" class="hide-checkbox" data-tx-id="${t.id}" ${selected ? 'checked' : ''} aria-label="Select ${escapeAttr(t.merchant)} to hide">
               <span class="tx-avatar__initial" aria-hidden="true">${escapeAttr(initial)}</span>
               <svg class="tx-avatar__check" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="draw-tick" pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </label>
           </td>

@@ -13,7 +13,7 @@
 const TOAST_DURATION = 10000;
 
 const TOAST_ICONS = {
-  success: '<path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  success: '<path class="draw-tick" pathLength="1" d="M6.5 12.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
   error: '<path d="M12 7.5v5.5M12 16.5h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
   info: '<path d="M9 8.5L5.5 12 9 15.5M5.5 12H15a3.5 3.5 0 0 1 0 7h-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
 };

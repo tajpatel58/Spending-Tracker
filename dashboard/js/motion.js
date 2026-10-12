@@ -1,25 +1,30 @@
 /**
  * motion.js
  * ---------------------------------------------------------------------
- * Subtle motion that makes the dashboard feel responsive:
+ * Motion that makes the dashboard feel responsive:
  *
- *   - Figures count to their new value whenever they change (first load
- *     counts up from zero), so switching month reads as a change rather
- *     than a cut.
- *   - On first load, cards rise into place one after another.
+ *   - Headline figures count to their new value whenever they change
+ *     (first load counts up from zero).
+ *   - After a data refresh, cards whose figure changed glow briefly.
+ *   - On first load, cards in view rise into place one after another;
+ *     cards further down rise in (and replay their charts) as you scroll
+ *     to them.
  *   - Switching month nudges the page in the direction you moved.
+ *   - Once you scroll, the header gains a soft shadow.
  *
- * Bars growing, calendar cells cascading and page-to-page transitions are
- * pure CSS (see "Motion" in styles.css). Everything here is skipped when
- * the visitor has asked their OS for reduced motion.
+ * Bars growing, calendar cells cascading, ticks drawing themselves and
+ * page-to-page transitions are pure CSS (see "Motion" in styles.css).
+ * Everything here is skipped when the visitor has asked their OS for
+ * reduced motion.
  * ---------------------------------------------------------------------
  */
 
 const motion = (() => {
   const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const ease = (t) => 1 - (1 - t) ** 3; // ease-out cubic
 
   // ---------- Counting figures ----------
+
+  const ease = (t) => 1 - (1 - t) ** 3; // ease-out cubic
 
   /** Splits "−£1,234.56/mo" into prefix, number, decimals, separators and suffix. */
   function parse(text) {
@@ -41,13 +46,26 @@ const motion = (() => {
   const shown = new WeakMap();    // element -> the text it last settled on
   const writing = new WeakMap();  // element -> text we just wrote (so the observer ignores it)
   const frames = new WeakMap();   // element -> running animation frame
+  let flashUntil = 0;             // after a data refresh, changed figures glow until this time
+
+  /** After a refresh, makes it obvious which figures changed. */
+  function flash(el) {
+    const tile = el.closest('.tile');
+    if (!tile) return;
+    tile.classList.remove('is-changed');
+    void tile.offsetWidth; // restart the glow
+    tile.classList.add('is-changed');
+    setTimeout(() => tile.classList.remove('is-changed'), 1800);
+  }
 
   function countTo(el) {
     const target = el.textContent;
     const to = parse(target);
-    const from = parse(shown.get(el) || '');
+    const before = shown.get(el) || '';
+    const from = parse(before);
     shown.set(el, target);
     cancelAnimationFrame(frames.get(el));
+    if (before !== target && from && Date.now() < flashUntil) flash(el);
     // Only animate plain numeric text (not values with markup inside, like "£2.77/day").
     if (!to || el.children.length || reduced()) return;
     // Count from the old figure if it had the same sign/prefix, otherwise from zero.
@@ -79,21 +97,53 @@ const motion = (() => {
       shown.set(el, el.textContent);
       observer.observe(el, { childList: true, characterData: true, subtree: true });
     });
+    document.addEventListener('ledger:data-changed', () => { flashUntil = Date.now() + 1500; });
   }
 
-  // ---------- First-load reveal ----------
+  // ---------- First-load reveal + scroll-in ----------
 
-  /** Cards rise into place one after another once the data has rendered. */
+  /** Replays a card's chart draw-in (Chart.js) as it comes into view. */
+  function replay(tile) {
+    tile.querySelectorAll('canvas').forEach((canvas) => {
+      const chart = typeof Chart !== 'undefined' && Chart.getChart(canvas);
+      if (chart) { chart.reset(); chart.update(); }
+    });
+  }
+
+  /**
+   * Cards already on screen rise into place one after another; cards
+   * further down wait, then rise in as they're scrolled into view.
+   */
   function reveal() {
     if (reduced()) return;
     const items = [...document.querySelectorAll('main .page-heading, main .tile')]
       .filter((el) => !el.closest('[hidden]') && !el.hidden);
-    items.forEach((el, i) => el.style.setProperty('--reveal-i', Math.min(i, 12)));
+    const inView = (el) => el.getBoundingClientRect().top < window.innerHeight - 40;
+
+    const now = items.filter(inView);
+    now.forEach((el, i) => el.style.setProperty('--reveal-i', Math.min(i, 12)));
     document.body.classList.add('is-revealing');
+    now.forEach((el) => el.classList.add('reveal-now'));
     setTimeout(() => {
       document.body.classList.remove('is-revealing');
-      items.forEach((el) => el.style.removeProperty('--reveal-i'));
+      now.forEach((el) => { el.classList.remove('reveal-now'); el.style.removeProperty('--reveal-i'); });
     }, 1200);
+
+    const later = items.filter((el) => !inView(el));
+    if (!later.length || !('IntersectionObserver' in window)) return;
+    later.forEach((el) => el.classList.add('reveal-pending'));
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        observer.unobserve(el);
+        el.classList.remove('reveal-pending');
+        el.classList.add('reveal-in');
+        replay(el);
+        setTimeout(() => el.classList.remove('reveal-in'), 800);
+      });
+    }, { rootMargin: '0px 0px -12% 0px' });
+    later.forEach((el) => observer.observe(el));
   }
 
   // ---------- Month changes ----------
@@ -108,6 +158,23 @@ const motion = (() => {
     ], { duration: 380, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
   }
 
+  // ---------- Header on scroll ----------
+
+  /** The header picks up a soft shadow once the page (or the chat) is scrolled. */
+  function watchHeader() {
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+    const scroller = document.getElementById('chat-scroll'); // the Assistant scrolls inside the page
+    const position = () => (scroller ? scroller.scrollTop : window.scrollY);
+    let queued = false;
+    const update = () => { queued = false; topbar.classList.toggle('is-scrolled', position() > 6); };
+    (scroller || window).addEventListener('scroll', () => {
+      if (!queued) { queued = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+  }
+
   document.addEventListener('DOMContentLoaded', watchFigures);
+  document.addEventListener('DOMContentLoaded', watchHeader);
   return { reveal, monthChanged, reduced };
 })();

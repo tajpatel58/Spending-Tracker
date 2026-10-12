@@ -24,6 +24,28 @@ function syncThemeColor() {
 
 /** Switches between light and dark theme and redraws the charts to match. */
 function toggleTheme() {
+  const root = document.documentElement;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!document.startViewTransition || reduced) { applyTheme(); return; }
+
+  // The new theme spreads out in a circle from the toggle button.
+  const button = document.getElementById('theme-toggle')?.getBoundingClientRect();
+  const x = button ? button.left + button.width / 2 : window.innerWidth - 40;
+  const y = button ? button.top + button.height / 2 : 40;
+  const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+  root.classList.add('theme-transition');
+  const transition = document.startViewTransition(applyTheme);
+  transition.ready.then(() => {
+    root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+      { duration: 560, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', pseudoElement: '::view-transition-new(root)' },
+    );
+  });
+  transition.finished.finally(() => root.classList.remove('theme-transition'));
+}
+
+/** Flips light/dark, remembers it, and redraws anything drawn with theme colours. */
+function applyTheme() {
   const current = document.documentElement.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
