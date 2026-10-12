@@ -165,6 +165,21 @@
 
 html { color-scheme: light dark; }
 
+/* Icons: one line weight and finish everywhere. Every line icon draws in
+   currentColor; non-scaling-stroke makes the weight the same on screen
+   whatever the icon's size (16px or 10px), instead of shrinking or
+   swelling with it. Filled artwork (the logo, the Google "G") is untouched. */
+svg [stroke="currentColor"] {
+  stroke-width: 1.6px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Ticks and the send arrow carry a little more weight so they read as marks. */
+.toast__icon svg [stroke],
+.tx-avatar__check [stroke],
+.composer__send-icon [stroke] { stroke-width: 2.2px; }
+
 /* Feels like a native app on iPhone: the page colour shows behind the
    scroll bounce, and taps don't flash a grey highlight or wait for a
    double-tap-to-zoom. */
@@ -2250,7 +2265,7 @@ button { font-family: inherit; }
   .brand__mark svg { width: 18px; height: 18px; }
   .brand__name { font-size: 15px; }
   .icon-btn { width: 34px; height: 34px; }
-  .topbar__actions .icon-btn svg { width: 17px; height: 17px; }
+  .topbar__actions .icon-btn svg { width: 18px; height: 18px; }
   .user-menu__button,
   .user-menu__button:hover,
   .user-menu.is-open .user-menu__button { padding: 4px; min-height: 0; }
