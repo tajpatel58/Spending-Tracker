@@ -11,6 +11,8 @@
  *     to them.
  *   - Switching month nudges the page in the direction you moved.
  *   - Once you scroll, the header gains a soft shadow.
+ *   - In the top nav, a soft highlight glides to whichever tab the mouse
+ *     is over.
  *
  * Bars growing, calendar cells cascading, ticks drawing themselves and
  * page-to-page transitions are pure CSS (see "Motion" in styles.css).
@@ -174,6 +176,37 @@ const motion = (() => {
     update();
   }
 
+  // ---------- Nav hover highlight ----------
+
+  /** A highlight under the nav that glides from tab to tab with the mouse. */
+  function navGlide() {
+    const nav = document.querySelector('.view-nav');
+    if (!nav || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const glider = document.createElement('span');
+    glider.className = 'view-nav__glider';
+    glider.setAttribute('aria-hidden', 'true');
+    nav.prepend(glider);
+
+    const moveTo = (link) => {
+      glider.style.setProperty('--glide-x', `${link.offsetLeft}px`);
+      glider.style.setProperty('--glide-w', `${link.offsetWidth}px`);
+    };
+    nav.addEventListener('pointerover', (e) => {
+      const link = e.target.closest('.view-nav__link');
+      if (!link) return;
+      if (!nav.classList.contains('is-hovering')) {
+        // Arriving from outside: appear under the tab rather than sliding in from the edge.
+        glider.classList.add('is-placing');
+        moveTo(link);
+        void glider.offsetWidth;
+        glider.classList.remove('is-placing');
+        nav.classList.add('is-hovering');
+      } else moveTo(link);
+    });
+    nav.addEventListener('pointerleave', () => nav.classList.remove('is-hovering'));
+  }
+
+  document.addEventListener('DOMContentLoaded', navGlide);
   document.addEventListener('DOMContentLoaded', watchFigures);
   document.addEventListener('DOMContentLoaded', watchHeader);
   return { reveal, monthChanged, reduced };

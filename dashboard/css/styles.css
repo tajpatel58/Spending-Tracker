@@ -328,8 +328,9 @@ button { font-family: inherit; }
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
   border-bottom: 1px solid var(--border);
 }
 
@@ -2080,24 +2081,75 @@ button { font-family: inherit; }
    tab bar on phones (see the 560px breakpoint)
    ========================================================================== */
 
-.view-nav { display: flex; align-items: center; gap: 2px; }
-
-.view-nav__link {
-  display: inline-flex;
+/* A capsule: a soft glass track, a raised pill on the current page, and
+   (on desktop) a highlight that glides to whichever tab you hover. Moving
+   between pages slides the pill across (see "Page transitions"). */
+.view-nav {
+  --nav-pad: 4px;
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-decoration: none;
-  border-radius: var(--radius-sm);
-  transition: color var(--transition), background var(--transition);
+  gap: 2px;
+  padding: var(--nav-pad);
+  background: color-mix(in srgb, var(--text) 4.5%, transparent);
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 5%, transparent), inset 0 1px 2px color-mix(in srgb, var(--text) 4%, transparent);
 }
 
-.view-nav__link:hover { color: var(--text); background: var(--surface-alt); }
-.view-nav__link.is-active { color: var(--text); background: var(--surface-alt); box-shadow: inset 0 0 0 1px var(--border); }
-.view-nav__icon { display: none; }
+.view-nav__link {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px 7px 13px;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: var(--radius-full);
+  transition: color 200ms ease, background 200ms ease, box-shadow 200ms ease, transform 160ms var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.view-nav__link:hover { color: var(--text); }
+.view-nav__link:active { transform: scale(0.97); }
+.view-nav__link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.view-nav__link.is-active {
+  color: var(--text);
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px rgba(20, 23, 31, 0.07),
+    0 2px 8px -2px rgba(20, 23, 31, 0.08),
+    0 0 0 0.5px color-mix(in srgb, var(--text) 10%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+[data-theme="dark"] .view-nav__link.is-active {
+  background: color-mix(in srgb, var(--text) 11%, var(--surface));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 0.5px color-mix(in srgb, var(--text) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.view-nav__icon { display: block; width: 15px; height: 15px; flex: none; opacity: 0.75; transition: color 200ms ease, opacity 200ms ease; }
+.view-nav__link:hover .view-nav__icon { opacity: 1; }
+.view-nav__link.is-active .view-nav__icon { color: var(--accent); opacity: 1; }
+
+/* The hover highlight (added by motion.js on mouse/trackpad devices). */
+.view-nav__glider {
+  position: absolute;
+  top: var(--nav-pad);
+  bottom: var(--nav-pad);
+  left: 0;
+  width: var(--glide-w, 0);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border-radius: var(--radius-full);
+  opacity: 0;
+  transform: translateX(var(--glide-x, 0));
+  transition: transform 320ms var(--ease-out), width 320ms var(--ease-out), opacity 180ms ease;
+  pointer-events: none;
+}
+.view-nav.is-hovering .view-nav__glider { opacity: 1; }
+.view-nav__glider.is-placing { transition: opacity 180ms ease; }
 
 /* ==========================================================================
    Calendar page
@@ -2386,22 +2438,15 @@ button { font-family: inherit; }
   /* Overview / Calendar / Assistant / Upload become a full-width segmented
      control in the header, on its own row under the logo. */
   .view-nav {
+    --nav-pad: 3px;
     grid-area: nav;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 2px;
-    padding: 3px;
     background: color-mix(in srgb, var(--text) 6%, transparent);
-    border-radius: 10px;
   }
-  .view-nav__link { justify-content: center; gap: 6px; padding: 6px 0; font-size: 13px; border-radius: 8px; }
-  .view-nav__link:hover { background: none; }
-  .view-nav__link.is-active {
-    color: var(--text);
-    background: var(--surface);
-    box-shadow: 0 1px 2px rgba(20, 23, 31, 0.08), 0 0 0 0.5px var(--border);
-  }
-  .view-nav__icon { display: block; width: 15px; height: 15px; }
+  .view-nav__link { justify-content: center; gap: 6px; padding: 8px 0; font-size: 13px; }
+  .view-nav__icon { width: 15px; height: 15px; }
   /* Four tabs: on narrower phones the labels alone read more cleanly. */
   @media (max-width: 400px) { .view-nav__icon { display: none; } }
   .calendar { padding: 10px 10px 12px; }
@@ -2438,6 +2483,10 @@ button { font-family: inherit; }
   }
   .topbar__controls { display: contents; }
   .brand { grid-area: brand; }
+  /* Only the logo row scrolls away; the tabs and filters stay pinned,
+     with the same 8px above them the logo had. */
+  .topbar { top: -42px; }
+  .chat-page .topbar { top: 0; } /* the Assistant scrolls inside the page */
   .topbar__actions { grid-area: actions; gap: 2px; }
   .topbar__filters { grid-area: filters; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .topbar__controls .hide-button { grid-area: hide; min-height: 40px; }
