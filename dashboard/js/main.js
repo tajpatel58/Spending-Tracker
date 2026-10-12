@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSorting();
     initTableEditing();
     initTableExport();
-    initStatementUpload();
 
     renderAll();
     finishLoading();
