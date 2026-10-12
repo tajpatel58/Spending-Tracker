@@ -48,18 +48,8 @@ function initSync({ onChange }) {
     onChange();
   });
 
-  button.addEventListener('click', async () => {
-    if (checking) return;
-    try {
-      const { changed } = await refreshData();
-      showToast(changed
-        ? { message: 'Data refreshed — showing the latest' }
-        : { message: 'Already up to date', tone: 'info', duration: 2500 });
-    } catch (error) {
-      console.error('[Ledger data] Refresh failed:', error);
-      showToast({ message: "Couldn't refresh — showing your saved data", tone: 'error' });
-    }
-  });
+  button.addEventListener('click', () => { if (!checking) manualRefresh(); });
+  initPullToRefresh();
 
   // Keep "5 min ago" honest, and re-check when coming back to a tab left open.
   setInterval(render, 60000);
@@ -73,4 +63,83 @@ function initSync({ onChange }) {
   render();
   // Drawn from the saved copy? Quietly check for anything newer.
   if (dataStatus.fromCache) refreshData().catch((error) => console.error('[Ledger data] Background refresh failed:', error));
+}
+
+/** Pulls fresh data on request and says how it went (Refresh button and pull-to-refresh). */
+async function manualRefresh() {
+  try {
+    const { changed } = await refreshData();
+    showToast(changed
+      ? { message: 'Data refreshed — showing the latest' }
+      : { message: 'Already up to date', tone: 'info', duration: 2500 });
+  } catch (error) {
+    console.error('[Ledger data] Refresh failed:', error);
+    showToast({ message: "Couldn't refresh — showing your saved data", tone: 'error' });
+  }
+}
+
+/**
+ * Pull to refresh, for the installed (home-screen) app only — in a normal
+ * browser tab Safari and Chrome already have their own pull-to-reload.
+ * Dragging down at the top of the page draws a small indicator that turns
+ * with your finger; letting go past the threshold refreshes the data.
+ */
+function initPullToRefresh() {
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (!standalone || !('ontouchstart' in window)) return;
+
+  const THRESHOLD = 70;   // px of (damped) pull needed to refresh
+  const MAX = 110;
+  const indicator = document.createElement('div');
+  indicator.className = 'pull-refresh';
+  indicator.setAttribute('aria-hidden', 'true');
+  indicator.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="2"/>
+    <path d="M20 4v4.5h-4.5" stroke="currentColor" stroke-width="2"/></svg>`;
+  document.body.appendChild(indicator);
+  document.documentElement.classList.add('has-pull-refresh');
+
+  let startY = null;
+  let distance = 0;
+  let busy = false;
+
+  const draw = () => {
+    const progress = Math.min(1, distance / THRESHOLD);
+    indicator.style.transform = `translate(-50%, ${distance - 48}px) rotate(${progress * 270}deg)`;
+    indicator.style.opacity = String(Math.min(1, distance / 30));
+    indicator.classList.toggle('is-armed', distance >= THRESHOLD);
+  };
+  const reset = () => {
+    indicator.classList.add('is-settling');
+    distance = 0;
+    draw();
+    setTimeout(() => indicator.classList.remove('is-settling', 'is-refreshing'), 300);
+  };
+
+  window.addEventListener('touchstart', (e) => {
+    if (busy || window.scrollY > 0 || e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (startY === null) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0 || window.scrollY > 0) { startY = null; distance = 0; draw(); return; }
+    e.preventDefault(); // we're handling this pull, not the page's bounce
+    distance = Math.min(MAX, dy * 0.5);
+    draw();
+  }, { passive: false });
+
+  window.addEventListener('touchend', async () => {
+    if (startY === null) return;
+    startY = null;
+    if (distance < THRESHOLD) { reset(); return; }
+    busy = true;
+    distance = THRESHOLD;
+    indicator.classList.add('is-settling', 'is-refreshing');
+    draw();
+    await manualRefresh();
+    busy = false;
+    reset();
+  });
 }
