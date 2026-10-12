@@ -79,6 +79,10 @@
   --shadow-2: 0 8px 24px rgba(20, 23, 31, 0.10), 0 1px 3px rgba(20, 23, 31, 0.06);
   --shadow-3: 0 16px 40px rgba(20, 23, 31, 0.16), 0 2px 8px rgba(20, 23, 31, 0.08);
   --tile-border: var(--border);
+  /* Ambient light behind the top of each page (the login page's, much quieter). */
+  --glow-accent: color-mix(in srgb, var(--accent) 9%, transparent);
+  --glow-gold: color-mix(in srgb, var(--gold) 9%, transparent);
+  --glow-grid: color-mix(in srgb, var(--text) 3.5%, transparent);
   --scrollbar: #D3D8E0;
 
   /* Calendar heat scale — one green, light to deep as spend rises.
@@ -121,6 +125,9 @@
   --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 28px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
   --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 20px 45px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
   --tile-border: color-mix(in srgb, var(--border) 55%, transparent);
+  --glow-accent: color-mix(in srgb, var(--accent) 15%, transparent);
+  --glow-gold: color-mix(in srgb, var(--gold) 9%, transparent);
+  --glow-grid: color-mix(in srgb, var(--text) 4%, transparent);
   --scrollbar: #333B4C;
 
   /* Calendar heat scale — the same green, stepped up from the dark surface.
@@ -2181,6 +2188,12 @@ button { font-family: inherit; }
   .container { padding-top: 16px; }
   .page-heading { margin: 0 0 16px; }
   .sync-status { padding: 5px 10px 5px 8px; font-size: 11.5px; }
+  /* Pill beside the title; the subtitle gets the full width underneath. */
+  .page-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px var(--space-3); }
+  .page-heading > div { display: contents; }
+  .page-heading h1 { grid-column: 1; grid-row: 1; }
+  .page-heading__subtitle { grid-column: 1 / -1; grid-row: 2; }
+  .page-heading .sync-status { grid-column: 2; grid-row: 1; }
   .page-heading h1 { font-size: 18px; }
   .page-heading__subtitle { font-size: 12px; }
 
@@ -2534,6 +2547,53 @@ body.chat-page {
   .chat-page.chat-has-messages .topbar__inner { padding-bottom: 8px; }
 }
 
+
+/* ==========================================================================
+   Ambience — the login page's light, carried quietly into the app
+   ========================================================================== */
+
+/* A soft green and gold glow, with a faint grid beneath it, behind the top
+   of every page. It sits behind everything (isolation keeps z-index -1
+   above the page background) and fades out before the content gets dense. */
+body:not(.login-page) { position: relative; isolation: isolate; }
+body:not(.login-page)::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 760px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(48% 60% at 82% -6%, var(--glow-accent), transparent 70%),
+    radial-gradient(38% 50% at 12% -10%, var(--glow-gold), transparent 70%);
+}
+body:not(.login-page)::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 560px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--glow-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--glow-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(70% 90% at 50% 0%, #000 10%, transparent 75%);
+  mask-image: radial-gradient(70% 90% at 50% 0%, #000 10%, transparent 75%);
+}
+/* The assistant fills one screen, so its glow follows it. */
+body.chat-page::before, body.chat-page::after { position: fixed; }
+
+/* Dark mode: cards let a touch of that light through. Desktop also frosts
+   them; phones skip the blur to keep scrolling smooth and battery-friendly. */
+[data-theme="dark"] .tile { background: color-mix(in srgb, var(--surface) 90%, transparent); }
+@media (min-width: 901px) and (hover: hover) {
+  [data-theme="dark"] .tile {
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+}
 
 /* ==========================================================================
    Toasts (toast.js) — inverted pill, bottom centre
