@@ -263,48 +263,136 @@ function renderBudgetChart() {
   document.getElementById('budget-chart-meta').textContent = `${entries.length} groups`;
 }
 
+/** Diagonal stripes in `color` — the "still to come" part of this month's bar. */
+function stripePattern(color) {
+  const size = 8;
+  const tile = document.createElement('canvas');
+  tile.width = size;
+  tile.height = size;
+  const g = tile.getContext('2d');
+  g.fillStyle = fade(color, 0.16);
+  g.fillRect(0, 0, size, size);
+  g.strokeStyle = fade(color, 0.6);
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(-2, size + 2); g.lineTo(size + 2, -2);
+  g.moveTo(-2, 2); g.lineTo(2, -2);
+  g.moveTo(size - 2, size + 2); g.lineTo(size + 2, size - 2);
+  g.stroke();
+  return g.createPattern(tile, 'repeat');
+}
+
 /**
- * Renders the 6-month spending trend line chart.
- * API: replace with `fetch('/api/analytics/trend?months=6')`
+ * Renders the spending trend for the last six months: each month's bar
+ * splits into fixed costs and everyday spending, the current month adds
+ * a striped "still to come" segment up to its forecast (forecast.js), and
+ * a dashed line marks each month's spending target (last month's salary
+ * minus the savings target). The selected month is drawn in full colour;
+ * clicking a bar jumps to that month.
  */
 function renderTrendChart() {
-  const labels = MONTHS.map((m) => MONTH_LABEL(m.key).split(' ')[0]);
-  const data = MONTHS.map((m) => monthTotal(m.key));
-  const accent = cssVar('--accent');
-  const gridColor = cssVar('--border');
-  const textColor = cssVar('--text-faint');
+  const months = MONTHS.slice(-6).map((m) => m.key);
+  const currentMonth = todayIso().slice(0, 7);
+  const sumOf = (key, keep) => sumAbs(getMonthTransactions(key).filter(keep));
+  const fixed = months.map((key) => sumOf(key, (t) => t.category === 'fixed_expense'));
+  const everyday = months.map((key) => sumOf(key, isVariableExpense));
+  const toCome = months.map((key, i) => (key === currentMonth
+    ? Math.max(0, forecastSpend(key).total - fixed[i] - everyday[i])
+    : 0));
+  const target = months.map((key) => spendingAllowance(key));
+
+  const colors = { fixed: cssVar('--forecast-fixed'), everyday: cssVar('--forecast-spent'), toCome: cssVar('--forecast-projected') };
+  const dimUnlessSelected = (color) => (c) => (months[c.dataIndex] === state.month ? color : fade(color, 0.45));
+  const segment = { borderColor: cssVar('--surface'), borderWidth: 2, borderSkipped: false, borderRadius: 5, maxBarThickness: 46, stack: 'spend' };
+  const text = cssVar('--text');
+  const faint = cssVar('--text-faint');
 
   const ctx = document.getElementById('trend-chart');
   if (trendChart) trendChart.destroy();
   trendChart = new Chart(ctx, {
-    type: 'line',
     data: {
-      labels,
-      datasets: [{
-        data,
-        borderColor: accent,
-        backgroundColor: (c) => {
-          const g = c.chart.ctx.createLinearGradient(0, 0, 0, 180);
-          g.addColorStop(0, accent + '33');
-          g.addColorStop(1, accent + '00');
-          return g;
+      labels: months.map((key) => MONTH_LABEL(key).split(' ')[0].slice(0, 3)),
+      datasets: [
+        { type: 'bar', label: 'Fixed', data: fixed, backgroundColor: dimUnlessSelected(colors.fixed), ...segment, order: 2 },
+        { type: 'bar', label: 'Everyday', data: everyday, backgroundColor: dimUnlessSelected(colors.everyday), ...segment, order: 2 },
+        { type: 'bar', label: 'Still to come', data: toCome, backgroundColor: stripePattern(colors.toCome), ...segment, order: 2 },
+        {
+          type: 'line',
+          label: 'Spending target',
+          data: target,
+          borderColor: cssVar('--text-muted'),
+          borderWidth: 1.5,
+          borderDash: [5, 5],
+          pointRadius: 3,
+          pointBackgroundColor: cssVar('--surface'),
+          pointBorderColor: cssVar('--text-muted'),
+          pointBorderWidth: 1.5,
+          tension: 0,
+          spanGaps: true,
+          order: 1,
         },
-        fill: true,
-        tension: 0.35,
-        pointRadius: (c) => (labels[c.dataIndex] === MONTH_LABEL(state.month).split(' ')[0] ? 4 : 0),
-        pointBackgroundColor: accent,
-        pointBorderColor: cssVar('--surface'),
-        pointBorderWidth: 2,
-        borderWidth: 2,
-      }],
+      ],
     },
     options: {
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${currency(c.raw)}` } } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 11 } } },
-        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'IBM Plex Mono', size: 11 }, callback: (v) => currencyShort(v) }, beginAtZero: true },
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      onClick: (_event, elements) => {
+        if (!elements.length || typeof setMonth !== 'function') return;
+        // Switching month redraws this chart, so let Chart.js finish handling the click first.
+        const month = months[elements[0].index];
+        setTimeout(() => setMonth(month), 0);
       },
-      animation: { duration: 250 },
+      onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: cssVar('--surface'),
+          borderColor: cssVar('--border'),
+          borderWidth: 1,
+          titleColor: text,
+          bodyColor: cssVar('--text-muted'),
+          footerColor: text,
+          titleFont: { family: 'Inter', size: 12.5, weight: '600' },
+          bodyFont: { family: 'IBM Plex Mono', size: 12 },
+          footerFont: { family: 'IBM Plex Mono', size: 12.5, weight: '600' },
+          padding: 12,
+          cornerRadius: 10,
+          boxPadding: 4,
+          usePointStyle: true,
+          caretSize: 0,
+          filter: (item) => item.raw !== null && item.raw !== 0,
+          itemSort: (a, b) => a.datasetIndex - b.datasetIndex, // bar parts bottom-up, then the target
+          callbacks: {
+            title: (items) => MONTH_LABEL(months[items[0].dataIndex]),
+            label: (item) => ` ${item.dataset.label}  ${currency(item.raw)}`,
+            labelPointStyle: (item) => ({ pointStyle: item.dataset.type === 'line' ? 'line' : 'rectRounded', rotation: 0 }),
+            footer: (items) => {
+              const i = items[0].dataIndex;
+              const spent = fixed[i] + everyday[i];
+              return toCome[i] ? `Forecast  ${currency(spent + toCome[i])}` : `Total  ${currency(spent)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            font: (c) => ({ family: 'Inter', size: 11.5, weight: months[c.index] === state.month ? '600' : '400' }),
+            color: (c) => (months[c.index] === state.month ? text : faint),
+          },
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          border: { display: false },
+          grid: { color: cssVar('--border'), drawTicks: false },
+          ticks: { color: faint, padding: 8, maxTicksLimit: 5, font: { family: 'IBM Plex Mono', size: 11 }, callback: (v) => currencyShort(v) },
+        },
+      },
+      animation: { duration: 450 },
     },
   });
 }

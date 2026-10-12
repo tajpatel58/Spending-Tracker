@@ -20,13 +20,7 @@ const datePicker = {
   viewMonth: null, // 'YYYY-MM' currently shown
 };
 
-/** 'YYYY-MM' plus `delta` months, e.g. shiftMonth('2026-01', -1) -> '2025-12'. */
-function shiftMonth(key, delta) {
-  const [y, m] = key.split('-').map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
+/** Draws the pop-over month grid (shiftMonth comes from forecast.js). */
 function renderDatePicker() {
   const { value, original } = datePicker.options;
   const key = datePicker.viewMonth;

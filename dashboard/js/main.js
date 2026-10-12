@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
     Object.assign(accountById, Object.fromEntries(ACCOUNTS.map((a) => [a.id, a])));
 
+    indexEvents(); // the trend chart's forecast uses upcoming calendar events
     initAccountFilter();
     initMonthSelect();
     initTableFilters();
@@ -51,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     finishLoading();
     initSync({
       onChange: () => {
+        indexEvents();
         if (!TRANSACTIONS[state.month]) state.month = MONTHS[MONTHS.length - 1].key;
         renderMonthOptions();
         renderAll();
