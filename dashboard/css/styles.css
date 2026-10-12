@@ -2445,10 +2445,13 @@ button { font-family: inherit; }
     gap: 2px;
     background: color-mix(in srgb, var(--text) 6%, transparent);
   }
-  .view-nav__link { justify-content: center; gap: 6px; padding: 8px 0; font-size: 13px; }
-  .view-nav__icon { width: 15px; height: 15px; }
-  /* Four tabs: on narrower phones the labels alone read more cleanly. */
-  @media (max-width: 400px) { .view-nav__icon { display: none; } }
+  .view-nav__link { justify-content: center; gap: 5px; padding: 8px 0; font-size: 12.5px; letter-spacing: -0.01em; }
+  .view-nav__icon { width: 14px; height: 14px; }
+  /* Four tabs with icons: tighten slightly on the narrowest phones. */
+  @media (max-width: 380px) {
+    .view-nav__link { gap: 4px; font-size: 12px; }
+    .view-nav__icon { width: 13px; height: 13px; }
+  }
   .calendar { padding: 10px 10px 12px; }
   .calendar__weekdays, .calendar__days { gap: 4px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .calendar__week, .calendar__week-head { display: none; } /* too narrow for a week column */
@@ -2585,7 +2588,10 @@ button { font-family: inherit; }
   /* Compact type scale for phones. iOS Safari normally zooms in when an
      input under 16px is focused; maximum-scale=1 in the viewport meta tag
      turns that off (pinch-zoom still works), so text can go smaller here. */
-  .topbar__inner { gap: 8px; padding-top: 6px; padding-bottom: 10px; }
+  /* Rows are spaced by margins (below), not gaps, so rows that are empty
+     on a page (no filters, "Hide selected" not shown) add no space. */
+  .topbar__inner { gap: 0 8px; padding-top: 6px; padding-bottom: 8px; }
+  .view-nav, .topbar__filters, .topbar__controls .hide-button { margin-top: 8px; }
   .brand { gap: 8px; }
   .brand__mark svg { width: 18px; height: 18px; }
   .brand__name { font-size: 15px; }
