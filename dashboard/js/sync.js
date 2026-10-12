@@ -41,6 +41,14 @@ function initSync({ onChange }) {
   document.addEventListener('ledger:sync', (event) => {
     checking = event.detail.state === 'checking';
     render();
+    // A finished check briefly swaps the refresh icon for a tick that draws itself.
+    if (event.detail.state === 'done') {
+      button.classList.remove('is-done');
+      void button.offsetWidth;
+      button.classList.add('is-done');
+      clearTimeout(button.doneTimer);
+      button.doneTimer = setTimeout(() => button.classList.remove('is-done'), 1800);
+    }
   });
   document.addEventListener('ledger:data-changed', (event) => {
     // A new or removed account changes the filters' structure; a quick reload rebuilds them cleanly.

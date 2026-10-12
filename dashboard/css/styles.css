@@ -202,9 +202,15 @@ body {
    Loading placeholders — body.is-loading until the first render
    ========================================================================== */
 
-:root { --skeleton: color-mix(in srgb, var(--text) 8%, transparent); }
+:root {
+  --skeleton: color-mix(in srgb, var(--text) 8%, transparent);
+  --skeleton-shine: color-mix(in srgb, var(--text) 3%, transparent);  /* lighter band in light mode */
+}
+[data-theme="dark"] { --skeleton-shine: color-mix(in srgb, var(--text) 15%, transparent); } /* brighter band in dark mode */
 
 @keyframes skeleton-pulse { 50% { opacity: 0.45; } }
+/* A soft band of light sweeps across the placeholder blocks. */
+@keyframes skeleton-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 
 .is-loading .stat-tile__value,
 .is-loading .stat-tile__delta,
@@ -213,9 +219,10 @@ body {
 .is-loading #day-title,
 .calendar__skeleton {
   color: transparent !important;
-  background: var(--skeleton);
+  background: linear-gradient(100deg, var(--skeleton) 30%, var(--skeleton-shine) 50%, var(--skeleton) 70%) var(--skeleton);
+  background-size: 250% 100%;
   border-radius: var(--radius-xs);
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 .is-loading .stat-tile__value { width: 55%; }
 .is-loading .stat-tile__delta { width: 35%; }
@@ -1205,7 +1212,7 @@ button { font-family: inherit; }
   .tx-table tbody tr .tx-avatar:not(:has(input:checked)):hover { box-shadow: inset 0 0 0 1.5px var(--rose); }
 
   /* Edit affordances stay hidden until the row is hovered or focused. */
-  .tx-table tbody tr:not(:hover):not(:focus-within) .category-select { background-image: none; }
+  .tx-table tbody tr:not(:hover):not(:focus-within) .category-select { background-position: right -12px center; } /* chevron slides in on hover */
   .tx-table.is-grouped tbody tr:not(:hover):not(:focus-within) .date-button--column:not(.is-edited) { color: transparent; }
 }
 
@@ -1685,7 +1692,7 @@ button { font-family: inherit; }
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
+  transition: background var(--transition), border-color var(--transition), color 220ms ease;
 }
 
 .date-button:hover,
@@ -2829,12 +2836,16 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
    (figures counting and the first-load reveal are driven by js/motion.js)
    ========================================================================== */
 
-/* First load: cards rise into place one after another. */
-.is-revealing main .page-heading,
-.is-revealing main .tile {
+/* First load: cards in view rise into place one after another... */
+.is-revealing .reveal-now {
   animation: rise-in 560ms var(--ease-out) both;
   animation-delay: calc(var(--reveal-i, 0) * 45ms);
 }
+/* ...and cards further down rise in as they're scrolled to (motion.js). */
+.reveal-pending { opacity: 0; transform: translateY(18px); }
+.reveal-pending .budget-item__fill,
+.reveal-pending .breakdown-bar__seg { animation-play-state: paused; } /* their bars grow on arrival */
+.reveal-in { animation: rise-in 650ms var(--ease-out) both; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } }
 
 /* Bars grow from the left each time they're drawn. */
@@ -2881,6 +2892,56 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 ::view-transition-group(nav-active) { animation-duration: 340ms; animation-timing-function: var(--ease-out); }
 @keyframes vt-fade-out { to { opacity: 0; } }
 @keyframes vt-rise-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* After a refresh, cards whose figure changed glow briefly. */
+.tile.is-changed { animation: changed-glow 1800ms ease-out; }
+@keyframes changed-glow {
+  0%, 25% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent), var(--shadow-1); }
+  100% { box-shadow: var(--shadow-1); }
+}
+
+/* Ticks draw themselves in, like a pen stroke. */
+.draw-tick { stroke-dasharray: 1; stroke-dashoffset: 1; vector-effect: none; stroke-width: 3.4px; }
+.toast--success .draw-tick { animation: draw-tick 380ms 140ms var(--ease-out) forwards; }
+.tx-avatar:has(input:checked) .draw-tick { animation: draw-tick 320ms 40ms var(--ease-out) forwards; }
+.sync-status.is-done .draw-tick { animation: draw-tick 420ms 60ms var(--ease-out) forwards; }
+@keyframes draw-tick { to { stroke-dashoffset: 0; } }
+.sync-status__done { display: none; color: var(--accent); }
+.sync-status.is-done .sync-status__icon { display: none; }
+.sync-status.is-done .sync-status__done { display: block; }
+
+/* The header picks up a soft shadow once the page is scrolled. */
+.topbar { transition: box-shadow 260ms ease, background-color 260ms ease, border-color 260ms ease; }
+.topbar.is-scrolled {
+  background-color: color-mix(in srgb, var(--bg) 94%, transparent);
+  box-shadow: 0 10px 30px -18px rgba(20, 23, 31, 0.35);
+}
+[data-theme="dark"] .topbar.is-scrolled { box-shadow: 0 10px 30px -14px rgba(0, 0, 0, 0.7); }
+
+/* Menus ease open from where they're anchored instead of snapping in. */
+.multiselect__panel:not([hidden]),
+.user-menu__panel:not([hidden]) {
+  transform-origin: top center;
+  animation: menu-in 190ms var(--ease-out) both;
+}
+.table-filter__panel:not([hidden]), .user-menu__panel:not([hidden]) { transform-origin: top right; }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+
+/* Calendar: days lift a touch on hover; a newly selected day settles in. */
+@media (hover: hover) {
+  .calendar__day:hover { transform: translateY(-2px); }
+}
+.calendar__day.is-selected { animation: day-select 280ms var(--ease-out); }
+@keyframes day-select { from { transform: scale(0.93); } }
+
+/* Switching light/dark: the new theme spreads in a circle from the toggle
+   (theme.js); the header and active tab ride along instead of cross-fading. */
+html.theme-transition::view-transition-old(root),
+html.theme-transition::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.theme-transition::view-transition-old(root) { z-index: 1; }
+html.theme-transition::view-transition-new(root) { z-index: 2; }
+html.theme-transition .topbar,
+html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
