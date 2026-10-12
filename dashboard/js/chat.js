@@ -77,7 +77,7 @@ function sleep(ms, signal) {
 // RENDERING
 // ============================================================
 
-const SPARKLE = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+const SPARKLE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
   <path d="M12 3.5l1.6 4.3a3 3 0 0 0 1.8 1.8l4.1 1.4-4.1 1.4a3 3 0 0 0-1.8 1.8L12 18.5l-1.6-4.3a3 3 0 0 0-1.8-1.8L4.5 11l4.1-1.4a3 3 0 0 0 1.8-1.8L12 3.5Z" fill="currentColor"/>
 </svg>`;
 
@@ -129,7 +129,7 @@ function messageElement(role, content) {
         <div class="msg__content"></div>
         <div class="msg__actions">
           <button type="button" class="msg__action" data-copy title="Copy">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="8.5" y="8.5" width="11" height="11" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
               <path d="M15.5 5.5v-.5A1.5 1.5 0 0 0 14 3.5H6A1.5 1.5 0 0 0 4.5 5v8A1.5 1.5 0 0 0 6 14.5h.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
             </svg>
