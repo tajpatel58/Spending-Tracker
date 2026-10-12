@@ -32,6 +32,7 @@
 <script defer src="js/data.js"></script>
 <script defer src="js/format.js"></script>
 <script defer src="js/state.js"></script>
+<script defer src="js/forecast.js"></script>
 <script defer src="js/theme.js"></script>
 <script defer src="js/motion.js"></script>
 <script defer src="js/stats.js"></script>
@@ -251,8 +252,14 @@
         <span class="tile__meta">Last 6 months</span>
       </div>
       <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--line">
-        <canvas id="trend-chart" role="img" aria-label="Line chart of monthly spending trend"></canvas>
+        <canvas id="trend-chart" role="img" aria-label="Bar chart of monthly spending, split into fixed and everyday spending, against the spending target"></canvas>
       </div>
+      <ul class="trend-legend" aria-hidden="true">
+        <li><span class="trend-legend__swatch" style="background:var(--forecast-fixed)"></span>Fixed</li>
+        <li><span class="trend-legend__swatch" style="background:var(--forecast-spent)"></span>Everyday</li>
+        <li><span class="trend-legend__swatch trend-legend__swatch--forecast"></span>Still to come</li>
+        <li><span class="trend-legend__line"></span>Spending target</li>
+      </ul>
     </div>
 
     <div class="tile chart-tile chart-tile--budget">

@@ -872,6 +872,23 @@ button { font-family: inherit; }
 .donut-center.is-focused .donut-center__label { color: var(--focus-color); font-weight: 600; }
 .donut-center > * { animation: fade-in 200ms ease; }
 .chart-tile__canvas-wrap--line { padding: 16px 20px 0; height: 280px; }
+
+.trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--space-4);
+  margin: 0;
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.trend-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.trend-legend__swatch { width: 9px; height: 9px; border-radius: 2px; }
+.trend-legend__swatch--forecast {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--forecast-projected) 60%, transparent) 0 2px, color-mix(in srgb, var(--forecast-projected) 16%, transparent) 2px 4px);
+}
+.trend-legend__line { width: 14px; border-top: 1.5px dashed var(--text-muted); }
 .budget-list {
   list-style: none;
   display: flex;
