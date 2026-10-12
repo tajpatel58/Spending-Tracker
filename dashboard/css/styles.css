@@ -1577,90 +1577,316 @@ button { font-family: inherit; }
 }
 
 /* ==========================================================================
-   Statement upload dialog
+   Upload page (upload.html)
    ========================================================================== */
 
-.upload-dialog {
-  width: min(400px, calc(100vw - 32px));
-  padding: 0;
+.upload-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.upload-card { overflow: hidden; }
+.upload-step { padding: var(--space-6); }
+.upload-step + .upload-step { border-top: 1px solid var(--border); }
+
+.upload-step__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.upload-step__num {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 50%;
+}
+
+.upload-field { display: flex; flex-direction: column; gap: 8px; margin-top: var(--space-5); }
+.upload-field__label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Radio choices. The input stays in the page (keyboard + screen readers) but is invisible. */
+.choice { position: relative; cursor: pointer; }
+.choice input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Bank and month: a segmented control. */
+.choice-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border-radius: 10px;
+}
+.choice-group .choice {
+  padding: 7px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: 8px;
+  transition: color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+.choice-group .choice:hover { color: var(--text); }
+.choice-group .choice:has(input:checked) {
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-3);
+  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.08), 0 0 0 0.5px var(--border);
 }
+.choice-group--months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-self: stretch; max-width: 460px; }
+.choice--stacked { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 10px; }
+.choice__main { font-size: 13.5px; }
+.choice__sub { font-size: 11px; font-weight: 400; color: var(--text-faint); }
 
-.upload-dialog[open] { animation: chat-pop 160ms ease; }
-.upload-dialog::backdrop { background: rgba(13, 16, 21, 0.45); }
-
-.upload-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-}
-
-.upload-form__header h3 { font-size: 15px; }
-.upload-form__header p { margin: 2px 0 0; font-size: 12px; color: var(--text-faint); }
-
-.upload-field { flex-direction: column; align-items: stretch; gap: 6px; }
-.upload-field select { width: 100%; }
-.upload-field__label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
-
-.upload-filepicker {
-  position: relative;
+/* Account: a card per account of the chosen bank. */
+.account-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--space-2); }
+.account-choice {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: var(--space-3);
+  padding: 11px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+.account-choice:hover { border-color: var(--border-strong); }
+.account-choice:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.account-choice__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-family: var(--font-display);
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-muted);
   background: var(--surface-alt);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
+.account-choice:has(input:checked) .account-choice__avatar { color: #fff; background: var(--accent); border-color: var(--accent); }
+.account-choice__text { display: flex; flex-direction: column; min-width: 0; }
+.account-choice__owner { font-size: 13.5px; font-weight: 500; }
+.account-choice__id { overflow: hidden; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); text-overflow: ellipsis; white-space: nowrap; }
+.account-choice__status { margin-left: auto; font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+.account-choice__status.is-done { color: var(--accent); }
 
-.upload-filepicker__icon { flex: none; color: var(--text-faint); }
-
-.upload-filepicker__name {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.upload-filepicker--filled .upload-filepicker__name { color: var(--text); }
-
-.upload-filepicker__clear {
+/* The drop area. On a phone it's a big tap target that opens the file picker. */
+.dropzone {
   display: flex;
-  flex: none;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
+  gap: 6px;
+  margin-top: var(--space-4);
+  padding: 36px var(--space-5);
+  text-align: center;
+  background: var(--surface-alt);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 200ms ease, background 200ms ease, transform 200ms var(--ease-out);
+}
+.dropzone[hidden] { display: none; }
+.dropzone:hover, .dropzone:has(input:focus-visible) { border-color: var(--accent); }
+.dropzone:has(input:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.is-dragging-file .dropzone {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.01);
+}
+.dropzone__icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 6px;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-1);
+  transition: transform 250ms var(--ease-out);
+}
+.dropzone:hover .dropzone__icon, .is-dragging-file .dropzone__icon { transform: translateY(-2px); }
+.dropzone__title { font-size: 14px; font-weight: 500; }
+.dropzone__link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.dropzone__touch { display: none; }
+.dropzone__hint { font-size: 12px; color: var(--text-faint); }
+/* Touch screens can't drag files in, so the wording says tap instead. */
+@media (hover: none), (pointer: coarse) {
+  .dropzone__fine { display: none; }
+  .dropzone__touch { display: inline; }
+  .dropzone:active { background: var(--accent-soft); border-color: var(--accent); }
+}
+
+/* The chosen file. */
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: 12px 14px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.file-card[hidden] { display: none; }
+.file-card.is-in { animation: rise-in 280ms var(--ease-out); }
+.file-card__badge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+}
+.file-card__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.file-card__name { overflow: hidden; font-size: 13.5px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.file-card__meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
+.file-card__remove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
   margin-left: auto;
   color: var(--text-faint);
   background: none;
   border: none;
   border-radius: 50%;
   cursor: pointer;
+  transition: color var(--transition), background var(--transition);
 }
-.upload-filepicker__clear:hover { color: var(--text); background: var(--surface); }
+.file-card__remove:hover { color: var(--text); background: var(--surface); }
+.is-uploading .file-card__remove { visibility: hidden; }
 
-.upload-filepicker input[type="file"] {
-  position: absolute;
-  inset: 0;
+/* Checks against the bank's format. */
+.upload-checks { display: flex; flex-direction: column; gap: 6px; margin: var(--space-3) 0 0; padding: 0; list-style: none; }
+.upload-checks:empty { display: none; }
+.upload-check { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.45; color: var(--text-muted); animation: fade-in 240ms ease; }
+.upload-check svg { flex: none; margin-top: 2px; }
+.upload-check--ok svg { color: var(--accent); }
+.upload-check--warn svg { color: var(--forecast-events); }
+.upload-check--error { color: var(--rose); }
+
+/* Where it saves, and the button. */
+.upload-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  background: var(--surface-alt);
+  border-top: 1px solid var(--border);
+}
+.upload-dest { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.upload-dest__label { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+.upload-dest__path { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
+.upload-dest__note { font-size: 12px; color: var(--forecast-events); }
+.upload-dest__note[hidden] { display: none; }
+
+.upload-submit {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(20, 23, 31, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.upload-submit:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.is-uploading .upload-submit:disabled { opacity: 0.8; cursor: progress; }
+.upload-submit.is-warned { background: var(--forecast-events); border-color: var(--forecast-events); }
+.upload-submit__spinner {
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sync-spin 700ms linear infinite;
+}
+.is-uploading .upload-submit__spinner { display: block; }
+
+/* Statements card: what's saved for the month. Stays in view beside the form. */
+.statements-card { position: sticky; top: 88px; }
+.statements-progress { display: block; height: 4px; margin: var(--space-3) var(--space-5) 0; overflow: hidden; background: var(--border); border-radius: var(--radius-full); }
+.statements-progress__fill { display: block; width: 0; height: 100%; background: var(--accent); border-radius: inherit; transition: width 600ms var(--ease-out); }
+.statement-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: var(--space-3) var(--space-2) 0; list-style: none; }
+.statement-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   width: 100%;
-  height: 100%;
-  opacity: 0;
+  padding: 9px 12px;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background var(--transition);
+}
+.statement-row:hover { background: var(--surface-alt); }
+.statement-row.is-selected { background: var(--accent-soft); }
+.statement-row__text { display: flex; flex-direction: column; min-width: 0; }
+.statement-row__bank { font-size: 13.5px; font-weight: 500; }
+.statement-row__meta { overflow: hidden; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); text-overflow: ellipsis; white-space: nowrap; }
+.statement-row__status { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); white-space: nowrap; }
+.statement-row__status.is-done { color: var(--accent); }
+.statement-row__skeleton { display: block; width: 46px; height: 10px; background: var(--skeleton); border-radius: var(--radius-full); animation: skeleton-pulse 1.4s ease-in-out infinite; }
+.statements-card__note { margin: 0; padding: var(--space-2) var(--space-5) var(--space-4); font-size: 12px; color: var(--text-faint); }
+
+@media (max-width: 900px) {
+  .upload-layout { grid-template-columns: minmax(0, 1fr); }
+  .statements-card { position: static; }
 }
 
-.upload-status { margin: 0; min-height: 18px; font-size: 12.5px; color: var(--text-muted); overflow-wrap: anywhere; }
-.upload-status--success { color: var(--accent); }
-.upload-status--error { color: var(--rose); }
-
-.upload-form__actions { display: flex; justify-content: flex-end; gap: 8px; }
+@media (max-width: 560px) {
+  .upload-step { padding: var(--space-5) var(--space-4); }
+  .upload-field { margin-top: var(--space-4); }
+  .choice-group { align-self: stretch; display: flex; }
+  .choice-group .choice { flex: 1; padding: 8px 10px; text-align: center; }
+  .choice-group--months { display: grid; max-width: none; }
+  .choice--stacked { padding: 7px 4px; }
+  .account-choices { grid-template-columns: minmax(0, 1fr); }
+  .account-choice { padding: 12px; }
+  .dropzone { padding: 28px var(--space-4); }
+  .upload-card__footer { flex-direction: column; align-items: stretch; gap: var(--space-3); padding: var(--space-4); }
+  .upload-submit { width: 100%; padding: 13px 20px; font-size: 15px; }
+}
 
 .btn {
   padding: 8px 16px;
@@ -2157,12 +2383,12 @@ button { font-family: inherit; }
 @media (max-width: 560px) {
   .container { padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
 
-  /* Overview / Calendar / Assistant become a full-width segmented
+  /* Overview / Calendar / Assistant / Upload become a full-width segmented
      control in the header, on its own row under the logo. */
   .view-nav {
     grid-area: nav;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 2px;
     padding: 3px;
     background: color-mix(in srgb, var(--text) 6%, transparent);
@@ -2176,6 +2402,8 @@ button { font-family: inherit; }
     box-shadow: 0 1px 2px rgba(20, 23, 31, 0.08), 0 0 0 0.5px var(--border);
   }
   .view-nav__icon { display: block; width: 15px; height: 15px; }
+  /* Four tabs: on narrower phones the labels alone read more cleanly. */
+  @media (max-width: 400px) { .view-nav__icon { display: none; } }
   .calendar { padding: 10px 10px 12px; }
   .calendar__weekdays, .calendar__days { gap: 4px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .calendar__week, .calendar__week-head { display: none; } /* too narrow for a week column */

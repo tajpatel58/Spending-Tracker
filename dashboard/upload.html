@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ledger — Upload</title>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- Add to Home Screen opens it as a full-screen app (no Safari bars). -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="application-name" content="Ledger">
+<!-- Browser/status bar colour; theme.js keeps it in step with light/dark mode. -->
+<meta name="theme-color" content="#F5F6F9">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<!-- Scripts download in parallel while the page parses (defer keeps their order). -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
+<script defer src="js/config.js"></script>
+<script defer src="js/auth.js"></script>
+<script defer src="js/supabase-client.js"></script>
+<script defer src="js/data.js"></script>
+<script defer src="js/format.js"></script>
+<script defer src="js/theme.js"></script>
+<script defer src="js/motion.js"></script>
+<script defer src="js/toast.js"></script>
+<script defer src="js/upload.js"></script>
+</head>
+<body class="upload-page">
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="9" height="9" rx="2" fill="var(--accent)"/>
+          <rect x="12" y="1" width="9" height="9" rx="2" fill="var(--gold)"/>
+          <rect x="1" y="12" width="9" height="9" rx="2" fill="var(--gold)"/>
+          <rect x="12" y="12" width="9" height="9" rx="2" fill="var(--accent)"/>
+        </svg>
+      </span>
+      <span class="brand__name">Ledger</span>
+    </div>
+
+    <nav class="view-nav" aria-label="Views">
+      <a href="index.html" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="4" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <span>Overview</span>
+      </a>
+      <a href="calendar.html" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="5.5" width="16" height="14.5" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Calendar</span>
+      </a>
+      <a href="chat.html" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.5l1.6 4.3a3 3 0 0 0 1.8 1.8l4.1 1.4-4.1 1.4a3 3 0 0 0-1.8 1.8L12 18.5l-1.6-4.3a3 3 0 0 0-1.8-1.8L4.5 11l4.1-1.4a3 3 0 0 0 1.8-1.8L12 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M18.5 16.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4Z" fill="currentColor"/>
+        </svg>
+        <span>Assistant</span>
+      </a>
+      <a href="upload.html" class="view-nav__link is-active" aria-current="page">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 15V4.5M12 4.5l-4 4M12 4.5l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4.5 14v3.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Upload</span>
+      </a>
+    </nav>
+
+    <div class="topbar__controls">
+
+      <div class="topbar__actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+          <svg class="icon icon--sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <svg class="icon icon--moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="user-menu" id="user-menu">
+          <button class="user-menu__button" id="user-menu-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu-panel">
+            <span class="user-menu__avatar" id="user-menu-avatar" aria-hidden="true"></span>
+            <span class="user-menu__name" id="user-menu-name"></span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="user-menu__panel" id="user-menu-panel" role="menu" hidden>
+            <div class="user-menu__identity">
+              <span class="user-menu__panel-name" id="user-menu-panel-name"></span>
+              <span class="user-menu__email" id="user-menu-email"></span>
+            </div>
+            <div class="user-menu__divider"></div>
+            <button id="signout-button" class="user-menu__signout" type="button" role="menuitem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 12H10.5M20 12l-3.5-3.5M20 12l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Sign out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ UPLOAD ============ -->
+<main class="container upload-main">
+  <div class="page-heading">
+    <div>
+      <h1>Upload</h1>
+      <p class="page-heading__subtitle">Add a bank statement for the next pipeline run</p>
+    </div>
+  </div>
+
+  <div class="upload-layout">
+    <form class="tile upload-card" id="upload-form" novalidate>
+      <!-- 1. Which statement this is. It decides where the file is saved, which is what the pipeline reads. -->
+      <section class="upload-step" aria-labelledby="upload-step-1">
+        <h2 class="upload-step__title" id="upload-step-1"><span class="upload-step__num">1</span>Statement</h2>
+
+        <div class="upload-field">
+          <span class="upload-field__label" id="upload-bank-label">Bank</span>
+          <div class="choice-group" id="upload-bank" role="radiogroup" aria-labelledby="upload-bank-label"></div>
+        </div>
+        <div class="upload-field">
+          <span class="upload-field__label" id="upload-account-label">Account</span>
+          <div class="account-choices" id="upload-account" role="radiogroup" aria-labelledby="upload-account-label"></div>
+        </div>
+        <div class="upload-field">
+          <span class="upload-field__label" id="upload-month-label">Statement month</span>
+          <div class="choice-group choice-group--months" id="upload-month" role="radiogroup" aria-labelledby="upload-month-label"></div>
+        </div>
+      </section>
+
+      <!-- 2. The file: drag and drop on a computer, tap to pick on a phone. -->
+      <section class="upload-step" aria-labelledby="upload-step-2">
+        <h2 class="upload-step__title" id="upload-step-2"><span class="upload-step__num">2</span>File</h2>
+
+        <label class="dropzone" id="upload-dropzone" for="upload-file">
+          <span class="dropzone__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 15.5V5M12 5l-4 4M12 5l4 4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4.5 14.5v3A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5v-3" stroke="currentColor" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="dropzone__title">
+            <span class="dropzone__fine">Drop your statement here, or <span class="dropzone__link">browse</span></span>
+            <span class="dropzone__touch">Tap to choose a file</span>
+          </span>
+          <span class="dropzone__hint" id="upload-hint">CSV · up to 20 MB</span>
+          <input type="file" id="upload-file" class="visually-hidden" accept=".csv,text/csv">
+        </label>
+
+        <div class="file-card" id="upload-file-card" hidden>
+          <span class="file-card__badge" id="upload-file-ext">CSV</span>
+          <span class="file-card__text">
+            <span class="file-card__name" id="upload-file-name"></span>
+            <span class="file-card__meta" id="upload-file-meta"></span>
+          </span>
+          <button type="button" class="file-card__remove" id="upload-file-clear" aria-label="Remove file" title="Remove file">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <!-- Checks the file against what the pipeline expects for this bank (upload.js). -->
+        <ul class="upload-checks" id="upload-checks" aria-live="polite"></ul>
+      </section>
+
+      <footer class="upload-card__footer">
+        <div class="upload-dest">
+          <span class="upload-dest__label">Saves to</span>
+          <code class="upload-dest__path" id="upload-path"></code>
+          <span class="upload-dest__note" id="upload-replace" hidden></span>
+        </div>
+        <button type="submit" class="btn btn--primary upload-submit" id="upload-submit" disabled>
+          <span class="upload-submit__spinner" aria-hidden="true"></span>
+          <span id="upload-submit-label">Upload statement</span>
+        </button>
+      </footer>
+    </form>
+
+    <!-- Which accounts already have a statement for the chosen month. -->
+    <aside class="tile statements-card" aria-labelledby="statements-title">
+      <div class="tile__header">
+        <h2 id="statements-title">Statements</h2>
+        <span class="tile__meta" id="statements-count"></span>
+      </div>
+      <span class="statements-progress" aria-hidden="true"><span class="statements-progress__fill" id="statements-progress"></span></span>
+      <ul class="statement-list" id="statements-list"></ul>
+      <p class="statements-card__note" id="statements-note">Choose an account to upload its statement.</p>
+    </aside>
+  </div>
+</main>
+
+</body>
+</html>
