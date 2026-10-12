@@ -236,6 +236,7 @@
           <span role="columnheader">Mon</span><span role="columnheader">Tue</span><span role="columnheader">Wed</span>
           <span role="columnheader">Thu</span><span role="columnheader">Fri</span><span role="columnheader">Sat</span>
           <span role="columnheader">Sun</span>
+          <span role="columnheader" class="calendar__week-head">Week</span>
         </div>
         <div class="calendar__days" id="calendar-days"></div>
       </div>
@@ -246,6 +247,15 @@
         <div class="tile__header">
           <h2 id="day-title">—</h2>
           <span class="tile__meta" id="day-meta"></span>
+        </div>
+        <!-- The day's everyday spending against the daily budget (calendar.js). -->
+        <div class="day-budget" id="day-budget" hidden>
+          <div class="day-budget__row">
+            <span class="day-budget__text" id="day-budget-text"></span>
+            <span class="day-budget__meta" id="day-budget-meta"></span>
+          </div>
+          <span class="day-budget__track"><span class="day-budget__fill" id="day-budget-fill"></span></span>
+          <span class="day-budget__note" id="day-budget-note"></span>
         </div>
         <ul class="day-list" id="day-list"></ul>
         <div class="empty-state" id="day-empty" hidden>
