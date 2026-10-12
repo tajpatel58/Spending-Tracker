@@ -837,6 +837,40 @@ button { font-family: inherit; }
 
 .chart-tile__canvas-wrap { position: relative; }
 .chart-tile__canvas-wrap--donut { width: 190px; height: 190px; flex-shrink: 0; }
+
+/* Centre of the doughnuts: the total, or the hovered slice's name, amount and share. */
+.donut-center {
+  position: absolute;
+  inset: 22%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  pointer-events: none;
+}
+.donut-center__label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.donut-center__value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.donut-center__meta { font-size: 11.5px; color: var(--text-faint); }
+.donut-center.is-focused .donut-center__label { color: var(--focus-color); font-weight: 600; }
+.donut-center > * { animation: fade-in 200ms ease; }
 .chart-tile__canvas-wrap--line { padding: 16px 20px 0; height: 280px; }
 .budget-list {
   list-style: none;
@@ -900,6 +934,31 @@ button { font-family: inherit; }
   gap: 8px;
   font-size: 12.5px;
 }
+
+/* Linked to the doughnut: hovering a row lifts its slice (charts.js). */
+.legend [data-index] {
+  margin: -3px -8px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  cursor: default;
+  outline: none;
+  transition: background 150ms ease, opacity 150ms ease;
+}
+.legend.has-active [data-index]:not(.is-active) { opacity: 0.45; }
+.legend [data-index].is-active { background: var(--surface-alt); }
+.legend [data-index]:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.legend:not(.is-expanded) .legend__extra { display: none; }
+.legend__toggle button {
+  padding: 2px 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.legend__toggle button:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .legend__swatch {
   width: 8px;
@@ -2233,6 +2292,10 @@ button { font-family: inherit; }
   .chart-tile__body .legend { flex: 1; min-width: 0; }
   .chart-tile__canvas-wrap--line { padding: 10px 16px 0; height: 210px; }
   .legend li { font-size: 12px; }
+  /* Smaller doughnut on phones, so a smaller centre label. */
+  .donut-center { inset: 24%; gap: 0; }
+  .donut-center__value { font-size: 16px; }
+  .donut-center__label, .donut-center__meta { font-size: 9.5px; }
   .budget-list { gap: 12px; padding: 16px 16px 0; }
   .budget-item__category { font-size: 12px; }
   .budget-item__summary { font-size: 11px; }

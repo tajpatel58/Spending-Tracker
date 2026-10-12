@@ -9,64 +9,182 @@
 
 let categoryChart, trendChart, userChart;
 
+const LEGEND_LIMIT = 6;               // legend rows shown before "+N more"
+const expandedLegends = new Set();    // legends the viewer has expanded (kept across re-renders)
+
+/** '#RRGGBB' -> 'rgba(r, g, b, a)', for dimming the slices that aren't highlighted. */
+function fade(hex, alpha) {
+  const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (!m) return hex;
+  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
+}
+
+const shareOf = (part, whole) => {
+  const pct = whole ? (part / whole) * 100 : 0;
+  return pct > 0 && pct < 1 ? '<1%' : `${Math.round(pct)}%`;
+};
+
 /**
- * Renders the "spending by category" donut chart and its legend.
- * Double-clicking a slice or legend row filters the transactions table
- * to that category (see setCategoryFilter below).
- * API: replace totals with `fetch(`/api/analytics/summary?month=${month}`)`
+ * Draws a doughnut with a label in its centre and a legend beside it.
+ * The centre shows the total; hovering (or tapping) a slice or its legend
+ * row lifts that slice, dims the rest and swaps the centre to its name,
+ * amount and share. Legends longer than LEGEND_LIMIT get a "+N more" toggle.
+ *
+ *   entries: [{ id, label, total, color: 'var(--token)' }]
+ *   noun: ['category', 'categories'] — for the centre's "10 categories"
  */
-function renderCategoryChart() {
-  const txs = getMonthTransactions(state.month);
-  const totals = categoryTotals(txs.filter(isVariableExpense));
-  const entries = CATEGORIES
-    .filter((c) => isVariableExpense({ category: c.id }))
-    .map((c) => ({ ...c, total: totals[c.id] || 0 }))
-    .filter((c) => c.total > 0)
-    .sort((a, b) => b.total - a.total);
+function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onDblClick }) {
+  const canvas = document.getElementById(canvasId);
+  const wrap = canvas.parentElement;
+  const legend = document.getElementById(legendId);
+  const colors = entries.map((e) => cssVar(e.color.slice(4, -1)));
+  const total = entries.reduce((s, e) => s + e.total, 0);
+  let active = null;
+  let activatedAt = 0;
 
-  const ctx = document.getElementById('category-chart');
-  const colors = entries.map((e) => cssVar(e.color.replace('var(', '').replace(')', '')));
+  // ---- Centre label ----
+  let center = wrap.querySelector('.donut-center');
+  if (!center) {
+    center = document.createElement('div');
+    center.className = 'donut-center';
+    center.setAttribute('aria-hidden', 'true');
+    center.innerHTML = '<span class="donut-center__label"></span><span class="donut-center__value"></span><span class="donut-center__meta"></span>';
+    wrap.appendChild(center);
+  }
+  const [labelEl, valueEl, metaEl] = center.children;
+  const showCenter = (index) => {
+    const e = entries[index];
+    center.classList.toggle('is-focused', Boolean(e));
+    labelEl.textContent = e ? e.label : totalLabel;
+    valueEl.textContent = currencyShort(e ? e.total : total);
+    metaEl.textContent = e ? `${shareOf(e.total, total)} of total` : `${entries.length} ${noun[entries.length === 1 ? 0 : 1]}`;
+    if (e) center.style.setProperty('--focus-color', colors[index]);
+  };
 
-  if (categoryChart) categoryChart.destroy();
-  categoryChart = new Chart(ctx, {
+  // ---- Chart ----
+  if (chart) chart.destroy();
+  const instance = new Chart(canvas, {
     type: 'doughnut',
     data: {
       labels: entries.map((e) => e.label),
       datasets: [{
-        data: entries.map((e) => e.total),
-        backgroundColor: colors,
+        data: entries.length ? entries.map((e) => e.total) : [1],
+        backgroundColor: entries.length
+          ? (c) => (active === null || c.dataIndex === active ? colors[c.dataIndex] : fade(colors[c.dataIndex], 0.28))
+          : [cssVar('--border')],
         borderWidth: 2,
         borderColor: cssVar('--surface'),
+        hoverBorderColor: cssVar('--surface'),
+        hoverOffset: 7,
+        borderRadius: 3,
       }],
     },
     options: {
-      cutout: '72%',
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${currency(c.raw)}` } } },
-      animation: { duration: 250 },
+      cutout: '74%',
+      layout: { padding: 8 }, // room for the lifted slice
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { duration: 350 },
+      onHover: (_event, elements) => setActive(elements.length ? elements[0].index : null),
+      // Touch screens: a tap selects a slice; tapping it again (or the middle) clears it.
+      onClick: (_event, elements) => {
+        const index = elements.length ? elements[0].index : null;
+        // A tap fires touchstart (which already selected it) then click — don't let the click undo it.
+        if (index === active && Date.now() - activatedAt < 500) return;
+        setActive(index === active ? null : index);
+      },
     },
   });
 
-  ctx.ondblclick = (event) => {
-    const elements = categoryChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
-    if (!elements.length) return;
-    setCategoryFilter(entries[elements[0].index].id);
-  };
+  function setActive(index) {
+    if (!entries.length || index === active) return;
+    active = index;
+    activatedAt = Date.now();
+    instance.setActiveElements(index === null ? [] : [{ datasetIndex: 0, index }]);
+    instance.update('none');
+    showCenter(index);
+    legend.querySelectorAll('[data-index]').forEach((li) => {
+      li.classList.toggle('is-active', Number(li.dataset.index) === index);
+    });
+    legend.classList.toggle('has-active', index !== null);
+  }
+  canvas.onmouseleave = () => setActive(null);
+  if (onDblClick) {
+    canvas.ondblclick = (event) => {
+      const hit = instance.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+      if (hit.length) onDblClick(entries[hit[0].index]);
+    };
+  }
 
-  document.getElementById('category-chart-meta').textContent = `${entries.length} categories`;
-
-  const legend = document.getElementById('category-legend');
-  legend.innerHTML = entries.slice(0, 6).map((e) => `
-    <li data-category-id="${e.id}">
+  // ---- Legend ----
+  const expanded = expandedLegends.has(legendId);
+  const extra = Math.max(0, entries.length - LEGEND_LIMIT);
+  legend.classList.toggle('is-expanded', expanded);
+  legend.innerHTML = entries.map((e, i) => `
+    <li data-index="${i}" data-id="${escapeAttr(e.id)}" tabindex="0"${i >= LEGEND_LIMIT ? ' class="legend__extra"' : ''}>
       <span class="legend__swatch" style="background:${e.color}"></span>
-      <span class="legend__name">${e.label}</span>
+      <span class="legend__name">${escapeAttr(e.label)}</span>
       <span class="legend__amount">${currencyShort(e.total)}</span>
     </li>
-  `).join('') || '<li class="legend__name">No spending this month</li>';
-  legend.ondblclick = (event) => {
-    const item = event.target.closest('[data-category-id]');
-    if (item) setCategoryFilter(item.dataset.categoryId);
+  `).join('')
+    + (extra ? `<li class="legend__toggle"><button type="button">${expanded ? 'Show less' : `+${extra} more`}</button></li>` : '')
+    || `<li class="legend__name">${emptyText}</li>`;
+
+  const rowIndex = (event) => {
+    const li = event.target.closest('[data-index]');
+    return li ? Number(li.dataset.index) : null;
   };
+  legend.onmouseover = (event) => { const i = rowIndex(event); if (i !== null) setActive(i); };
+  legend.onmouseleave = () => setActive(null);
+  legend.onfocusin = (event) => { const i = rowIndex(event); if (i !== null) setActive(i); };
+  legend.onfocusout = (event) => { if (!legend.contains(event.relatedTarget)) setActive(null); };
+  legend.onclick = (event) => {
+    if (event.target.closest('.legend__toggle')) {
+      expanded ? expandedLegends.delete(legendId) : expandedLegends.add(legendId);
+      renderDonut.rerender[legendId]?.();
+      return;
+    }
+    const i = rowIndex(event); // tap on touch screens
+    if (i !== null) setActive(i === active ? null : i);
+  };
+  legend.ondblclick = (event) => {
+    const i = rowIndex(event);
+    if (i !== null && onDblClick) onDblClick(entries[i]);
+  };
+
+  canvas.setAttribute('aria-label', entries.length
+    ? `${totalLabel} ${currency(total)}: ${entries.map((e) => `${e.label} ${currency(e.total)} (${shareOf(e.total, total)})`).join(', ')}`
+    : emptyText);
+  showCenter(null);
+  return instance;
 }
+renderDonut.rerender = {};
+
+/**
+ * Renders the "spending by category" doughnut (excl. fixed expenses).
+ * Double-clicking a slice or legend row filters the transactions table
+ * to that category (see setCategoryFilter below).
+ */
+function renderCategoryChart() {
+  const totals = categoryTotals(getMonthTransactions(state.month).filter(isVariableExpense));
+  const entries = CATEGORIES
+    .filter((c) => isVariableExpense({ category: c.id }))
+    .map((c) => ({ id: c.id, label: c.label, color: c.color, total: totals[c.id] || 0 }))
+    .filter((c) => c.total > 0)
+    .sort((a, b) => b.total - a.total);
+
+  categoryChart = renderDonut({
+    chart: categoryChart,
+    canvasId: 'category-chart',
+    legendId: 'category-legend',
+    entries,
+    totalLabel: 'Excl. fixed',
+    noun: ['category', 'categories'],
+    emptyText: 'No spending this month',
+    onDblClick: (entry) => setCategoryFilter(entry.id),
+  });
+  document.getElementById('category-chart-meta').textContent = `${entries.length} categories`;
+}
+renderDonut.rerender['category-legend'] = () => renderCategoryChart();
 
 /** Filters the transactions table down to a single category. */
 function setCategoryFilter(categoryId) {
@@ -76,58 +194,37 @@ function setCategoryFilter(categoryId) {
 }
 
 /**
- * Renders the "spending by user" donut chart and its legend. Fixed
- * expenses get their own slice rather than counting towards a user, so
- * spend splits into Fixed Expenses plus each user (e.g. Joint, Taj).
+ * Renders the "spending by user" doughnut. Fixed expenses get their own
+ * slice rather than counting towards a user, so spend splits into Fixed
+ * Expenses plus each user (e.g. Joint, Taj). Colours follow the user (see
+ * spendOwnerColor), not their rank, so they don't swap month to month.
  */
 function renderUserChart() {
-  const allTransactions = TRANSACTIONS[state.month] || [];
   const totals = {};
-  allTransactions
+  (TRANSACTIONS[state.month] || [])
     .filter((transaction) => !transaction.hidden && isExpense(transaction))
     .forEach((transaction) => {
       const user = spendOwner(transaction);
       totals[user] = (totals[user] || 0) + Math.abs(transaction.amount);
     });
-
   const entries = Object.entries(totals)
-    .map(([user, total]) => ({ user, total }))
+    .map(([user, total]) => ({ id: user, label: user, total, color: spendOwnerColor(user) }))
     .filter((entry) => entry.total > 0)
     .sort((a, b) => b.total - a.total);
 
-  // Colours follow the user (see spendOwnerColor), not their rank, so they don't swap month to month.
-  const colors = entries.map((entry) => cssVar(spendOwnerColor(entry.user).slice(4, -1)));
-  const ctx = document.getElementById('user-chart');
-
-  if (userChart) userChart.destroy();
-  userChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: entries.map((entry) => entry.user),
-      datasets: [{
-        data: entries.map((entry) => entry.total),
-        backgroundColor: colors,
-        borderWidth: 2,
-        borderColor: cssVar('--surface'),
-      }],
-    },
-    options: {
-      cutout: '72%',
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${currency(c.raw)}` } } },
-      animation: { duration: 250 },
-    },
+  userChart = renderDonut({
+    chart: userChart,
+    canvasId: 'user-chart',
+    legendId: 'user-legend',
+    entries,
+    totalLabel: 'Total spend',
+    noun: ['group', 'groups'],
+    emptyText: 'No spending this month',
   });
-
-  const userCount = entries.filter((entry) => entry.user !== FIXED_EXPENSES_LABEL).length;
+  const userCount = entries.filter((entry) => entry.id !== FIXED_EXPENSES_LABEL).length;
   document.getElementById('user-chart-meta').textContent = `${userCount} user${userCount === 1 ? '' : 's'}`;
-  document.getElementById('user-legend').innerHTML = entries.map((entry, index) => `
-    <li>
-      <span class="legend__swatch" style="background:${colors[index]}"></span>
-      <span class="legend__name">${entry.user}</span>
-      <span class="legend__amount">${currencyShort(entry.total)}</span>
-    </li>
-  `).join('') || '<li class="legend__name">No spending this month</li>';
 }
+renderDonut.rerender['user-legend'] = () => renderUserChart();
 
 /** Renders the budget-vs-actual progress bars. */
 function renderBudgetChart() {
