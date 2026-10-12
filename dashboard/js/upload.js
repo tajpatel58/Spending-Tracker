@@ -245,7 +245,7 @@ function initUploadPage(session) {
   const view = {
     bank: null,
     account: null,
-    month: monthKeys[0], // statements usually arrive for the month just ended
+    month: monthKeys[1], // this month
     file: null,
     inspection: null,
     uploading: false,
