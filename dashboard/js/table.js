@@ -306,6 +306,7 @@ function editWithUndo({ apply, revert, save, unsave, message, failMessage = "Cou
         try {
           await saving.catch(() => {}); // nothing to undo server-side if the save itself failed
           await unsave();
+          saveDataCache();
           showToast({ message: 'Change undone', tone: 'info', duration: 2500 });
         } catch (error) {
           console.error('Could not undo the change:', error);
@@ -315,7 +316,7 @@ function editWithUndo({ apply, revert, save, unsave, message, failMessage = "Cou
       },
     },
   });
-  saving.catch((error) => {
+  saving.then(saveDataCache, (error) => {
     console.error('Could not save the change:', error);
     revert();
     showToast({ message: `${failMessage} — it's been reverted`, tone: 'error' });

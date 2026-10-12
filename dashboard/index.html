@@ -17,10 +17,32 @@
 <!-- Browser/status bar colour; theme.js keeps it in step with light/dark mode. -->
 <meta name="theme-color" content="#F5F6F9">
 <meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
+<!-- Scripts download in parallel while the page parses (defer keeps their order). -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
+<script defer src="js/config.js"></script>
+<script defer src="js/auth.js"></script>
+<script defer src="js/supabase-client.js"></script>
+<script defer src="js/transactions-api.js"></script>
+<script defer src="js/data.js"></script>
+<script defer src="js/format.js"></script>
+<script defer src="js/state.js"></script>
+<script defer src="js/theme.js"></script>
+<script defer src="js/motion.js"></script>
+<script defer src="js/stats.js"></script>
+<script defer src="js/datepicker.js"></script>
+<script defer src="js/charts.js"></script>
+<script defer src="js/toast.js"></script>
+<script defer src="js/sync.js"></script>
+<script defer src="js/table.js"></script>
+<script defer src="js/filters.js"></script>
+<script defer src="js/upload.js"></script>
+<script defer src="js/main.js"></script>
 </head>
 <!-- is-loading shows placeholder shapes until the data has loaded and
      rendered (see .is-loading in styles.css). No data is in the page
@@ -152,6 +174,13 @@
       <h1>Overview</h1>
       <p id="page-subtitle" class="page-heading__subtitle">Spending summary</p>
     </div>
+    <button type="button" class="sync-status" id="sync-status" hidden>
+      <svg class="sync-status__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M17.5 3.5v3.2h-3.2M6.5 20.5v-3.2h3.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="sync-label"></span>
+    </button>
   </div>
 
   <!-- Stat tiles -->
@@ -361,8 +390,6 @@
   </form>
 </dialog>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!--
   Dashboard scripts, in the order they need to load.
@@ -371,8 +398,10 @@
       that file isn't checked into git, so if it's missing, copy it
       from js/config.example.js and fill in your own project's details.
 
-  Each file below builds on the ones before it (plain scripts, no
-  bundler), so this order matters if you add or move code:
+  The scripts are the <script defer> tags in <head>: they download in
+  parallel but run in the order listed. Each builds on the ones before
+  it (plain scripts, no bundler), so this order matters if you add or
+  move code:
     1. config.js            — your Supabase project credentials
     2. auth.js               — Google sign-in + the session guard
     3. supabase-client.js     — connects to Supabase, reads transactions
@@ -391,22 +420,5 @@
     14. main.js                          — wires it all up and renders the page
   (The assistant lives on its own page — see chat.html and chat.js.)
 -->
-<script src="js/config.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/supabase-client.js"></script>
-<script src="js/transactions-api.js"></script>
-<script src="js/data.js"></script>
-<script src="js/format.js"></script>
-<script src="js/state.js"></script>
-<script src="js/theme.js"></script>
-<script src="js/motion.js"></script>
-<script src="js/stats.js"></script>
-<script src="js/datepicker.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/toast.js"></script>
-<script src="js/table.js"></script>
-<script src="js/filters.js"></script>
-<script src="js/upload.js"></script>
-<script src="js/main.js"></script>
 </body>
 </html>
