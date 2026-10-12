@@ -308,6 +308,12 @@ function renderAll() {
   }
 
   const cells = Array.from({ length: firstWeekday }, () => '<span class="calendar__pad" aria-hidden="true"></span>');
+  let weekTotal = 0;
+  // Each row ends with that week's total (Mon–Sun, within this month).
+  const endWeek = () => {
+    cells.push(`<span class="calendar__week" role="gridcell" aria-label="Week total ${currency(weekTotal)}">${weekTotal ? currencyShort(weekTotal) : '—'}</span>`);
+    weekTotal = 0;
+  };
   for (let d = 1; d <= daysInMonth; d += 1) {
     const iso = `${month}-${pad2(d)}`;
     const value = days[iso]?.total || 0;
@@ -324,9 +330,17 @@ function renderAll() {
       <button type="button" class="${classes}" data-date="${iso}" role="gridcell" aria-label="${label}" aria-pressed="${iso === calendarView.selectedDate}" style="--cell-i:${firstWeekday + d - 1}">
         ${eventCount ? '<span class="calendar__event-dot" aria-hidden="true"></span>' : ''}
         <span class="calendar__date">${d}</span>
+        ${categoryDots(days[iso])}
         <span class="calendar__amount">${value ? currencyShort(value) : ''}</span>
       </button>
     `);
+    weekTotal += value;
+    if ((firstWeekday + d) % 7 === 0) endWeek();
+  }
+  if ((firstWeekday + daysInMonth) % 7) {
+    const fill = 7 - ((firstWeekday + daysInMonth) % 7);
+    cells.push(...Array.from({ length: fill }, () => '<span class="calendar__pad" aria-hidden="true"></span>'));
+    endWeek();
   }
   const grid = document.getElementById('calendar-days');
   grid.innerHTML = cells.join('');
@@ -342,6 +356,46 @@ function renderAll() {
   renderDayDetail(days);
 }
 
+/** Up to three dots showing what a day's money went on, biggest category first. */
+function categoryDots(day) {
+  if (!day) return '';
+  const byCategory = {};
+  day.txs.forEach((t) => { byCategory[t.category] = (byCategory[t.category] || 0) + Math.abs(t.amount); });
+  const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  return `<span class="calendar__dots" aria-hidden="true">${top.map(([id]) => `<i style="background:${catById[id]?.color || "var(--text-faint)"}"></i>`).join('')}</span>`;
+}
+
+/**
+ * The everyday budget for one day of a month: the month's spending
+ * allowance (last month's salary − savings target), minus the 3-month
+ * average of fixed costs, spread evenly over the month. Null without a salary.
+ */
+function dailyBudget(month) {
+  const allowance = spendingAllowance(month);
+  if (allowance === null) return null;
+  return Math.max(0, (allowance - forecastSpend(month).fixed) / daysIn(month));
+}
+
+/** The day panel's bar: that day's everyday spending against the daily budget. */
+function renderDayBudget(iso, day) {
+  const box = document.getElementById('day-budget');
+  const budget = dailyBudget(iso.slice(0, 7));
+  const loaded = iso <= lastLoadedDate();
+  box.hidden = budget === null || !budget || !loaded;
+  if (box.hidden) return;
+
+  const everyday = sumAbs((day?.txs || []).filter(isVariableExpense));
+  const fixed = sumAbs((day?.txs || []).filter((t) => t.category === 'fixed_expense'));
+  const over = everyday > budget;
+  box.classList.toggle('is-over', over);
+  document.getElementById('day-budget-text').textContent = `${currency(everyday)} of ${currency(budget)} daily budget`;
+  document.getElementById('day-budget-meta').textContent = over
+    ? `${currency(everyday - budget)} over`
+    : `${currency(budget - everyday)} left`;
+  document.getElementById('day-budget-fill').style.width = `${Math.min(100, (everyday / budget) * 100)}%`;
+  document.getElementById('day-budget-note').textContent = fixed ? `Plus ${currency(fixed)} of fixed costs, which aren't counted here.` : '';
+}
+
 /** Lists the selected day's expenses (largest first) and its calendar events. */
 function renderDayDetail(days) {
   const iso = calendarView.selectedDate;
@@ -350,6 +404,7 @@ function renderDayDetail(days) {
 
   document.getElementById('day-title').textContent = longDate(iso);
   document.getElementById('day-meta').textContent = day ? `${txs.length} · ${currency(day.total)}` : '';
+  renderDayBudget(iso, day);
   document.getElementById('day-empty').hidden = txs.length > 0;
   const notLoaded = iso > lastLoadedDate();
   document.getElementById('day-empty-title').textContent = notLoaded ? 'Not loaded yet' : 'No Spending';
