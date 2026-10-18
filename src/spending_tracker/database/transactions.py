@@ -3,11 +3,12 @@ from urllib import response
 from pandas import io
 from supabase import Client
 import pandas as pd
-from spending_tracker.database.supabase_client import list_folders, list_files, list_all
+from prefect import task
+from spending_tracker.database.supabase_client import list_folders, list_files, list_all, load_supabase_client
 
+@task
 def upload_transactions_to_db(
     transactions_df: pd.DataFrame,
-    supabase_client: Client,
     table_name: str,
     exclude_columns: list[str] | None = None,
 ) -> dict:
@@ -25,6 +26,7 @@ def upload_transactions_to_db(
     if "event_id" in exclude_columns:
         raise ValueError("event_id cannot be excluded because it is the upsert conflict key")
 
+    supabase_client = load_supabase_client()
     upsert_df = transactions_df.drop(columns=exclude_columns)
     records = (
         upsert_df.astype(object)
@@ -43,7 +45,7 @@ def upload_transactions_to_db(
 
     return response
 
-
+@task
 def fetch_transactions_from_db(
     supabase_client: Client,
     table_name: str,
@@ -61,11 +63,12 @@ def fetch_transactions_from_db(
     transactions_df = pd.DataFrame(response.data)
     return transactions_df
 
-
+@task
 def fetch_manually_categorised_transactions_as_dict(
-    supabase_client: Client,
 ) -> dict:
     """Load transactions that have been manually categorised."""
+
+    supabase_client = load_supabase_client()
     metadata_response = (
         supabase_client
         .table("transactions_metadata")
@@ -98,8 +101,57 @@ def fetch_manually_categorised_transactions_as_dict(
 
     return labelled_examples
 
+@task
+def delete_transactions_for_month(
+    month: str,
+    page_size: int = 1000,
+    chunk_size: int = 100,
+) -> int:
+    """Delete all transactions for ``month`` (e.g. "October-26") and their transactions_metadata rows.
 
-def fetch_transactions_from_bucket(month: str, 
+    transactions_metadata has no month column, so the event_ids are looked up from
+    transactions first. Metadata is deleted before transactions so the delete also
+    works if metadata references transactions without a cascade.
+    Returns the number of transactions deleted.
+    """
+    # page through ids as supabase caps each select at 1000 rows
+    event_ids = []
+    supabase_client = load_supabase_client()
+    while True:
+        response = (
+            supabase_client
+            .table("transactions")
+            .select("event_id")
+            .eq("month", month)
+            .range(len(event_ids), len(event_ids) + page_size - 1)
+            .execute()
+        )
+        event_ids.extend(row["event_id"] for row in response.data)
+        if len(response.data) < page_size:
+            break
+
+    # delete in chunks to keep the in_ filter within url length limits
+    for start in range(0, len(event_ids), chunk_size):
+        (
+            supabase_client
+            .table("transactions_metadata")
+            .delete()
+            .in_("event_id", event_ids[start:start + chunk_size])
+            .execute()
+        )
+
+    (
+        supabase_client
+        .table("transactions")
+        .delete()
+        .eq("month", month)
+        .execute()
+    )
+
+    return len(event_ids)
+
+@task
+def fetch_transactions_from_bucket(month: str,
                                    bucket,
                                    data_home: Path):
     results = {}
