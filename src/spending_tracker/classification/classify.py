@@ -1,10 +1,12 @@
 import pandas as pd
 from spending_tracker.classification.ollama import llm_classify_transaction
+from prefect import flow, task, get_run_logger
 
-
+@task
 def transactions_apply_to_df(
     transactions_metadata_df: pd.DataFrame,
     examples: list[dict],
+    force_llm: bool = False,
 ) -> pd.DataFrame:
     """
     Classify transactions in a DataFrame.
@@ -20,7 +22,7 @@ def transactions_apply_to_df(
     merchant_to_category = {example["merchant"]: example["category"] for example in examples}
 
     for row in transactions_metadata_df.itertuples(index=False):
-        if row.merchant in merchant_to_category:
+        if row.merchant in merchant_to_category and not force_llm:
             # Use the pre-classified category
             results.append({
                 "merchant": row.merchant,
