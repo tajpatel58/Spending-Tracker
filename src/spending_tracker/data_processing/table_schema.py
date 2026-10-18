@@ -9,6 +9,18 @@ _TRANSACTIONS_DB_COLUMNS = ["event_id",
                             "type",
                             "amount"]
 
+_TRANSACTIONS_COLUMNS = ["event_id", 
+                            "date", 
+                            "month", 
+                            "processing_month",
+                            "account_id", 
+                            "user",
+                            "bank",
+                            "merchant", 
+                            "other_details", 
+                            "type",
+                            "amount"]
+
 _TRANSACTIONS_METADATA_DB_COLUMNS = [
     "event_id",
     "llm_merchant",
@@ -24,3 +36,8 @@ _PARTITION_COLS = ["user",
                    "bank", 
                    "account_id", 
                    "month"]
+
+_LUNCHFLOW_PARTITION_COLS = ["user", 
+                   "bank", 
+                   "account_id", 
+                   "processing_month"]

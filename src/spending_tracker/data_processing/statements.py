@@ -9,6 +9,7 @@ from spending_tracker.data_processing import table_schema
 from spending_tracker.classification import classify
 from spending_tracker.database import supabase_client
 from spending_tracker.database import transactions as transactions_db
+from prefect import task, flow
 
 
 _BANK_TO_EXT_MAPPING = {
@@ -31,22 +32,24 @@ _BANK_TO_PROCESSING_FUNCTIONS = {
     "Nationwide": nationwide.clean_nationwide_transaction_dataframe
 }
 
+@task
 def create_transactions_metadata_df(cleaned_transactions_df: pd.DataFrame,
-                                    labelled_examples=[]) -> pd.DataFrame:
+                                    labelled_examples=[],
+                                    force_llm: bool = False) -> pd.DataFrame:
     """
     Create a table that is a mix of LLM and Manual changes through the dashboard. 
 
     """
-    transactions_metadata_df = cleaned_transactions_df[["event_id", "merchant", "amount"] + table_schema._PARTITION_COLS]
+    transactions_metadata_df = cleaned_transactions_df[["event_id", "merchant", "amount"] + table_schema._LUNCHFLOW_PARTITION_COLS]
 
     # code to utilise LLM suggestions
-    transactions_metadata_df = classify.transactions_apply_to_df(transactions_metadata_df, labelled_examples)
+    transactions_metadata_df = classify.transactions_apply_to_df(transactions_metadata_df, labelled_examples, force_llm)
 
     # add NULL columns for default values of manually changed fiels
     transactions_metadata_df["manual_merchant"] = None
     transactions_metadata_df["manual_category"] = None
     transactions_metadata_df["manual_amount"] = None
-    transactions_metadata_df["manual_date"] = None
+    transactions_metadata_df["manual_date"] = None  
     transactions_metadata_df["hidden"] = False
 
     return transactions_metadata_df
@@ -99,8 +102,7 @@ def parse_and_clean_batch(data_home: Path,
     raw_transaction_tuples = pdf_parsing.find_raw_transaction_partitions(raw_transactions_data_root)
 
     # load manually labelled examples from the database
-    client = supabase_client.load_supabase_client()
-    labelled_examples = transactions_db.fetch_manually_categorised_transactions_as_dict(client)
+    labelled_examples = transactions_db.fetch_manually_categorised_transactions_as_dict()
     
     for user, bank, account_id, month, _ in raw_transaction_tuples:
         if specific_user and user != specific_user:
