@@ -71,7 +71,7 @@ function renderBreakdown(prefix, segments, rows) {
 
 /** Forecast spend card: what the month's total is expected to be, and why. */
 function renderForecastBreakdown(forecast) {
-  document.getElementById('cal-forecast').textContent = currency(forecast.total);
+  document.getElementById('cal-forecast').innerHTML = moneyMarkup(currency(forecast.total));
   document.getElementById('cal-forecast-note').textContent = forecast.daysLeft
     ? `${plural(forecast.daysLeft, 'day')} still to come${forecast.loadedTo ? ` · data to ${formatDate(forecast.loadedTo)}` : ''}`
     : 'Every day has loaded';
@@ -117,14 +117,14 @@ function renderMaxSpendPerDay(month, forecast) {
   const perDay = forecast.daysLeft ? remaining / forecast.daysLeft : null;
 
   if (remaining <= 0) {
-    value.textContent = currency(0);
+    value.innerHTML = moneyMarkup(currency(0));
     note.textContent = `${currency(-remaining)} over budget`;
     note.classList.add('is-negative');
   } else if (perDay === null) {
     value.textContent = '—';
     note.textContent = `Every day has loaded · ${currency(remaining)} under budget`;
   } else {
-    value.innerHTML = `${currency(perDay)}<span class="breakdown-card__unit">/day</span>`;
+    value.innerHTML = `${moneyMarkup(currency(perDay))}<span class="breakdown-card__unit">/day</span>`;
     note.textContent = `${currency(remaining)} left over ${plural(forecast.daysLeft, 'day')}`;
   }
 
@@ -140,7 +140,7 @@ function renderMaxSpendPerDay(month, forecast) {
     { op: '−', ...committed[0], detail: 'Excluding fixed expenses', amount: currency(forecast.spent) },
     { op: '−', ...committed[1], detail: 'Average of the last 3 months', amount: currency(forecast.fixed) },
     { op: '−', ...committed[2], detail: forecast.eventCount ? `${plural(forecast.eventCount, 'event')} still to come` : 'No events still to come', amount: currency(forecast.eventBudget) },
-    { op: '=', label: 'Left to spend', color: remaining > 0 ? '--forecast-projected' : null, amount: remaining < 0 ? `−${currency(-remaining)}` : currency(remaining), kind: 'subtotal', negative: remaining < 0 },
+    { op: '=', label: 'Left to spend', color: remaining > 0 ? '--forecast-projected' : null, amount: currency(remaining), kind: 'subtotal', negative: remaining < 0 },
     ...(perDay !== null && remaining > 0 ? [
       { op: '÷', label: 'Max spend per day', detail: `${currency(remaining)} ÷ ${plural(forecast.daysLeft, 'day')} without transactions yet`, amount: currency(perDay), kind: 'total' },
     ] : []),
@@ -168,7 +168,7 @@ function renderForecastSavings(month, forecast) {
   const savings = income - forecast.total;
   const gap = savings - MONTHLY_SAVINGS_TARGET;
 
-  document.getElementById('cal-savings').textContent = savings < 0 ? `-${currency(-savings)}` : currency(savings);
+  document.getElementById('cal-savings').innerHTML = moneyMarkup(currency(savings));
   document.getElementById('cal-savings-bar').style.width = `${Math.max(0, Math.min(1, savings / MONTHLY_SAVINGS_TARGET)) * 100}%`;
   const note = document.getElementById('cal-savings-note');
   note.className = `stat-tile__delta stat-tile__delta--truncate ${gap >= 0 ? 'is-positive' : 'is-negative'}`;
@@ -207,10 +207,10 @@ function renderVsLastMonth(month) {
 
   const when = cutoffDay === daysIn(month) ? MONTH_LABEL(prev).split(' ')[0] : `by ${formatDate(prevCutoff)}`;
   if (Math.abs(diff) < 0.005) {
-    value.textContent = currency(0);
+    value.innerHTML = moneyMarkup(currency(0));
     note.textContent = `Same as ${when}`;
   } else {
-    value.textContent = `${diff < 0 ? '−' : '+'}${currency(Math.abs(diff))}`;
+    value.innerHTML = moneyMarkup(`${diff < 0 ? MINUS : '+'}${currency(Math.abs(diff))}`);
     const pct = previous ? `${Math.abs((diff / previous) * 100).toFixed(1)}% ` : '';
     note.textContent = `${pct}${diff < 0 ? 'less' : 'more'} than ${when}`;
     note.classList.add(diff < 0 ? 'is-positive' : 'is-negative');
@@ -267,12 +267,12 @@ function renderAll() {
   // ---- Stat tiles ----
   const spendDays = totals.filter((v) => v > 0).length;
   const heaviest = Object.entries(days).sort((a, b) => b[1].total - a[1].total)[0];
-  document.getElementById('cal-total').textContent = currency(total);
+  document.getElementById('cal-total').innerHTML = moneyMarkup(currency(total));
   document.getElementById('cal-total-note').textContent = `${spendDays} spending day${spendDays === 1 ? '' : 's'}`;
   // Averages leave out fixed expenses so rent and bills don't inflate a typical day.
   const variableTotals = Object.values(days).map((d) => d.txs.filter(isVariableExpense).reduce((s, t) => s + Math.abs(t.amount), 0));
   const variableTotal = variableTotals.reduce((s, v) => s + v, 0);
-  document.getElementById('cal-avg').textContent = currency(variableTotal / daysInMonth);
+  document.getElementById('cal-avg').innerHTML = moneyMarkup(currency(variableTotal / daysInMonth));
   document.getElementById('cal-avg-note').textContent = 'Excluding Fixed Expenses';
   // Forecast and daily limit only make sense for the month we're in.
   const isCurrentMonth = month === todayIso().slice(0, 7);

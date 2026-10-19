@@ -68,8 +68,10 @@ const motion = (() => {
     shown.set(el, target);
     cancelAnimationFrame(frames.get(el));
     if (before !== target && from && Date.now() < flashUntil) flash(el);
-    // Only animate plain numeric text (not values with markup inside, like "£2.77/day").
-    if (!to || el.children.length || reduced()) return;
+    // Animate plain numeric text, or a money figure whose only markup is its
+    // smaller pence (moneyMarkup) — not values like "£2.77/day" with a unit.
+    const money = el.children.length === 1 && el.firstElementChild.classList.contains('money__pence');
+    if (!to || (el.children.length && !money) || reduced()) return;
     // Count from the old figure if it had the same sign/prefix, otherwise from zero.
     const start = from && from.prefix === to.prefix ? from.value : 0;
     if (start === to.value) return;
@@ -80,7 +82,8 @@ const motion = (() => {
       const t = Math.min(1, (now - began) / duration);
       const text = t < 1 ? format(start + (to.value - start) * ease(t), to) : target;
       writing.set(el, text);
-      el.textContent = text;
+      if (money) el.innerHTML = moneyMarkup(text);
+      else el.textContent = text;
       if (t < 1) frames.set(el, requestAnimationFrame(step));
     };
     frames.set(el, requestAnimationFrame(step));

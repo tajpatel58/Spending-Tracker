@@ -1371,9 +1371,9 @@ button { font-family: inherit; }
 }
 
 .amount-edit {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
   justify-content: flex-end;
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
@@ -1384,9 +1384,15 @@ button { font-family: inherit; }
 .amount-edit:hover, .amount-edit:focus-within { background: var(--surface-alt); border-color: var(--border-strong); }
 .amount-edit:focus-within { border-color: var(--accent); }
 
-.amount-edit__prefix { color: var(--text-faint); font-family: var(--font-num); font-size: 13px; }
+.amount-display { font-size: 13px; letter-spacing: -0.005em; color: var(--text); }
+.amount-edit.is-credit .amount-display { color: var(--accent); }
 
+/* The editable number lies over the typeset amount and takes its place on focus. */
 .amount-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0 6px;
   border: none;
   background: transparent;
   color: var(--text);
@@ -1395,10 +1401,12 @@ button { font-family: inherit; }
   font-weight: 500;
   font-size: 13px;
   text-align: right;
-  width: 74px;
-  padding: 0;
   outline: none;
+  opacity: 0;
+  cursor: text;
 }
+.amount-input:focus { opacity: 1; }
+.amount-edit:focus-within .amount-display { visibility: hidden; }
 
 /* Hide native number-input spinners for a cleaner ledger look */
 .amount-input::-webkit-outer-spin-button,
@@ -1443,6 +1451,17 @@ button { font-family: inherit; }
   margin: 0;
 }
 .empty-state[hidden] { display: none; }
+/* Headline money figures (moneyMarkup in format.js): the pence sit smaller,
+   raised and quieter, as on a price tag. */
+.money__pence {
+  margin-left: 0.03em;
+  font-size: 0.56em;
+  vertical-align: 0.62em;
+  line-height: 0;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
 /* Line illustrations: ink outlines with a single gold detail. */
 .empty-state__art { display: block; margin-bottom: var(--space-3); color: var(--text-faint); }
 .empty-state__art [stroke="currentColor"] { stroke-width: 1.5px; }
@@ -2769,8 +2788,7 @@ button { font-family: inherit; }
   .merchant-input { padding: 4px 6px; font-size: 10px; }
   .tx-table tbody .tx-table__account { padding-left: 8px; font-size: 11.5px; }
   .amount-edit { padding: 2px 6px; }
-  .amount-edit__prefix { display: none; }
-  .amount-input { font-size: 10px; }
+  .amount-display, .amount-input { font-size: 10px; }
   .category-badge__label { font-size: 11.5px; }
   .category-badge__dot { width: 6px; height: 6px; }
   .tx-avatar { width: 30px; height: 30px; }

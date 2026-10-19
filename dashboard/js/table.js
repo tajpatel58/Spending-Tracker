@@ -54,9 +54,6 @@ function dayHeading(iso) {
   return day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-/** Width for an amount input so the £ sits right beside the number (mono font, so 1ch per character). */
-const amountWidth = (value) => `${Math.max(4, String(value).length) + 0.5}ch`;
-
 /** One transaction row. */
 function transactionRow(t) {
   const cat = catById[t.category];
@@ -91,9 +88,11 @@ function transactionRow(t) {
             </span>
           </td>
           <td class="tx-table__amount">
-            <span class="amount-edit">
-              <span class="amount-edit__prefix">£</span>
-              <input type="number" step="0.01" class="amount-input" data-tx-id="${t.id}" value="${amount}" style="width:${amountWidth(amount)}" aria-label="Edit amount">
+            <!-- The typeset amount ("−£60.72"); the number field sits over it
+                 and only shows while it's being edited. -->
+            <span class="amount-edit${t.amount > 0 ? ' is-credit' : ''}">
+              <span class="amount-display" aria-hidden="true">${t.amount > 0 ? '+' : ''}${currency(t.amount)}</span>
+              <input type="number" step="0.01" class="amount-input" data-tx-id="${t.id}" value="${amount}" aria-label="Edit amount">
             </span>
           </td>
         </tr>
@@ -162,11 +161,6 @@ function updateHideButton() {
  */
 function initTableEditing() {
   const body = document.getElementById('tx-table-body');
-
-  // Keep amount inputs snug to their £ as they're edited.
-  body.addEventListener('input', (e) => {
-    if (e.target.classList.contains('amount-input')) e.target.style.width = amountWidth(e.target.value);
-  });
 
   body.addEventListener('change', async (e) => {
     const target = e.target;

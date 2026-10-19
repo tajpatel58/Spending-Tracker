@@ -19,12 +19,13 @@ function renderStats() {
   const prevKey = idx > 0 ? MONTHS[idx - 1].key : null;
   const prevTotal = prevKey ? monthTotal(prevKey) : null;
 
-  document.getElementById('stat-total').textContent = currency(total);
+  // Headline figures: pence set smaller (moneyMarkup in format.js).
+  document.getElementById('stat-total').innerHTML = moneyMarkup(currency(total));
   const deltaEl = document.getElementById('stat-total-delta');
   if (prevTotal !== null && prevTotal > 0) {
     const pct = ((total - prevTotal) / prevTotal) * 100;
     const sign = pct >= 0 ? '+' : '';
-    deltaEl.textContent = `${sign}${pct.toFixed(1)}% vs last month`;
+    deltaEl.textContent = `${sign}${signedFixed(pct, 1)}% vs last month`;
     deltaEl.className = 'stat-tile__delta ' + (pct >= 0 ? 'is-up' : 'is-down');
   } else {
     deltaEl.textContent = 'No prior month data';
@@ -34,13 +35,13 @@ function renderStats() {
   const income = txs
     .filter((t) => t.category === 'salary' || t.category === 'interest')
     .reduce((sum, t) => sum + t.amount, 0);
-  document.getElementById('stat-income').textContent = currency(income);
+  document.getElementById('stat-income').innerHTML = moneyMarkup(currency(income));
 
   const saved = income - total;
-  document.getElementById('stat-saved').textContent = saved < 0 ? `-${currency(-saved)}` : currency(saved);
+  document.getElementById('stat-saved').innerHTML = moneyMarkup(currency(saved));
   const savedNote = document.getElementById('stat-saved-note');
   if (income > 0) {
-    savedNote.textContent = `${((saved / income) * 100).toFixed(1)}% of income`;
+    savedNote.textContent = `${signedFixed((saved / income) * 100, 1)}% of income`;
     savedNote.className = 'stat-tile__delta ' + (saved >= 0 ? 'is-positive' : 'is-negative');
   } else {
     savedNote.textContent = 'Income − total spend';
@@ -55,7 +56,7 @@ function renderStats() {
   const [y, m] = state.month.split('-').map(Number);
   const dim = new Date(y, m, 0).getDate();
   const variableTotal = txs.filter(isVariableExpense).reduce((s, t) => s + Math.abs(t.amount), 0);
-  document.getElementById('stat-daily-avg').textContent = currency(variableTotal / dim);
+  document.getElementById('stat-daily-avg').innerHTML = moneyMarkup(currency(variableTotal / dim));
   document.getElementById('stat-daily-note').textContent = 'Excluding Fixed Expenses';
 
   const actualByGroup = budgetGroupActuals(state.month);
