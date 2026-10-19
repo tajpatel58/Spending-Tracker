@@ -28,6 +28,7 @@ def llm_classify_transaction(
         Human-labelled transactions used to help classify the
         transaction. Each example should contain:
             merchant
+            cleaned_merchant
             amount
             category
 

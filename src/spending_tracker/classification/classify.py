@@ -14,19 +14,23 @@ def transactions_apply_to_df(
     Adds:
         llm_merchant
         llm_category
-        llm_confidence
     """
 
     results = []
 
     merchant_to_category = {example["merchant"]: example["category"] for example in examples}
+    merchant_to_cleaned_merchant = {example["merchant"]: example["cleaned_merchant"] for example in examples}
 
     for row in transactions_metadata_df.itertuples(index=False):
         if row.merchant in merchant_to_category and not force_llm:
+            # fetch cleaned merchant
+            cleaned_merchant = merchant_to_cleaned_merchant[row.merchant]
+
             # Use the pre-classified category
             results.append({
-                "merchant": row.merchant,
+                "merchant": cleaned_merchant,
                 "category": merchant_to_category[row.merchant],
+                "confidence": 1.0
             })
             continue
 
