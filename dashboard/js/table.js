@@ -43,7 +43,7 @@ function dateButton(t, extraClass) {
     aria-haspopup="dialog" aria-expanded="false" title="${title}" aria-label="Date ${formatDate(t.date)}${edited ? `, moved from ${formatDate(t.originalDate)}` : ''}. Change date">${formatDate(t.date)}</button>`;
 }
 
-/** Day heading label: "Today", "Yesterday", else e.g. "Thu 8 Oct". */
+/** Day heading label: "Today", "Yesterday", else e.g. "Thursday 8 October". */
 function dayHeading(iso) {
   const day = new Date(iso + 'T00:00:00');
   const today = new Date();
@@ -51,7 +51,7 @@ function dayHeading(iso) {
   const diff = Math.round((today - day) / 86400000);
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
-  return day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 /** One transaction row. */
@@ -75,10 +75,10 @@ function transactionRow(t) {
               </svg>
             </label>
           </td>
-          <td class="tx-table__date">${dateButton(t, 'date-button--column')}</td>
           <td class="tx-table__merchant">
             <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
           </td>
+          <td class="tx-table__date">${dateButton(t, 'date-button--column')}</td>
           <td class="tx-table__account"><span class="tx-table__meta-date">${dateButton(t, 'date-button--meta')} · </span>${acc.groupLabel} · ${acc.bank}<span class="tx-table__account-id"> · ${acc.label}</span></td>
           <td class="tx-table__category">
             <span class="category-badge">

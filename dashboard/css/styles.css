@@ -1221,15 +1221,15 @@ button { font-family: inherit; }
 .tx-table thead th {
   position: sticky;
   top: 0;
-  background: var(--surface-alt);
+  background: var(--surface);
   text-align: left;
-  padding: 10px 20px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 12px 20px 10px;
+  font-size: 10.5px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.14em;
   color: var(--text-faint);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--hairline) solid var(--border);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
@@ -1245,9 +1245,20 @@ button { font-family: inherit; }
 .tx-table__amount-col { text-align: right !important; }
 
 .tx-table tbody td {
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 13px 20px;
+  border-bottom: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent);
   vertical-align: middle;
+}
+/* Statement layout (wider screens; phones have their own two-line rows):
+   the merchant sits right beside its avatar with a fixed share of the
+   width; account and category share what's left, so no single column
+   opens up a big gap. Date and amount shrink to fit. */
+@media (min-width: 561px) {
+  .tx-table thead th[data-sort="merchant"] { width: 30%; }
+  .tx-table__date, .tx-table__amount,
+  .tx-table thead th[data-sort="date"], .tx-table__amount-col { width: 1%; white-space: nowrap; }
+  .tx-table tbody .tx-table__merchant { padding-left: 6px; }
+  .tx-table thead th[data-sort="merchant"] { padding-left: 14px; }
 }
 
 .tx-table tbody tr:last-child td { border-bottom: none; }
@@ -1256,16 +1267,17 @@ button { font-family: inherit; }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Day headings (when sorted by date) */
+/* Day headings (when sorted by date): a serif date with the day's spend
+   aligned right, like a printed statement. */
 .tx-table tbody tr.tx-group td {
-  padding: 16px 20px 6px;
+  padding: 26px 20px 8px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--hairline) solid var(--border);
 }
-.tx-table tbody tr.tx-group:first-child td { padding-top: 10px; }
+.tx-table tbody tr.tx-group:first-child td { padding-top: 16px; }
 .tx-group td { font-size: 12px; }
-.tx-group__day { font-weight: 600; color: var(--text); }
-.tx-group__total { float: right; font-family: var(--font-num); font-size: 11.5px; color: var(--text-faint); }
+.tx-group__day { font-family: var(--font-display); font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.tx-group__total { float: right; margin-top: 3px; font-family: var(--font-num); font-size: 12.5px; color: var(--text-muted); }
 
 /* Merchant initial, tinted by category; becomes the select-to-hide checkbox on hover. */
 .tx-table__select-col, .tx-table__select { width: 52px; padding-right: 0 !important; }
@@ -1304,7 +1316,6 @@ button { font-family: inherit; }
 
   /* Edit affordances stay hidden until the row is hovered or focused. */
   .tx-table tbody tr:not(:hover):not(:focus-within) .category-select { background-position: right -12px center; } /* chevron slides in on hover */
-  .tx-table.is-grouped tbody tr:not(:hover):not(:focus-within) .date-button--column { color: transparent; }
 }
 
 .tx-table__date { color: var(--text-muted); font-family: var(--font-num); font-size: 12.5px; white-space: nowrap; }
