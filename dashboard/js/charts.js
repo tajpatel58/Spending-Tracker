@@ -259,25 +259,14 @@ function renderBudgetChart() {
     budget: BUDGETS[name] || 0,
     color: groupColors[name],
   }));
-  // Current month only: how far through the month we are, marked on each bar
-  // as a "pace" tick. Fixed expenses land early in the month, so they get none.
-  const today = todayIso();
-  let pace = null;
-  if (state.month === today.slice(0, 7)) {
-    const [y, m, d] = today.split('-').map(Number);
-    pace = (d / new Date(y, m, 0).getDate()) * 100;
-  }
-
   const list = document.getElementById('budget-list');
   list.classList.toggle('is-entering', isFirstDraw('budget-list')); // bars grow in on first load
   list.innerHTML = entries.map((entry, i) => {
     const percentage = entry.budget ? Math.round((entry.actual / entry.budget) * 100) : 0;
     const progress = Math.min(percentage, 100);
     const over = entry.budget > 0 && entry.actual > entry.budget;
-    const showPace = pace !== null && entry.label !== 'Fixed Expenses';
-    // Under budget: "78%". Over: "£20 over", in rose (the fill turns rose too).
+    // Under budget: "78%". Over: "£20 over", in rose (the bar simply fills).
     const status = over ? `${currencyShort(entry.actual - entry.budget)} over` : `${percentage}%`;
-    const paceNote = showPace ? `, ${Math.round(pace)}% of the month gone` : '';
     return `
       <li class="budget-item${over ? ' is-over' : ''}">
         <div class="budget-item__header">
@@ -287,9 +276,8 @@ function renderBudgetChart() {
             <span class="budget-item__status">${status}</span>
           </span>
         </div>
-        <div class="budget-item__track" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="${Math.max(100, percentage)}" aria-label="${entry.label}:${currencyShort(entry.actual)} of ${currencyShort(entry.budget)} budget (${percentage}%)${paceNote}">
-          <span class="budget-item__fill" style="width:${progress}%; background:${over ? 'var(--rose)' : entry.color}; --i:${i}"></span>
-          ${showPace ? `<span class="budget-item__pace" style="left:${pace.toFixed(1)}%" title="${Math.round(pace)}% of the month gone"></span>` : ''}
+        <div class="budget-item__track" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="${Math.max(100, percentage)}" aria-label="${entry.label}:${currencyShort(entry.actual)} of ${currencyShort(entry.budget)} budget (${percentage}%)">
+          <span class="budget-item__fill" style="width:${progress}%; background:${entry.color}; --i:${i}"></span>
         </div>
       </li>
     `;
