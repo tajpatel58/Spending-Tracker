@@ -1,8 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Ledger mark: the same four squares as the app icon, on its dark tile. -->
-  <rect width="32" height="32" rx="7" fill="#0D1015"/>
-  <rect x="7" y="7" width="8.2" height="8.2" rx="2.2" fill="#34B583"/>
-  <rect x="16.8" y="7" width="8.2" height="8.2" rx="2.2" fill="#D6B876"/>
-  <rect x="7" y="16.8" width="8.2" height="8.2" rx="2.2" fill="#D6B876"/>
-  <rect x="16.8" y="16.8" width="8.2" height="8.2" rx="2.2" fill="#34B583"/>
+  <!-- Ledger monogram: a Fraunces "L" in a gold ring, on the emerald tile of the app icon. -->
+  <rect width="32" height="32" rx="7" fill="#1F6650"/>
+  <circle cx="16" cy="16" r="11.6" fill="none" stroke="#D4B67C" stroke-width="1.6"/>
+  <path transform="translate(10.837 22.485) scale(0.009454 -0.009454)" fill="#F6F1E6" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/>
 </svg>

@@ -368,16 +368,21 @@ button { font-family: inherit; }
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .brand__mark { display: inline-flex; }
+/* The monogram: a Fraunces "L" in a thin gold ring (same artwork as the app icon). */
+.brand__svg { display: block; width: 28px; height: 28px; }
 
 .brand__name {
+  /* Spaced serif capitals — reads as a wordmark rather than a heading. */
   font-family: var(--font-display);
-  font-weight: 550;
-  font-size: 19px;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  margin-right: -0.26em; /* trailing tracking shouldn't push the layout */
 }
 
 .topbar__controls,
@@ -1460,7 +1465,8 @@ button { font-family: inherit; }
   background: var(--surface);
   border-right: 1px solid var(--tile-border);
 }
-.login__panel .brand__name { font-size: 18px; }
+.login__panel .brand__name { font-size: 15px; }
+.login__panel .brand__svg { width: 32px; height: 32px; }
 .login__body { margin: auto 0; padding: var(--space-10) 0; max-width: 380px; }
 .login__eyebrow {
   margin: 0 0 var(--space-3);
@@ -2613,8 +2619,8 @@ button { font-family: inherit; }
   .topbar__inner { gap: 0 8px; padding-top: 6px; padding-bottom: 8px; }
   .view-nav, .topbar__filters, .topbar__controls .hide-button { margin-top: 8px; }
   .brand { gap: 8px; }
-  .brand__mark svg { width: 18px; height: 18px; }
-  .brand__name { font-size: 15px; }
+  .brand__svg { width: 24px; height: 24px; }
+  .brand__name { font-size: 13px; }
   .icon-btn { width: 34px; height: 34px; }
   .topbar__actions .icon-btn svg { width: 18px; height: 18px; }
   .user-menu__button,
