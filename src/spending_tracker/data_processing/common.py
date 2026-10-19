@@ -8,11 +8,25 @@ def generate_event_id(*inputs):
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def save_dataframe_to_csv(df: pd.DataFrame, csv_path: Path):
+def save_dataframe_to_csv(
+    df: pd.DataFrame,
+    csv_path: Path,
+    upsert_cols: list[str] = None,
+):
     """
     Save a DataFrame to a CSV file.
+
+    If upsert is False, the file is overwritten. If upsert is True and the file
+    exists, rows are merged with the existing data: rows in df replace existing
+    rows with the same key_columns values (all columns if key_columns is None).
     """
     csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if upsert_cols and csv_path.exists():
+        existing_df = pd.read_csv(csv_path)
+        combined_df = pd.concat([existing_df, df], ignore_index=True)
+        df = combined_df.drop_duplicates(subset=upsert_cols, keep="last")
+
     df.to_csv(csv_path, index=False)
     return csv_path
 
@@ -22,6 +36,7 @@ def save_partitioned_dataframe_to_csv(
     output_root: Path,
     partition_columns: list[str],
     export_columns: list[str] = None,
+    upsert_cols: list[str] = None,
     filename: str = "statement.csv",
 ) -> list[Path]:
     """Save one CSV per unique combination of partition column values.
@@ -52,7 +67,7 @@ def save_partitioned_dataframe_to_csv(
 
         partition_df = partition_df[export_columns]
 
-        save_dataframe_to_csv(partition_df, partition_path)
+        save_dataframe_to_csv(partition_df, partition_path, upsert_cols)
         output_paths.append(partition_path)
 
     return sorted(output_paths)
