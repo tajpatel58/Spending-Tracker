@@ -31,6 +31,8 @@
   --radius-md: 18px;
   --radius-full: 999px;
   --hairline: 1px; /* 0.5px on high-density screens, below */
+  /* Height of the phone tab bar plus its gap to the screen edge. */
+  --tabbar-clearance: calc(64px + max(10px, env(safe-area-inset-bottom)));
   --transition: 150ms ease;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* quick start, soft landing — used for all entrances */
 
@@ -349,9 +351,19 @@ button { font-family: inherit; }
   top: 0;
   z-index: 20;
   background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border-bottom: var(--hairline) solid var(--border);
+}
+/* The frosted blur lives on a pseudo-element: a backdrop-filter on the
+   header itself would pin the phone tab bar (position: fixed, inside the
+   header) to the header instead of the screen. */
+.topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   backdrop-filter: blur(16px) saturate(160%);
-  border-bottom: var(--hairline) solid var(--border);
+  pointer-events: none;
 }
 
 .topbar__inner {
@@ -1393,27 +1405,22 @@ button { font-family: inherit; }
   margin: 0;
 }
 .empty-state[hidden] { display: none; }
-.empty-state__icon {
-  box-sizing: content-box;
-  padding: 10px;
-  margin-bottom: 6px;
-  color: var(--text-muted);
-  background: var(--surface-alt);
-  border-radius: 50%;
-}
-.empty-state__title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--text); }
+/* Line illustrations: ink outlines with a single gold detail. */
+.empty-state__art { display: block; margin-bottom: var(--space-3); color: var(--text-faint); }
+.empty-state__art [stroke="currentColor"] { stroke-width: 1.5px; }
+.empty-state__title { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
 .empty-state__hint { margin: 0; font-size: 12.5px; color: var(--text-faint); max-width: 260px; }
 .empty-state__hint:empty { display: none; }
 .empty-state__action {
-  margin-top: 10px;
-  padding: 6px 16px;
+  margin-top: 14px;
+  padding: 7px 18px;
   font: inherit;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--accent);
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   cursor: pointer;
 }
 .empty-state__action:hover { border-color: var(--accent); }
@@ -1469,14 +1476,18 @@ button { font-family: inherit; }
 .login__panel .brand__svg { width: 32px; height: 32px; }
 .login__body { margin: auto 0; padding: var(--space-10) 0; max-width: 380px; }
 .login__eyebrow {
-  margin: 0 0 var(--space-3);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--gold);
 }
-.login__title { font-size: 40px; line-height: 1.08; letter-spacing: -0.03em; margin: 0; }
+.login__eyebrow::before { content: ''; width: 28px; border-top: 1px solid currentColor; }
+.login__title { font-size: 52px; font-weight: 450; line-height: 1.04; letter-spacing: -0.035em; margin: 0; }
 .login__subtitle { margin: var(--space-4) 0 var(--space-8); font-size: 15.5px; line-height: 1.55; color: var(--text-muted); }
 
 .google-btn {
@@ -1493,7 +1504,7 @@ button { font-family: inherit; }
   color: #1F1F1F;
   background: #FFFFFF;
   border: 1px solid #DADCE0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   box-shadow: 0 1px 2px rgba(20, 23, 31, 0.06);
   cursor: pointer;
   transition: box-shadow var(--transition), background var(--transition), transform var(--transition);
@@ -1524,21 +1535,31 @@ button { font-family: inherit; }
   gap: var(--space-8);
   overflow: hidden;
   padding: var(--space-10);
+  /* The emerald of the app icon, lit from the top, with paper grain. */
   background:
-    radial-gradient(60% 50% at 70% 25%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
-    radial-gradient(50% 45% at 25% 80%, color-mix(in srgb, var(--gold) 20%, transparent), transparent 70%),
-    var(--bg);
+    var(--grain),
+    radial-gradient(70% 55% at 75% 0%, rgba(255, 255, 255, 0.12), transparent 70%),
+    radial-gradient(60% 50% at 15% 100%, color-mix(in srgb, #D4B67C 16%, transparent), transparent 70%),
+    linear-gradient(160deg, #236F58, #143F33);
+  background-size: 160px 160px, auto, auto, auto;
 }
-/* A faint grid gives the light something to fall on. */
-.login__showcase::before {
-  content: '';
+[data-theme="dark"] .login__showcase {
+  background:
+    var(--grain),
+    radial-gradient(70% 55% at 75% 0%, rgba(255, 255, 255, 0.06), transparent 70%),
+    radial-gradient(60% 50% at 15% 100%, color-mix(in srgb, #D4B67C 10%, transparent), transparent 70%),
+    linear-gradient(160deg, #18493B, #0C2620);
+  background-size: 160px 160px, auto, auto, auto;
+}
+.login__watermark {
   position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--text) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--text) 5%, transparent) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  top: 50%;
+  left: 50%;
+  width: min(860px, 120%);
+  color: #D4B67C;
+  opacity: 0.22;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .lp-stage { position: relative; width: min(520px, 100%); height: 420px; }
@@ -1548,11 +1569,11 @@ button { font-family: inherit; }
   flex-direction: column;
   gap: 6px;
   padding: var(--space-5);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
   backdrop-filter: blur(14px);
   border: 1px solid var(--tile-border);
   border-radius: 16px;
-  box-shadow: 0 30px 60px -20px rgba(20, 23, 31, 0.28), 0 8px 20px -8px rgba(20, 23, 31, 0.12);
+  box-shadow: 0 40px 70px -24px rgba(0, 0, 0, 0.45), 0 10px 24px -10px rgba(0, 0, 0, 0.25);
   animation: lp-float 7s ease-in-out infinite;
 }
 .lp-card--forecast { top: 0; left: 0; width: 330px; z-index: 2; }
@@ -1585,7 +1606,7 @@ button { font-family: inherit; }
 .lp-heat-3 { background: var(--heat-3); border-color: transparent; }
 .lp-heat-4 { background: var(--heat-4); border-color: transparent; }
 .lp-heat-5 { background: var(--heat-5); border-color: transparent; }
-.lp-caption { position: relative; margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--text-muted); }
+.lp-caption { position: relative; margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 400; letter-spacing: -0.01em; color: #F6F1E6; opacity: 0.85; }
 
 /* Narrower screens: the sign-in alone, centred. */
 @media (max-width: 900px) {
@@ -2117,9 +2138,10 @@ button { font-family: inherit; }
   align-items: center;
   gap: 2px;
   padding: var(--nav-pad);
-  background: color-mix(in srgb, var(--text) 4.5%, transparent);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-full);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 5%, transparent), inset 0 1px 2px color-mix(in srgb, var(--text) 4%, transparent);
+  box-shadow: var(--shadow-1);
 }
 
 .view-nav__link {
@@ -2143,22 +2165,23 @@ button { font-family: inherit; }
 .view-nav__link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .view-nav__link.is-active {
-  color: var(--text);
-  background: var(--surface);
-  box-shadow:
-    0 1px 2px rgba(20, 23, 31, 0.07),
-    0 2px 8px -2px rgba(20, 23, 31, 0.08),
-    0 0 0 0.5px color-mix(in srgb, var(--text) 10%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --nav-active-icon: var(--gold);
+  color: var(--surface);
+  background: var(--text);
+  box-shadow: 0 1px 2px rgba(40, 32, 18, 0.18), 0 4px 12px -4px rgba(40, 32, 18, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
+/* Dark: a cream pill; the gold is deepened so it still reads on it. */
 [data-theme="dark"] .view-nav__link.is-active {
-  background: color-mix(in srgb, var(--text) 11%, var(--surface));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 0.5px color-mix(in srgb, var(--text) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --nav-active-icon: color-mix(in srgb, var(--gold) 62%, #000);
+  color: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 16px -6px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .view-nav__icon { display: block; width: 15px; height: 15px; flex: none; opacity: 0.75; transition: color 200ms ease, opacity 200ms ease; }
 .view-nav__link:hover .view-nav__icon { opacity: 1; }
-.view-nav__link.is-active .view-nav__icon { color: var(--accent); opacity: 1; }
+.view-nav__link.is-active .view-nav__icon { color: var(--nav-active-icon); opacity: 1; }
+.view-nav__link.is-active:hover { color: var(--surface); }
+[data-theme="dark"] .view-nav__link.is-active:hover { color: var(--bg); }
 
 /* The hover highlight (added by motion.js on mouse/trackpad devices). */
 .view-nav__glider {
@@ -2459,25 +2482,33 @@ button { font-family: inherit; }
 }
 
 @media (max-width: 560px) {
-  .container { padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
+  /* Bottom padding clears the floating tab bar. */
+  .container { padding: 20px 16px calc(var(--tabbar-clearance) + 24px); }
 
-  /* Overview / Calendar / Assistant / Upload become a full-width segmented
-     control in the header, on its own row under the logo. */
+  /* Overview / Calendar / Assistant / Upload float in a frosted tab bar at
+     the bottom of the screen, within thumb reach (like a native app). */
   .view-nav {
-    --nav-pad: 3px;
-    grid-area: nav;
+    --nav-pad: 5px;
+    position: fixed;
+    z-index: 30;
+    left: calc(12px + env(safe-area-inset-left));
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 2px;
-    background: color-mix(in srgb, var(--text) 6%, transparent);
+    gap: 4px;
+    margin: 0;
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    backdrop-filter: blur(20px) saturate(170%);
+    border-radius: 24px;
+    box-shadow: var(--shadow-3);
+    view-transition-name: tabbar; /* held still while the page cross-fades */
   }
-  .view-nav__link { justify-content: center; gap: 5px; padding: 8px 0; font-size: 12.5px; letter-spacing: -0.01em; }
-  .view-nav__icon { width: 14px; height: 14px; }
-  /* Four tabs with icons: tighten slightly on the narrowest phones. */
-  @media (max-width: 380px) {
-    .view-nav__link { gap: 4px; font-size: 12px; }
-    .view-nav__icon { width: 13px; height: 13px; }
-  }
+  .view-nav__link { flex-direction: column; justify-content: center; gap: 3px; padding: 7px 0 6px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.01em; border-radius: 19px; }
+  .view-nav__icon { width: 20px; height: 20px; }
+  /* The keyboard is up on the Assistant: the bar steps aside. */
+  .keyboard-open .view-nav { display: none; }
   .calendar { padding: 10px 10px 12px; }
   .calendar__weekdays, .calendar__days { gap: 4px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .calendar__week, .calendar__week-head { display: none; } /* too narrow for a week column */
@@ -2506,7 +2537,7 @@ button { font-family: inherit; }
   .topbar__inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "brand actions" "nav nav" "filters filters" "hide hide";
+    grid-template-areas: "brand actions" "filters filters" "hide hide";
     gap: 10px;
     padding: 8px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left));
   }
@@ -2617,7 +2648,7 @@ button { font-family: inherit; }
   /* Rows are spaced by margins (below), not gaps, so rows that are empty
      on a page (no filters, "Hide selected" not shown) add no space. */
   .topbar__inner { gap: 0 8px; padding-top: 6px; padding-bottom: 8px; }
-  .view-nav, .topbar__filters, .topbar__controls .hide-button { margin-top: 8px; }
+  .topbar__filters, .topbar__controls .hide-button { margin-top: 8px; }
   .brand { gap: 8px; }
   .brand__svg { width: 24px; height: 24px; }
   .brand__name { font-size: 13px; }
@@ -2990,7 +3021,7 @@ body.chat-page {
   .composer__input { font-size: 16px; }
   .composer { border-radius: 22px; }
   .chat__dock {
-    padding: 0 calc(var(--space-3) + env(safe-area-inset-right)) calc(var(--space-2) + env(safe-area-inset-bottom)) calc(var(--space-3) + env(safe-area-inset-left));
+    padding: 0 calc(var(--space-3) + env(safe-area-inset-right)) calc(var(--tabbar-clearance) + var(--space-2)) calc(var(--space-3) + env(safe-area-inset-left));
   }
   .chat__disclaimer { display: none; }
   /* While typing, the keyboard covers the home-bar area, so drop that padding. */
@@ -3063,13 +3094,17 @@ body.chat-page::before { position: fixed; }
   gap: var(--space-3);
   min-width: 280px;
   max-width: 460px;
-  padding: 10px 8px 10px 12px;
+  padding: 8px 8px 8px 10px;
   overflow: hidden;
   font-size: 13.5px;
+  font-weight: 500;
   color: var(--toast-fg);
-  background: var(--text);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-3);
+  /* A frosted ink pill: the page shows faintly through it. */
+  background: color-mix(in srgb, var(--text) 86%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-radius: 22px;
+  box-shadow: var(--shadow-3), inset 0 0 0 0.5px color-mix(in srgb, var(--surface) 14%, transparent);
   pointer-events: auto;
   animation: toast-in 280ms var(--ease-out) both;
 }
@@ -3100,7 +3135,7 @@ body.chat-page::before { position: fixed; }
   color: var(--toast-fg);
   background: var(--toast-soft);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: background 150ms ease, transform 150ms ease;
 }
@@ -3117,7 +3152,7 @@ body.chat-page::before { position: fixed; }
   color: color-mix(in srgb, var(--surface) 60%, transparent);
   background: none;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   cursor: pointer;
 }
 .toast__close:hover { color: var(--toast-fg); background: var(--toast-soft); }
@@ -3137,7 +3172,7 @@ body.chat-page::before { position: fixed; }
 @keyframes toast-timer { to { transform: scaleX(0); } }
 
 @media (max-width: 560px) {
-  .toast-region { width: calc(100vw - 2 * var(--space-4)); bottom: calc(var(--space-4) + env(safe-area-inset-bottom)); }
+  .toast-region { width: calc(100vw - 2 * var(--space-4)); bottom: calc(var(--tabbar-clearance) + var(--space-3)); }
   .toast { min-width: 0; max-width: none; width: 100%; }
 }
 
