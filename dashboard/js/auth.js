@@ -136,6 +136,46 @@ function initPageHeading(session) {
   if (title && hello) title.textContent = hello;
 }
 
+/**
+ * Turns the account menu into an account card: a large emerald seal above
+ * the name and (gold) email, and a Light / Dark switch above Sign out.
+ * Built with DOM calls so names are never parsed as HTML.
+ */
+function buildAccountCard(panel, initials) {
+  const identity = panel.querySelector('.user-menu__identity');
+  identity.classList.add('user-menu__card');
+
+  const seal = document.createElement('span');
+  seal.className = 'user-menu__seal';
+  seal.setAttribute('aria-hidden', 'true');
+  seal.textContent = initials;
+  identity.prepend(seal);
+
+  // Appearance: a two-way switch that drives the same toggle as the header button.
+  const row = document.createElement('div');
+  row.className = 'user-menu__row';
+  row.innerHTML = `
+    <span class="user-menu__row-label">Appearance</span>
+    <span class="theme-switch" role="group" aria-label="Appearance">
+      <button type="button" data-theme-choice="light">Light</button>
+      <button type="button" data-theme-choice="dark">Dark</button>
+    </span>`;
+  const divider = document.createElement('div');
+  divider.className = 'user-menu__divider';
+  identity.after(divider, row);
+
+  const sync = () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    row.querySelectorAll('[data-theme-choice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeChoice === current)));
+  };
+  row.addEventListener('click', (event) => {
+    const choice = event.target.closest('[data-theme-choice]')?.dataset.themeChoice;
+    if (choice && choice !== document.documentElement.getAttribute('data-theme')) toggleTheme();
+  });
+  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  sync();
+}
+
 /** Fills and wires the signed-in user's account menu in the dashboard header. */
 function initUserMenu(session) {
   const user = session.user;
@@ -150,6 +190,7 @@ function initUserMenu(session) {
   document.getElementById('user-menu-panel-name').textContent = name;
   document.getElementById('user-menu-email').textContent = email;
   document.getElementById('user-menu-avatar').textContent = initials;
+  buildAccountCard(panel, initials);
 
   const close = () => {
     panel.hidden = true;

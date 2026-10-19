@@ -677,7 +677,8 @@ button { font-family: inherit; }
 .user-menu__button svg { color: var(--text-faint); flex-shrink: 0; transition: transform var(--transition); }
 .user-menu.is-open .user-menu__button svg { transform: rotate(180deg); }
 
-.user-menu__avatar {
+.user-menu__avatar,
+.user-menu__seal {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -709,21 +710,62 @@ button { font-family: inherit; }
 
 .user-menu__panel {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  width: 240px;
-  padding: 6px;
+  width: 268px;
+  padding: 8px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-2);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-3);
   z-index: 25;
 }
 
 .user-menu__identity { display: flex; flex-direction: column; gap: 4px; padding: 8px; }
 .user-menu__panel-name { color: var(--text); font-size: 13px; font-weight: 600; }
 .user-menu__email { overflow: hidden; color: var(--text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.user-menu__divider { height: 1px; margin: 4px 2px; background: var(--border); }
+.user-menu__divider { height: 0; margin: 6px 4px; border-top: var(--hairline) solid var(--border); }
+
+/* Account card (auth.js buildAccountCard): the seal, the name in serif, then quieter lines. */
+.user-menu__card { align-items: center; gap: 2px; padding: 18px 12px 14px; text-align: center; }
+.user-menu__seal {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  margin-bottom: 12px;
+  font-size: 21px;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(212, 182, 124, 0.85),
+    inset 0 0 0 4.5px #143F33,
+    inset 0 0 0 5.5px rgba(212, 182, 124, 0.35),
+    0 6px 16px -6px rgba(20, 63, 51, 0.5);
+}
+.user-menu__card .user-menu__panel-name { font-family: var(--font-display); font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+.user-menu__card .user-menu__email { max-width: 100%; margin-top: 2px; color: var(--gold); }
+
+/* Appearance row: a label and a two-way Light / Dark switch. */
+.user-menu__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 8px; }
+.user-menu__row-label { font-size: 13px; color: var(--text); }
+.theme-switch {
+  display: inline-flex;
+  padding: 3px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border-radius: var(--radius-full);
+}
+.theme-switch button {
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+.theme-switch button:hover { color: var(--text); }
+.theme-switch button[aria-pressed="true"] { color: var(--surface); background: var(--text); }
 
 .user-menu__signout {
   display: flex;
@@ -2465,7 +2507,7 @@ button { font-family: inherit; }
 .calendar__day.is-selected,
 .calendar__day.is-selected:hover { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text); }
 
-.calendar__date { font-family: var(--font-display); font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; color: var(--text-muted); }
+.calendar__date { font-family: var(--font-display); font-size: 12px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
 .calendar__amount {
   font-family: var(--font-num);
   font-size: 12.5px;
@@ -2479,9 +2521,9 @@ button { font-family: inherit; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  margin: -4px 0 0 -5px;
+  width: 21px;
+  height: 21px;
+  margin: -3px 0 0 -5px;
   color: var(--text);
   border-radius: 50%;
   box-shadow: inset 0 0 0 1.25px var(--gold); /* today: a fine gold ring */
@@ -2498,9 +2540,6 @@ button { font-family: inherit; }
 .heat-5 { background: var(--heat-5); border-color: transparent; }
 .calendar__day.heat-5,
 .calendar__day.heat-5 .calendar__date { color: var(--heat-ink-5); }
-/* The day number's usual muted grey gets lost on the mid blues. */
-.calendar__day.heat-3 .calendar__date,
-.calendar__day.heat-4 .calendar__date { color: color-mix(in srgb, var(--text) 78%, transparent); }
 
 .heat-legend {
   display: flex;
@@ -2669,8 +2708,8 @@ button { font-family: inherit; }
   .day-budget { padding: var(--space-3) var(--space-4); }
   .calendar__weekdays span { padding-left: 0; text-align: center; font-size: 10px; }
   .calendar__day { aspect-ratio: 1 / 1.1; padding: 4px; border-radius: var(--radius-xs); align-items: center; text-align: center; }
-  .calendar__date { font-size: 11px; }
-  .calendar__day.is-today .calendar__date { margin: 0; width: 18px; height: 18px; }
+  .calendar__date { font-size: 10px; }
+  .calendar__day.is-today .calendar__date { margin: 0; width: 17px; height: 17px; }
   .calendar__amount { font-size: 10px; max-width: 100%; }
   .calendar__event-dot { top: 4px; right: 4px; width: 5px; height: 5px; }
   .calendar-tile .tile__header { flex-direction: column; gap: 8px; padding: 16px 16px 0; }
