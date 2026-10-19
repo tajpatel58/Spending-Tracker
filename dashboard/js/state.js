@@ -53,8 +53,20 @@ function spendOwnerColor(owner) {
 function finishLoading() {
   document.body.classList.remove('is-loading');
   document.body.removeAttribute('aria-busy');
-  if (typeof motion !== 'undefined') motion.reveal();
+  const reveal = () => { if (typeof motion !== 'undefined') motion.reveal(); };
+  const root = document.documentElement;
+  if (!root.classList.contains('is-launching')) { reveal(); return; }
+  // Launch mark showing (first page of a visit): let it finish drawing, then
+  // lift it as the cards rise in beneath it.
+  setTimeout(() => {
+    root.classList.add('is-launched');
+    reveal();
+    setTimeout(() => root.classList.remove('is-launching', 'is-launched'), 700);
+  }, Math.max(0, LAUNCH_MS - performance.now()));
 }
+
+/** How long (from page start) the launch mark stays up at least: long enough to finish drawing. */
+const LAUNCH_MS = 1500;
 
 /** Swaps the loading placeholders for a short message with a Retry button. */
 function showLoadError(error) {
