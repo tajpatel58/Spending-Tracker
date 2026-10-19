@@ -171,10 +171,7 @@ function initChatPage(session) {
   const touch = window.matchMedia('(pointer: coarse)').matches;
 
   // ---- Greeting ----
-  const firstName = (session.user?.user_metadata?.full_name || session.user?.user_metadata?.name || '').split(' ')[0];
-  const hour = new Date().getHours();
-  const partOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('chat-greeting').textContent = firstName ? `${partOfDay}, ${firstName}` : 'What would you like to know?';
+  document.getElementById('chat-greeting').textContent = greeting(session) || 'What would you like to know?';
 
   // ---- Scrolling: follow new content unless the reader has scrolled up ----
   let pinned = true;

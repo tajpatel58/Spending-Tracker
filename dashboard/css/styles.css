@@ -801,8 +801,23 @@ button { font-family: inherit; }
 .sync-status.is-syncing { cursor: progress; }
 .sync-status.is-syncing .sync-status__icon { animation: sync-spin 900ms linear infinite; }
 @keyframes sync-spin { to { transform: rotate(360deg); } }
-.page-heading h1 { font-size: 32px; line-height: 1.15; letter-spacing: -0.025em; }
-.page-heading__subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 13.5px; }
+.page-heading h1 { font-size: 30px; line-height: 1.15; letter-spacing: -0.025em; }
+/* "— MONDAY 19 OCTOBER": today's date in gold small caps above the greeting. */
+.page-heading__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 1.5em; /* holds its line before the date is filled in */
+  margin: 0 0 var(--space-3);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.page-heading__eyebrow::before { content: ''; width: 24px; border-top: 1px solid currentColor; }
+.page-heading__eyebrow:empty::before { display: none; }
+.page-heading__subtitle { max-width: 62ch; margin: var(--space-3) 0 0; color: var(--text-muted); font-size: 15px; line-height: 1.5; }
 
 /* ==========================================================================
    Tile primitive
@@ -2727,11 +2742,12 @@ button { font-family: inherit; }
   /* Pill beside the title; the subtitle gets the full width underneath. */
   .page-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px var(--space-3); }
   .page-heading > div { display: contents; }
-  .page-heading h1 { grid-column: 1; grid-row: 1; }
-  .page-heading__subtitle { grid-column: 1 / -1; grid-row: 2; }
-  .page-heading .sync-status { grid-column: 2; grid-row: 1; }
-  .page-heading h1 { font-size: 18px; }
-  .page-heading__subtitle { font-size: 12px; }
+  .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 2px; font-size: 10px; }
+  .page-heading h1 { grid-column: 1; grid-row: 2; }
+  .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; }
+  .page-heading .sync-status { grid-column: 2; grid-row: 2; }
+  .page-heading h1 { font-size: 21px; }
+  .page-heading__subtitle { font-size: 13px; }
 
   .stats-grid { gap: 8px; margin-bottom: 12px; }
   .stat-tile { padding: 12px 12px 12px; gap: 4px; }

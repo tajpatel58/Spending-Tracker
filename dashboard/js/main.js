@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Wired up before the data-dependent init so signing out remains available
   // even if loading accounts or transactions fails.
   initUserMenu(session);
+  initPageHeading(session);
   document.getElementById('signout-button').addEventListener('click', signOut);
 
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);

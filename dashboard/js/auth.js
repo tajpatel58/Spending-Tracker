@@ -115,6 +115,27 @@ async function signOut() {
   window.location.replace('login.html');
 }
 
+/** "Good evening, Taj" for the signed-in user, by time of day; null when there's no name. */
+function greeting(session) {
+  const firstName = (session.user?.user_metadata?.full_name || session.user?.user_metadata?.name || '').split(' ')[0];
+  const hour = new Date().getHours();
+  const partOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  return firstName ? `${partOfDay}, ${firstName}` : null;
+}
+
+/**
+ * The page heading's date line ("Monday 19 October") and, on pages that
+ * opt in with data-greet on the <h1>, a personal greeting in place of
+ * the page name.
+ */
+function initPageHeading(session) {
+  const eyebrow = document.getElementById('page-eyebrow');
+  if (eyebrow) eyebrow.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const title = document.querySelector('.page-heading h1[data-greet]');
+  const hello = greeting(session);
+  if (title && hello) title.textContent = hello;
+}
+
 /** Fills and wires the signed-in user's account menu in the dashboard header. */
 function initUserMenu(session) {
   const user = session.user;

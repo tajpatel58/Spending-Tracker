@@ -489,6 +489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!session) return; // auth.js is already redirecting to login.html
 
   initUserMenu(session);
+  initPageHeading(session);
   document.getElementById('signout-button').addEventListener('click', signOut);
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
