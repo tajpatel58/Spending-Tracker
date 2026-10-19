@@ -2914,18 +2914,13 @@ body.chat-page {
   text-align: center;
 }
 .chat__welcome[hidden] { display: none; }
-.chat__welcome-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: var(--space-4);
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border-radius: 14px;
-}
-.chat__welcome-title { font-size: 28px; letter-spacing: -0.02em; }
+.chat__welcome-mark { display: inline-flex; width: 56px; height: 56px; margin-bottom: var(--space-5); color: var(--text); }
+.chat__welcome-mark svg { width: 100%; height: 100%; }
+/* "— MONDAY 19 OCTOBER —", centred: the rule on both sides. */
+.chat__eyebrow { justify-content: center; }
+.chat__eyebrow::after { content: ''; width: 24px; border-top: 1px solid currentColor; }
+.chat__eyebrow:empty::after { display: none; }
+.chat__welcome-title { font-size: 30px; font-weight: 450; letter-spacing: -0.025em; }
 .chat__welcome-sub { margin: var(--space-2) 0 var(--space-8); color: var(--text-muted); font-size: 15px; }
 
 .chat__suggestions {
@@ -2935,10 +2930,11 @@ body.chat-page {
   text-align: left;
 }
 .chat__suggestion {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3) var(--space-4);
+  gap: 3px;
+  padding: var(--space-4) 44px var(--space-4) var(--space-5);
   font: inherit;
   font-size: 13.5px;
   color: var(--text-muted);
@@ -2950,7 +2946,19 @@ body.chat-page {
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition), transform var(--transition);
 }
-.chat__suggestion strong { font-weight: 600; color: var(--text); }
+.chat__suggestion strong { font-family: var(--font-display); font-size: 15.5px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+/* A gold arrow that slides forward on hover. */
+.chat__suggestion::after {
+  content: '→';
+  position: absolute;
+  top: 50%;
+  right: var(--space-5);
+  color: var(--gold);
+  font-size: 16px;
+  transform: translateY(-50%);
+  transition: transform 220ms var(--ease-out);
+}
+.chat__suggestion:hover::after { transform: translate(4px, -50%); }
 .chat__suggestion:hover { border-color: var(--border-strong); background: var(--surface-alt); }
 .chat__suggestion:active { transform: scale(0.99); }
 
@@ -2981,17 +2989,10 @@ body.chat-page {
   border-radius: 20px;
 }
 
-.msg--assistant { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--space-3); }
-.msg__avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border-radius: var(--radius-sm);
-}
+.msg--assistant { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: var(--space-4); }
+/* The monogram, like a letterhead beside each reply. */
+.msg__avatar { display: inline-flex; width: 30px; height: 30px; color: var(--text); }
+.msg__avatar svg { width: 100%; height: 100%; }
 .msg__content {
   padding-top: 3px;
   font-size: 15px;
@@ -3001,10 +3002,29 @@ body.chat-page {
 }
 .msg__content > * { margin: 0 0 0.8em; }
 .msg__content > *:last-child { margin-bottom: 0; }
+.msg__content > *:first-child { margin-top: 0; }
 .msg__content ul, .msg__content ol { padding-left: 1.3em; }
-.msg__content li + li { margin-top: 0.25em; }
-.msg__content h3 { font-size: 15.5px; margin-top: 1.1em; }
+.msg__content li + li { margin-top: 0.3em; }
+.msg__content li::marker { color: var(--gold); }
+/* Replies read like a letter: serif headings, hairline tables, figures aligned. */
+.msg__content h3 { margin-top: 1.2em; font-size: 19px; font-weight: 500; letter-spacing: -0.015em; }
 .msg__content strong { font-weight: 600; }
+.msg__content table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.msg__content th {
+  padding: 0 12px 8px 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--text-faint);
+  border-bottom: var(--hairline) solid var(--border-strong);
+}
+.msg__content td { padding: 9px 12px 9px 0; border-bottom: var(--hairline) solid var(--border); }
+.msg__content tr:last-child td { border-bottom: none; }
+.msg__content th:last-child, .msg__content td:last-child { padding-right: 0; }
+.msg__content .is-figure { text-align: right; white-space: nowrap; }
+.msg__content td.is-figure { font-weight: 500; }
 .msg__content code {
   padding: 1px 6px;
   font-family: var(--font-num);
@@ -3020,7 +3040,7 @@ body.chat-page {
   height: 1em;
   margin-left: 2px;
   vertical-align: -0.15em;
-  background: var(--accent);
+  background: var(--gold);
   border-radius: 2px;
   animation: caret-blink 1s steps(2, start) infinite;
 }
@@ -3031,7 +3051,7 @@ body.chat-page {
 .msg__thinking span {
   width: 7px;
   height: 7px;
-  background: var(--text-faint);
+  background: var(--gold);
   border-radius: 50%;
   animation: thinking 1.2s infinite ease-in-out;
 }
@@ -3141,7 +3161,8 @@ body.chat-page {
   .chat__welcome-title { font-size: 23px; }
   .chat__welcome-sub { margin-bottom: var(--space-6); font-size: 14px; }
   .chat__suggestions { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-  .chat__suggestion { padding: 10px var(--space-4); }
+  .chat__suggestion { padding: 12px 40px 12px var(--space-4); }
+  .chat__suggestion::after { right: var(--space-4); }
   .chat__thread { padding: var(--space-5) var(--space-4) var(--space-4); gap: var(--space-5); }
   .msg--user { max-width: 85%; }
   .msg--assistant { grid-template-columns: minmax(0, 1fr); }

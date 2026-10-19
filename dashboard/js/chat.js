@@ -77,8 +77,10 @@ function sleep(ms, signal) {
 // RENDERING
 // ============================================================
 
-const SPARKLE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-  <path d="M12 3.5l1.6 4.3a3 3 0 0 0 1.8 1.8l4.1 1.4-4.1 1.4a3 3 0 0 0-1.8 1.8L12 18.5l-1.6-4.3a3 3 0 0 0-1.8-1.8L4.5 11l4.1-1.4a3 3 0 0 0 1.8-1.8L12 3.5Z" fill="currentColor"/>
+/** The Ledger monogram (gold ring, serif L): the assistant's avatar, like a letterhead. */
+const MONOGRAM = `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <circle cx="32" cy="32" r="30.5" stroke="var(--gold)" stroke-width="2.4"/>
+  <path transform="translate(20.527 46.412) scale(0.021008 -0.021008)" fill="currentColor" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/>
 </svg>`;
 
 const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -89,14 +91,32 @@ const inlineMarkdown = (text) => text
   .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
 
+/** A figure-like table cell ("£1,234.56", "−12%", "42"), set right-aligned. */
+const isFigure = (cell) => /^[−\-+]?£?[\d,]+(\.\d+)?%?$/.test(cell.trim());
+
+/** A markdown table ("| a | b |" rows, with a |---| divider after the header) as HTML. */
+function renderTable(lines) {
+  const cells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+  const [head, , ...rows] = lines;
+  const body = rows.map(cells);
+  // A column of figures is right-aligned, header included.
+  const figureColumn = cells(head).map((_, i) => body.length > 0 && body.every((r) => !r[i] || isFigure(r[i])));
+  const cell = (tag, c, i) => `<${tag}${figureColumn[i] ? ' class="is-figure"' : ''}>${inlineMarkdown(c)}</${tag}>`;
+  return `<table><thead><tr>${cells(head).map((c, i) => cell('th', c, i)).join('')}</tr></thead>`
+    + `<tbody>${body.map((r) => `<tr>${r.map((c, i) => cell('td', c, i)).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
 /**
  * A small, safe markdown renderer for replies: paragraphs, bullet and
- * numbered lists, headings and inline styles. Everything is escaped first.
+ * numbered lists, tables, headings and inline styles. Everything is escaped first.
  */
 function renderMarkdown(source) {
   const blocks = escapeHtml(source.trim()).split(/\n{2,}/);
   return blocks.map((block) => {
     const lines = block.split('\n');
+    if (lines.length >= 2 && lines.every((l) => /^\s*\|/.test(l)) && /^[\s|:-]+$/.test(lines[1])) {
+      return renderTable(lines);
+    }
     if (lines.every((l) => /^\s*[-*•]\s+/.test(l))) {
       return `<ul>${lines.map((l) => `<li>${inlineMarkdown(l.replace(/^\s*[-*•]\s+/, ''))}</li>`).join('')}</ul>`;
     }
@@ -124,7 +144,7 @@ function messageElement(role, content) {
     el.querySelector('.msg__bubble').textContent = content;
   } else {
     el.innerHTML = `
-      <span class="msg__avatar" aria-hidden="true">${SPARKLE}</span>
+      <span class="msg__avatar" aria-hidden="true">${MONOGRAM}</span>
       <div class="msg__body">
         <div class="msg__content"></div>
         <div class="msg__actions">
@@ -172,6 +192,7 @@ function initChatPage(session) {
 
   // ---- Greeting ----
   document.getElementById('chat-greeting').textContent = greeting(session) || 'What would you like to know?';
+  initPageHeading(session); // the gold date line above the greeting
 
   // ---- Scrolling: follow new content unless the reader has scrolled up ----
   let pinned = true;
