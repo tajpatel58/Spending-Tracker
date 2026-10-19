@@ -2740,6 +2740,9 @@ button { font-family: inherit; }
   .tx-table tbody td { display: block; min-width: 0; padding: 0; border-bottom: none; }
   .tx-table tbody tr.tx-group { display: block; padding: 0; }
   .tx-table tbody tr.tx-group td { padding: 16px 16px 6px; }
+  /* Day headings sized to sit just above the rows, not shout over them. */
+  .tx-group__day { font-size: 13.5px; }
+  .tx-group__total { margin-top: 2px; font-size: 11px; }
   .tx-table tbody .tx-table__select { grid-area: hide; width: auto; }
   .tx-table tbody .tx-table__merchant { grid-area: merchant; }
   .tx-table tbody .tx-table__amount { grid-area: amount; justify-self: end; }
