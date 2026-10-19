@@ -101,11 +101,13 @@ function initPullToRefresh() {
   const indicator = document.createElement('div');
   indicator.className = 'pull-refresh';
   indicator.setAttribute('aria-hidden', 'true');
-  indicator.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-    <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="2"/>
-    <path d="M20 4v4.5h-4.5" stroke="currentColor" stroke-width="2"/></svg>`;
+  // The Ledger monogram: its gold ring draws itself as you pull, then chases while refreshing.
+  indicator.innerHTML = `<svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+    <circle class="sync-ring" cx="32" cy="32" r="29.5" stroke="var(--gold)" stroke-width="3.2" pathLength="1"/>
+    <path transform="translate(20.527 46.412) scale(0.021008 -0.021008)" fill="currentColor" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/></svg>`;
   document.body.appendChild(indicator);
   document.documentElement.classList.add('has-pull-refresh');
+  const ring = indicator.querySelector('.sync-ring');
 
   let startY = null;
   let distance = 0;
@@ -113,7 +115,8 @@ function initPullToRefresh() {
 
   const draw = () => {
     const progress = Math.min(1, distance / THRESHOLD);
-    indicator.style.transform = `translate(-50%, ${distance - 48}px) rotate(${progress * 270}deg)`;
+    indicator.style.transform = `translate(-50%, ${distance - 48}px)`;
+    ring.style.strokeDashoffset = String(1 - progress);
     indicator.style.opacity = String(Math.min(1, distance / 30));
     indicator.classList.toggle('is-armed', distance >= THRESHOLD);
   };
