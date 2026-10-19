@@ -32,7 +32,7 @@
   --radius-full: 999px;
   --hairline: 1px; /* 0.5px on high-density screens, below */
   /* Height of the phone tab bar plus its gap to the screen edge. */
-  --tabbar-clearance: calc(64px + max(10px, env(safe-area-inset-bottom)));
+  --tabbar-clearance: calc(56px + max(10px, env(safe-area-inset-bottom)));
   --transition: 150ms ease;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* quick start, soft landing — used for all entrances */
 
@@ -2618,7 +2618,7 @@ button { font-family: inherit; }
   /* Overview / Calendar / Assistant / Upload float in a frosted tab bar at
      the bottom of the screen, within thumb reach (like a native app). */
   .view-nav {
-    --nav-pad: 5px;
+    --nav-pad: 4px;
     position: fixed;
     z-index: 30;
     left: calc(12px + env(safe-area-inset-left));
@@ -2631,12 +2631,12 @@ button { font-family: inherit; }
     background: color-mix(in srgb, var(--surface) 90%, transparent);
     -webkit-backdrop-filter: blur(20px) saturate(170%);
     backdrop-filter: blur(20px) saturate(170%);
-    border-radius: 24px;
+    border-radius: 20px;
     box-shadow: var(--shadow-3);
     view-transition-name: tabbar; /* held still while the page cross-fades */
   }
-  .view-nav__link { flex-direction: column; justify-content: center; gap: 3px; padding: 7px 0 6px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.01em; border-radius: 19px; }
-  .view-nav__icon { width: 20px; height: 20px; }
+  .view-nav__link { flex-direction: column; justify-content: center; gap: 2px; padding: 5px 0 4px; font-size: 10px; font-weight: 500; letter-spacing: 0.02em; border-radius: 16px; }
+  .view-nav__icon { width: 18px; height: 18px; }
   /* The keyboard is up on the Assistant: the bar steps aside. */
   .keyboard-open .view-nav { display: none; }
   .calendar { padding: 10px 10px 12px; }
@@ -2803,7 +2803,7 @@ button { font-family: inherit; }
   /* Pill beside the title; the subtitle gets the full width underneath. */
   .page-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px var(--space-3); }
   .page-heading > div { display: contents; }
-  .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 2px; font-size: 8px; letter-spacing: 0.18em; }
+  .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 2px; font-size: 9px; letter-spacing: 0.18em; }
   .page-heading__eyebrow::before { width: 16px; }
   .page-heading h1 { grid-column: 1; grid-row: 2; }
   .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; }
