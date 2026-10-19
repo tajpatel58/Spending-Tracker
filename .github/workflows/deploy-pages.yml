@@ -32,6 +32,16 @@ jobs:
           const SUPABASE_ANON_KEY = '${{ secrets.SUPABASE_ANON_KEY }}';
           EOF
 
+      # Lets each page open its connection to Supabase while the scripts are
+      # still downloading (the URL is only known here, from the secrets).
+      - name: Add Supabase preconnect to the pages
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          origin=$(printf '%s' "$SUPABASE_URL" | sed -E 's#^(https?://[^/]+).*#\1#')
+          sed -i "s#<!-- supabase-preconnect -->#<link rel=\"preconnect\" href=\"${origin}\" crossorigin>#" dashboard/*.html
+          grep -c 'rel="preconnect" href="https://[^"]*supabase' dashboard/*.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

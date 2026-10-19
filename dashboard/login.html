@@ -17,10 +17,31 @@
 <!-- Browser/status bar colour; theme.js keeps it in step with light/dark mode. -->
 <meta name="theme-color" content="#F6F4EF">
 <meta name="color-scheme" content="light dark">
+<!-- The deploy workflow replaces the next line with a preconnect to the
+     Supabase project (its URL lives only in the deploy secrets). -->
+<!-- supabase-preconnect -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..650&family=Geist:wght@400..650&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Before first paint: if this device is already signed in, go straight to
+     the dashboard instead of drawing this page and then redirecting. Not a
+     check: index.html verifies the session and access as usual, and sends
+     you back here if either has lapsed. The 10s guard stops a stale token
+     ever bouncing between the two pages. -->
+<script>
+  try {
+    var signedIn = Object.keys(localStorage).some(function (k) { return /^sb-.+-auth-token$/.test(k); });
+    var params = new URLSearchParams(location.search);
+    // An error to show, or a sign-in landing here mid-handshake (auth.js must finish it): stay.
+    var stay = params.has('error') || params.has('code') || /access_token|error/.test(location.hash);
+    var lastBounce = Number(sessionStorage.getItem('ledger-login-bounce')) || 0;
+    if (signedIn && !stay && Date.now() - lastBounce > 10000) {
+      sessionStorage.setItem('ledger-login-bounce', String(Date.now()));
+      location.replace('index.html');
+    }
+  } catch (e) {}
+</script>
 <link rel="stylesheet" href="css/styles.css">
 <!-- Scripts download in parallel while the page parses (defer keeps their order). -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>

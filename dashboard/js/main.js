@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // match the visitor's theme instead of flashing light-then-dark.
   initTheme();
 
-  const session = await authReady;
+  // Straight away when this device has a copy of the data; otherwise after the auth check (data.js).
+  const session = await pageSession;
   if (!session) return; // signed out/unauthorized — auth.js is already redirecting to login.html
 
   // Wired up before the data-dependent init so signing out remains available

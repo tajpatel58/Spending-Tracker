@@ -15,8 +15,10 @@ const IS_LOGIN_PAGE = /login\.html$/.test(window.location.pathname);
 // instantly (see data.js). It's wiped whenever the session ends.
 const LEDGER_DATA_CACHE_KEY = 'ledger-data';
 function clearLocalData() {
+  localDataCleared = true; // stops a refresh already in flight saving it again (data.js saveDataCache)
   try { localStorage.removeItem(LEDGER_DATA_CACHE_KEY); } catch { /* storage unavailable */ }
 }
+let localDataCleared = false;
 
 /**
  * Checks whether the signed-in user's email is in the `users` allow-list
@@ -86,6 +88,21 @@ async function initializeAuth() {
 // Checks the existing session once when the page loads.
 // Other scripts can `await authReady` if they need to know it has run.
 const authReady = initializeAuth();
+
+/**
+ * The session Supabase saved on this device at the last sign-in, read
+ * straight from storage without waiting on the network (or null). It is
+ * NOT a check: it may have expired or lost access. data.js uses it only
+ * to draw the local copy of the data early; authReady still runs the
+ * real check and clears that copy and redirects if it fails.
+ */
+function storedSession() {
+  try {
+    const key = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`; // supabase-js's default storage key
+    const stored = JSON.parse(localStorage.getItem(key));
+    return stored?.user?.email ? stored : null;
+  } catch { return null; }
+}
 
 // Signed out in another tab (or the session expired) — bounce back to login.
 supabaseClient.auth.onAuthStateChange((event) => {

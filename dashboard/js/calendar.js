@@ -485,7 +485,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Placeholder day cells while the data loads (replaced by renderAll).
   document.getElementById('calendar-days').innerHTML = '<span class="calendar__skeleton"></span>'.repeat(35);
 
-  const session = await authReady;
+  // Straight away when this device has a copy of the data; otherwise after the auth check (data.js).
+  const session = await pageSession;
   if (!session) return; // auth.js is already redirecting to login.html
 
   initUserMenu(session);

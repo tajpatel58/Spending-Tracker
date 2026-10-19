@@ -127,7 +127,7 @@ function readDataCache(email) {
 
 /** Saves what's on screen (also called after edits, so a reload shows them straight away). */
 function saveDataCache() {
-  if (!dataStatus.user) return;
+  if (!dataStatus.user || localDataCleared) return;
   try {
     localStorage.setItem(LEDGER_DATA_CACHE_KEY, JSON.stringify({
       version: 1, user: dataStatus.user, syncedAt: dataStatus.syncedAt, ...currentDataBundle(),
@@ -183,16 +183,36 @@ function refreshData() {
 }
 
 /**
+ * A device that already holds this user's data can draw it before the
+ * session and access checks finish: the copy is already on the device,
+ * so showing it early reveals nothing new. If authReady then fails,
+ * initializeAuth clears the copy and redirects to login.html.
+ */
+const quickStart = (() => {
+  const session = storedSession();
+  const cached = session && readDataCache(session.user.email);
+  return cached ? { session, cached } : null;
+})();
+
+/**
+ * The session a page can draw with: the stored one straight away when
+ * there's a local copy of the data (quickStart), otherwise the result
+ * of the full check in authReady. Pages that write on the user's behalf
+ * (Upload) wait for authReady itself.
+ */
+const pageSession = quickStart ? Promise.resolve(quickStart.session) : authReady;
+
+/**
  * Resolves once there's data to draw: immediately from the local copy
  * when there is one (pages then call refreshData() after rendering),
- * otherwise after the first fetch. Waits for the auth check first — a
- * signed-out visitor is being redirected to login.html.
+ * otherwise after the auth check and the first fetch — a signed-out
+ * visitor is being redirected to login.html.
  */
-const accountsReady = authReady.then(async (session) => {
+const accountsReady = pageSession.then(async (session) => {
   if (!session) return;
   dataStatus.user = session.user.email;
 
-  const cached = readDataCache(dataStatus.user);
+  const cached = quickStart ? quickStart.cached : readDataCache(dataStatus.user);
   if (cached) {
     applyDataBundle(cached);
     dataStatus.syncedAt = cached.syncedAt;

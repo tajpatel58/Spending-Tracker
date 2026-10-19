@@ -17,6 +17,9 @@
 <!-- Browser/status bar colour; theme.js keeps it in step with light/dark mode. -->
 <meta name="theme-color" content="#F6F4EF">
 <meta name="color-scheme" content="light dark">
+<!-- The deploy workflow replaces the next line with a preconnect to the
+     Supabase project (its URL lives only in the deploy secrets). -->
+<!-- supabase-preconnect -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +39,6 @@
 </script>
 <link rel="stylesheet" href="css/styles.css">
 <!-- Scripts download in parallel while the page parses (defer keeps their order). -->
-<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <script defer src="js/config.js"></script>
 <script defer src="js/auth.js"></script>
@@ -50,6 +52,9 @@
 <script defer src="js/motion.js"></script>
 <script defer src="js/stats.js"></script>
 <script defer src="js/datepicker.js"></script>
+<!-- Chart.js waits until just before charts.js, so the session check and data
+     (above) start without waiting for it to download. -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script defer src="js/charts.js"></script>
 <script defer src="js/toast.js"></script>
 <script defer src="js/sync.js"></script>
