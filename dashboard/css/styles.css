@@ -1214,7 +1214,7 @@ button { font-family: inherit; }
 
   /* Edit affordances stay hidden until the row is hovered or focused. */
   .tx-table tbody tr:not(:hover):not(:focus-within) .category-select { background-position: right -12px center; } /* chevron slides in on hover */
-  .tx-table.is-grouped tbody tr:not(:hover):not(:focus-within) .date-button--column:not(.is-edited) { color: transparent; }
+  .tx-table.is-grouped tbody tr:not(:hover):not(:focus-within) .date-button--column { color: transparent; }
 }
 
 .tx-table__date { color: var(--text-muted); font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
@@ -1926,16 +1926,16 @@ button { font-family: inherit; }
 .date-button[aria-expanded="true"] { background: var(--surface-alt); border-color: var(--border-strong); }
 .date-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* A moved date reads in the accent colour with a small dot, so overrides are easy to spot. */
-.date-button.is-edited { color: var(--accent); }
+/* A moved date keeps the normal date styling; a small, muted accent dot marks the override.
+   The dot has its own colour so it stays visible when grouped rows hide their dates. */
 .date-button.is-edited::after {
   content: '';
   display: inline-block;
   width: 4px;
   height: 4px;
-  margin: 0 0 2px 4px;
+  margin: 0 0 2px 5px;
   vertical-align: middle;
-  background: currentColor;
+  background: color-mix(in srgb, var(--accent) 65%, transparent);
   border-radius: 50%;
 }
 
