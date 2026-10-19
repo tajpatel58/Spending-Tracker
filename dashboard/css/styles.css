@@ -2800,7 +2800,8 @@ button { font-family: inherit; }
   /* Pill beside the title; the subtitle gets the full width underneath. */
   .page-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px var(--space-3); }
   .page-heading > div { display: contents; }
-  .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 2px; font-size: 10px; }
+  .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 2px; font-size: 8px; letter-spacing: 0.18em; }
+  .page-heading__eyebrow::before { width: 16px; }
   .page-heading h1 { grid-column: 1; grid-row: 2; }
   .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; }
   .page-heading .sync-status { grid-column: 2; grid-row: 2; }
