@@ -934,6 +934,37 @@ button { font-family: inherit; }
 .donut-center > * { animation: fade-in 200ms ease; }
 .chart-tile__canvas-wrap--line { padding: 20px 28px 0; height: 280px; }
 
+/* Trend chart tooltip (charts.js htmlTooltip): a frosted card like the menus,
+   gliding from bar to bar. */
+.chart-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  min-width: 196px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(var(--x, 0), var(--y, 0)) scale(0.97);
+  transition: opacity 160ms ease, transform 260ms var(--ease-out);
+}
+.chart-tooltip.is-visible { opacity: 1; transform: translate(var(--x, 0), var(--y, 0)); }
+.chart-tooltip.is-placing { transition: opacity 160ms ease; }
+.chart-tooltip p { margin: 0; }
+.chart-tooltip__title { margin-bottom: 8px !important; font-family: var(--font-display); font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.chart-tooltip__row { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 12.5px; color: var(--text-muted); }
+.chart-tooltip__row b { margin-left: auto; padding-left: 16px; font-weight: 500; color: var(--text); }
+.chart-tooltip__row--total { margin-top: 8px !important; padding-top: 8px; border-top: var(--hairline) solid var(--border); color: var(--text); font-weight: 500; }
+.chart-tooltip__row--total b { font-weight: 600; }
+.chart-tooltip__swatch { flex: none; width: 8px; height: 8px; border-radius: 2px; }
+.chart-tooltip__swatch--line { width: 12px; height: 0; border-radius: 0; border-top: 1.5px dashed var(--text-muted); }
+
 .trend-legend {
   display: flex;
   flex-wrap: wrap;
@@ -993,6 +1024,13 @@ button { font-family: inherit; }
   border-radius: inherit;
   transition: width 250ms ease;
 }
+/* First load: the bars grow in from the left, one after another. */
+.budget-list.is-entering .budget-item__fill {
+  transform-origin: left center;
+  animation: budget-grow 900ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 150ms);
+}
+@keyframes budget-grow { from { transform: scaleX(0); } }
 
 .legend {
   list-style: none;

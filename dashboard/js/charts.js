@@ -11,6 +11,18 @@ let categoryChart, trendChart, userChart;
 
 const LEGEND_LIMIT = 6;               // legend rows shown before "+N more"
 const expandedLegends = new Set();    // legends the viewer has expanded (kept across re-renders)
+const drawnCharts = new Set();        // charts that have played their first, slower draw-in
+
+/**
+ * True the first time a chart is drawn on this page load (and motion is
+ * allowed): that render sweeps/grows in slowly; later re-renders (month
+ * changes, refreshes) stay quick.
+ */
+function isFirstDraw(id) {
+  if (drawnCharts.has(id)) return false;
+  drawnCharts.add(id);
+  return !motion.reduced();
+}
 
 /** '#RRGGBB' -> 'rgba(r, g, b, a)', for dimming the slices that aren't highlighted. */
 function fade(hex, alpha) {
@@ -63,6 +75,7 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
 
   // ---- Chart ----
   if (chart) chart.destroy();
+  const firstDraw = isFirstDraw(canvasId);
   const instance = new Chart(canvas, {
     type: 'doughnut',
     data: {
@@ -72,18 +85,19 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
         backgroundColor: entries.length
           ? (c) => (active === null || c.dataIndex === active ? colors[c.dataIndex] : fade(colors[c.dataIndex], 0.28))
           : [cssVar('--border')],
-        borderWidth: 2,
-        borderColor: cssVar('--surface'),
-        hoverBorderColor: cssVar('--surface'),
-        hoverOffset: 7,
-        borderRadius: 3,
+        // A slim ring of rounded slices with real gaps between them.
+        borderWidth: 0,
+        spacing: entries.length > 1 ? 3 : 0,
+        borderRadius: 3, // softened ends; fully round turns small slices into beads
+        hoverOffset: 6,
       }],
     },
     options: {
-      cutout: '74%',
+      cutout: '84%',
       layout: { padding: 8 }, // room for the lifted slice
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      animation: { duration: 350 },
+      // First load: the ring sweeps round once; afterwards changes are quick.
+      animation: firstDraw ? { duration: 1100, easing: 'easeOutQuart' } : { duration: 350 },
       onHover: (_event, elements) => setActive(elements.length ? elements[0].index : null),
       // Touch screens: a tap selects a slice; tapping it again (or the middle) clears it.
       onClick: (_event, elements) => {
@@ -245,7 +259,9 @@ function renderBudgetChart() {
     budget: BUDGETS[name] || 0,
     color: groupColors[name],
   }));
-  document.getElementById('budget-list').innerHTML = entries.map((entry) => {
+  const list = document.getElementById('budget-list');
+  list.classList.toggle('is-entering', isFirstDraw('budget-list')); // bars grow in on first load
+  list.innerHTML = entries.map((entry, i) => {
     const percentage = entry.budget ? Math.round((entry.actual / entry.budget) * 100) : 0;
     const progress = Math.min(percentage, 100);
     return `
@@ -255,7 +271,7 @@ function renderBudgetChart() {
           <span class="budget-item__summary">${currencyShort(entry.actual)} / ${currencyShort(entry.budget)} - ${percentage}%</span>
         </div>
         <div class="budget-item__track" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100" aria-label="${entry.label} budget usage">
-          <span class="budget-item__fill" style="width:${progress}%; background:${entry.color}"></span>
+          <span class="budget-item__fill" style="width:${progress}%; background:${entry.color}; --i:${i}"></span>
         </div>
       </li>
     `;
@@ -283,6 +299,54 @@ function stripePattern(color) {
 }
 
 /**
+ * Chart.js `external` tooltip drawn as HTML, so it matches the app's menus
+ * (frosted surface, serif title, tabular figures) and glides between bars.
+ *
+ *   build(dataPoints) -> { title, rows: [{ label, value, swatch }], footer: [label, value] }
+ *   swatch is a CSS background, or 'line' for the dashed target line.
+ */
+function htmlTooltip(build) {
+  return ({ chart, tooltip }) => {
+    const wrap = chart.canvas.parentElement;
+    let el = wrap.querySelector('.chart-tooltip');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'chart-tooltip';
+      el.setAttribute('aria-hidden', 'true');
+      wrap.appendChild(el);
+    }
+    if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) {
+      el.classList.remove('is-visible');
+      return;
+    }
+
+    const { title, rows, footer } = build(tooltip.dataPoints);
+    el.innerHTML = `
+      <p class="chart-tooltip__title">${escapeAttr(title)}</p>
+      ${rows.map((row) => `
+        <p class="chart-tooltip__row">
+          <i class="chart-tooltip__swatch${row.swatch === 'line' ? ' chart-tooltip__swatch--line' : ''}"${row.swatch === 'line' ? '' : ` style="background:${row.swatch}"`}></i>
+          <span>${escapeAttr(row.label)}</span><b>${row.value}</b>
+        </p>`).join('')}
+      ${footer ? `<p class="chart-tooltip__row chart-tooltip__row--total"><span>${footer[0]}</span><b>${footer[1]}</b></p>` : ''}`;
+
+    // Beside the hovered bar (flipping to the other side near the edge), vertically clamped.
+    const gap = 14;
+    const x0 = chart.canvas.offsetLeft + tooltip.caretX;
+    const y0 = chart.canvas.offsetTop + tooltip.caretY;
+    const { offsetWidth: w, offsetHeight: h } = el;
+    const x = x0 + gap + w > wrap.clientWidth ? x0 - gap - w : x0 + gap;
+    const y = Math.min(Math.max(y0 - h / 2, 0), wrap.clientHeight - h);
+    if (!el.classList.contains('is-visible')) el.classList.add('is-placing'); // appear in place, don't glide in
+    el.style.setProperty('--x', `${Math.round(x)}px`);
+    el.style.setProperty('--y', `${Math.round(y)}px`);
+    void el.offsetWidth;
+    el.classList.remove('is-placing');
+    el.classList.add('is-visible');
+  };
+}
+
+/**
  * Renders the spending trend for the last six months: each month's bar
  * splits into fixed costs and everyday spending, the current month adds
  * a striped "still to come" segment up to its forecast (forecast.js), and
@@ -303,12 +367,15 @@ function renderTrendChart() {
 
   const colors = { fixed: cssVar('--forecast-fixed'), everyday: cssVar('--forecast-spent'), toCome: cssVar('--forecast-projected') };
   const dimUnlessSelected = (color) => (c) => (months[c.dataIndex] === state.month ? color : fade(color, 0.45));
-  const segment = { borderColor: cssVar('--surface'), borderWidth: 2, borderSkipped: false, borderRadius: 5, maxBarThickness: 46, stack: 'spend' };
+  const segment = { borderColor: cssVar('--surface'), borderWidth: 2, borderSkipped: false, borderRadius: 6, maxBarThickness: 36, stack: 'spend' };
+  const swatches = { Fixed: colors.fixed, Everyday: colors.everyday, 'Still to come': colors.toCome };
   const text = cssVar('--text');
   const faint = cssVar('--text-faint');
 
   const ctx = document.getElementById('trend-chart');
   if (trendChart) trendChart.destroy();
+  ctx.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible'); // e.g. after clicking a bar
+  const firstDraw = isFirstDraw('trend-chart');
   trendChart = new Chart(ctx, {
     data: {
       labels: months.map((key) => MONTH_LABEL(key).split(' ')[0].slice(0, 3)),
@@ -321,12 +388,13 @@ function renderTrendChart() {
           label: 'Spending target',
           data: target,
           borderColor: cssVar('--text-muted'),
-          borderWidth: 1.5,
-          borderDash: [5, 5],
-          pointRadius: 3,
+          borderWidth: 1.25,
+          borderDash: [4, 4],
+          pointRadius: 2.5,
+          pointHoverRadius: 4,
           pointBackgroundColor: cssVar('--surface'),
           pointBorderColor: cssVar('--text-muted'),
-          pointBorderWidth: 1.5,
+          pointBorderWidth: 1.25,
           tension: 0,
           spanGaps: true,
           order: 1,
@@ -346,32 +414,22 @@ function renderTrendChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: cssVar('--surface'),
-          borderColor: cssVar('--border'),
-          borderWidth: 1,
-          titleColor: text,
-          bodyColor: cssVar('--text-muted'),
-          footerColor: text,
-          titleFont: { family: 'Geist', size: 12.5, weight: '600' },
-          bodyFont: { family: 'Geist', size: 12 },
-          footerFont: { family: 'Geist', size: 12.5, weight: '600' },
-          padding: 12,
-          cornerRadius: 10,
-          boxPadding: 4,
-          usePointStyle: true,
-          caretSize: 0,
+          enabled: false,
           filter: (item) => item.raw !== null && item.raw !== 0,
           itemSort: (a, b) => a.datasetIndex - b.datasetIndex, // bar parts bottom-up, then the target
-          callbacks: {
-            title: (items) => MONTH_LABEL(months[items[0].dataIndex]),
-            label: (item) => ` ${item.dataset.label}  ${currency(item.raw)}`,
-            labelPointStyle: (item) => ({ pointStyle: item.dataset.type === 'line' ? 'line' : 'rectRounded', rotation: 0 }),
-            footer: (items) => {
-              const i = items[0].dataIndex;
-              const spent = fixed[i] + everyday[i];
-              return toCome[i] ? `Forecast  ${currency(spent + toCome[i])}` : `Total  ${currency(spent)}`;
-            },
-          },
+          external: htmlTooltip((points) => {
+            const i = points[0].dataIndex;
+            const spent = fixed[i] + everyday[i];
+            return {
+              title: MONTH_LABEL(months[i]),
+              rows: points.map((p) => ({
+                label: p.dataset.label,
+                value: currency(p.raw),
+                swatch: p.dataset.type === 'line' ? 'line' : swatches[p.dataset.label],
+              })),
+              footer: toCome[i] ? ['Forecast', currency(spent + toCome[i])] : ['Total', currency(spent)],
+            };
+          }),
         },
       },
       scales: {
@@ -380,6 +438,7 @@ function renderTrendChart() {
           grid: { display: false },
           border: { display: false },
           ticks: {
+            padding: 6,
             font: (c) => ({ family: 'Geist', size: 11.5, weight: months[c.index] === state.month ? '600' : '400' }),
             color: (c) => (months[c.index] === state.month ? text : faint),
           },
@@ -387,12 +446,16 @@ function renderTrendChart() {
         y: {
           stacked: true,
           beginAtZero: true,
-          border: { display: false },
-          grid: { color: cssVar('--border'), drawTicks: false },
-          ticks: { color: faint, padding: 8, maxTicksLimit: 5, font: { family: 'Geist', size: 11 }, callback: (v) => currencyShort(v) },
+          // Hairline dashed gridlines (border.dash styles the grid lines in Chart.js 4).
+          border: { display: false, dash: [2, 4] },
+          grid: { color: cssVar('--border-strong'), lineWidth: 1, drawTicks: false },
+          ticks: { color: faint, padding: 10, maxTicksLimit: 5, font: { family: 'Geist', size: 11 }, callback: (v) => currencyShort(v) },
         },
       },
-      animation: { duration: 450 },
+      // First load: bars rise one month after another; afterwards changes are quick.
+      animation: firstDraw
+        ? { duration: 800, easing: 'easeOutQuart', delay: (c) => (c.type === 'data' && c.mode === 'default' ? c.dataIndex * 70 : 0) }
+        : { duration: 450 },
     },
   });
 }
