@@ -4,9 +4,14 @@
 
 :root {
   /* Type */
-  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  /* Editorial serif for headings and headline figures, a quiet grotesk for
+     everything else. Money uses the body face's tabular figures (--font-num)
+     so columns line up without looking like code; --font-mono is kept for
+     things that really are codes (account IDs, file paths). */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-num: var(--font-body);
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
 
   /* Spacing scale (4px grid; 2/6/10px only for tight component detail).
      Every gap, padding and margin should be one of these values. */
@@ -22,9 +27,10 @@
   /* Radius: xs for small inline controls, sm for buttons/inputs/menus,
      md for cards and dialogs, full for pills and round buttons. */
   --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
+  --radius-sm: 10px;
+  --radius-md: 18px;
   --radius-full: 999px;
+  --hairline: 1px; /* 0.5px on high-density screens, below */
   --transition: 150ms ease;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* quick start, soft landing — used for all entrances */
 
@@ -49,8 +55,8 @@
 /* ---- Light theme (default) ---- */
 :root,
 [data-theme="light"] {
-  --bg: #F5F6F9;
-  --surface: #FFFFFF;
+  --bg: #F6F4EF;
+  --surface: #FFFEFB;
   /* Forecast doughnut segments (colour-blind-safe, validated against --surface) */
   --forecast-fixed: #2a78d6;
   --forecast-spent: #eb6834;
@@ -62,43 +68,43 @@
   --user-3: #d2449c;
   /* "Extras" budget bar — separate from --cat-other, which stays grey for Unassigned */
   --budget-extras: #db2777;
-  --surface-alt: #FBFBFC;
-  --border: #E4E7EC;
-  --border-strong: #D3D8E0;
-  --text: #14171F;
-  --text-muted: #5B6472;
-  --text-faint: #96A0AD;
-  --accent: #1F8A63;
-  --accent-strong: #17724F;
-  --accent-soft: rgba(31, 138, 99, 0.10);
-  --gold: #B8903F;
-  --rose: #C1493F;
-  --rose-soft: rgba(193, 73, 63, 0.10);
+  --surface-alt: #FAF8F3;
+  --border: #E8E3D9;
+  --border-strong: #D9D2C4;
+  --text: #1C1B18;
+  --text-muted: #625D54;
+  --text-faint: #97907F;
+  --accent: #1F6650;
+  --accent-strong: #174F3E;
+  --accent-soft: rgba(31, 102, 80, 0.09);
+  --gold: #A9844A;
+  --rose: #A8473C;
+  --rose-soft: rgba(168, 71, 60, 0.09);
   /* Elevation: 1 = cards, 2 = menus/tooltips/date picker, 3 = dialogs and floating panels */
-  --shadow-1: 0 1px 2px rgba(20, 23, 31, 0.04), 0 1px 1px rgba(20, 23, 31, 0.035);
-  --shadow-2: 0 8px 24px rgba(20, 23, 31, 0.10), 0 1px 3px rgba(20, 23, 31, 0.06);
-  --shadow-3: 0 16px 40px rgba(20, 23, 31, 0.16), 0 2px 8px rgba(20, 23, 31, 0.08);
+  /* Warm, layered and soft: a tight contact shadow plus a wide, faint ambient one. */
+  --shadow-1: 0 1px 1px rgba(40, 32, 18, 0.03), 0 2px 4px rgba(40, 32, 18, 0.025), 0 12px 32px -12px rgba(40, 32, 18, 0.08);
+  --shadow-2: 0 1px 2px rgba(40, 32, 18, 0.05), 0 10px 28px -6px rgba(40, 32, 18, 0.14);
+  --shadow-3: 0 2px 6px rgba(40, 32, 18, 0.06), 0 24px 56px -12px rgba(40, 32, 18, 0.22);
   --tile-border: var(--border);
   /* Ambient light behind the top of each page (the login page's, much quieter). */
-  --glow-accent: color-mix(in srgb, var(--accent) 9%, transparent);
-  --glow-gold: color-mix(in srgb, var(--gold) 9%, transparent);
-  --glow-grid: color-mix(in srgb, var(--text) 3.5%, transparent);
-  --scrollbar: #D3D8E0;
+  --glow-accent: color-mix(in srgb, var(--accent) 5%, transparent);
+  --glow-gold: color-mix(in srgb, var(--gold) 8%, transparent);
+  --scrollbar: #D9D2C4;
 
   /* Calendar heat scale — one green, light to deep as spend rises.
      Dark text reads on levels 1–4 (≥ 5:1); level 5 takes white. */
-  --heat-1: #E6F4EC;
-  --heat-2: #C5E7D3;
-  --heat-3: #8FD0AB;
-  --heat-4: #4FB07C;
-  --heat-5: #1F7A4F;
+  --heat-1: #E7F0EA;
+  --heat-2: #C8DDD0;
+  --heat-3: #93BFA6;
+  --heat-4: #579A78;
+  --heat-5: #1F6650;
   --heat-ink-5: #FFFFFF;
 }
 
 /* ---- Dark theme ---- */
 [data-theme="dark"] {
-  --bg: #0D1015;
-  --surface: #151923;
+  --bg: #0F0E0C;
+  --surface: #181714;
   --forecast-fixed: #3987e5;
   --forecast-spent: #d95926;
   --forecast-projected: #199e70;
@@ -107,37 +113,36 @@
   --user-2: #ff3a8f;
   --user-3: #4089ef;
   --budget-extras: #f356b9;
-  --surface-alt: #1A1F2B;
-  --border: #262C3A;
-  --border-strong: #333B4C;
-  --text: #E9EBEF;
-  --text-muted: #A2AABA;
-  --text-faint: #6C7688;
-  --accent: #34B583;
-  --accent-strong: #4BC894;
-  --accent-soft: rgba(52, 181, 131, 0.14);
-  --gold: #D6B876;
-  --rose: #E17B71;
-  --rose-soft: rgba(225, 123, 113, 0.14);
+  --surface-alt: #1F1D19;
+  --border: #2C2924;
+  --border-strong: #3B3730;
+  --text: #EDE8DF;
+  --text-muted: #ADA697;
+  --text-faint: #7A7466;
+  --accent: #5BB592;
+  --accent-strong: #7CCAA9;
+  --accent-soft: rgba(91, 181, 146, 0.13);
+  --gold: #D4B67C;
+  --rose: #DC8273;
+  --rose-soft: rgba(220, 130, 115, 0.13);
   /* Dark mode separates layers by depth, not outlines: cards get a faint
      top highlight and a softer edge instead of a full-strength border. */
-  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 28px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 20px 45px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-1: inset 0 1px 0 rgba(255, 240, 210, 0.045), 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 36px -14px rgba(0, 0, 0, 0.5);
+  --shadow-2: inset 0 1px 0 rgba(255, 240, 210, 0.055), 0 12px 28px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-3: inset 0 1px 0 rgba(255, 240, 210, 0.055), 0 20px 45px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
   --tile-border: color-mix(in srgb, var(--border) 55%, transparent);
-  --glow-accent: color-mix(in srgb, var(--accent) 15%, transparent);
-  --glow-gold: color-mix(in srgb, var(--gold) 9%, transparent);
-  --glow-grid: color-mix(in srgb, var(--text) 4%, transparent);
-  --scrollbar: #333B4C;
+  --glow-accent: color-mix(in srgb, var(--accent) 7%, transparent);
+  --glow-gold: color-mix(in srgb, var(--gold) 7%, transparent);
+  --scrollbar: #3B3730;
 
   /* Calendar heat scale — the same green, stepped up from the dark surface.
      Light text reads on levels 1–4; the brightest level takes dark text. */
-  --heat-1: #17302A;
-  --heat-2: #1B4033;
-  --heat-3: #20563F;
-  --heat-4: #28754F;
-  --heat-5: #4FC98A;
-  --heat-ink-5: #0D1015;
+  --heat-1: #172621;
+  --heat-2: #1B342B;
+  --heat-3: #22483A;
+  --heat-4: #2E6650;
+  --heat-5: #6FC29F;
+  --heat-ink-5: #0F0E0C;
 
   /* Brighter category colors retain separation against dark surfaces. */
   --cat-groceries: #F59E0B;
@@ -155,6 +160,13 @@
   --cat-salary: #4ADE80;
   --cat-interest: #A3E635;
   --cat-refund: #FBBF24;
+}
+
+/* Retina screens get true hairlines: borders at half a pixel, darkened a
+   touch so they keep the same presence. */
+@media (min-resolution: 2dppx) {
+  :root { --hairline: 0.5px; }
+  [data-theme="light"], :root:not([data-theme="dark"]) { --tile-border: var(--border-strong); }
 }
 
 /* ==========================================================================
@@ -193,8 +205,12 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   font-size: 14.5px;
-  line-height: 1.5;
+  line-height: 1.55;
+  letter-spacing: -0.003em;
+  font-variant-numeric: tabular-nums; /* figures line up in every column and total */
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background var(--transition), color var(--transition);
 }
 
@@ -204,8 +220,10 @@ body {
 
 :root {
   --skeleton: color-mix(in srgb, var(--text) 8%, transparent);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.38 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --skeleton-shine: color-mix(in srgb, var(--text) 3%, transparent);  /* lighter band in light mode */
 }
+[data-theme="dark"] { --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.38 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 [data-theme="dark"] { --skeleton-shine: color-mix(in srgb, var(--text) 15%, transparent); } /* brighter band in dark mode */
 
 @keyframes skeleton-pulse { 50% { opacity: 0.45; } }
@@ -294,9 +312,11 @@ body {
 
 h1, h2, h3 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 button { font-family: inherit; }
@@ -317,7 +337,7 @@ button { font-family: inherit; }
 .container {
   max-width: 1180px;
   margin: 0 auto;
-  padding: var(--space-8) calc(var(--space-6) + env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) calc(var(--space-6) + env(safe-area-inset-left));
+  padding: 56px calc(var(--space-8) + env(safe-area-inset-right)) calc(120px + env(safe-area-inset-bottom)) calc(var(--space-8) + env(safe-area-inset-left));
 }
 
 /* ==========================================================================
@@ -331,13 +351,13 @@ button { font-family: inherit; }
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   backdrop-filter: blur(16px) saturate(160%);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--hairline) solid var(--border);
 }
 
 .topbar__inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: calc(16px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 16px calc(24px + env(safe-area-inset-left));
+  padding: calc(18px + env(safe-area-inset-top)) calc(32px + env(safe-area-inset-right)) 18px calc(32px + env(safe-area-inset-left));
   display: flex;
   align-items: center;
   gap: 32px;
@@ -355,9 +375,9 @@ button { font-family: inherit; }
 
 .brand__name {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: -0.01em;
+  font-weight: 550;
+  font-size: 19px;
+  letter-spacing: -0.02em;
 }
 
 .topbar__controls,
@@ -563,7 +583,7 @@ button { font-family: inherit; }
 }
 
 .account-option__number {
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   color: var(--text-faint);
 }
 
@@ -651,8 +671,8 @@ button { font-family: inherit; }
   background: var(--accent);
   border-radius: 50%;
   font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 550;
 }
 
 .user-menu__name {
@@ -737,7 +757,7 @@ button { font-family: inherit; }
    Page heading
    ========================================================================== */
 
-.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); margin: 4px 0 20px; }
+.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); margin: 0 0 var(--space-8); }
 
 /* "Updated 9:14am" — data freshness; click to refresh (sync.js). */
 .sync-status {
@@ -764,7 +784,7 @@ button { font-family: inherit; }
 .sync-status.is-syncing { cursor: progress; }
 .sync-status.is-syncing .sync-status__icon { animation: sync-spin 900ms linear infinite; }
 @keyframes sync-spin { to { transform: rotate(360deg); } }
-.page-heading h1 { font-size: 22px; }
+.page-heading h1 { font-size: 32px; line-height: 1.15; letter-spacing: -0.025em; }
 .page-heading__subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 13.5px; }
 
 /* ==========================================================================
@@ -773,7 +793,7 @@ button { font-family: inherit; }
 
 .tile {
   background: var(--surface);
-  border: 1px solid var(--tile-border);
+  border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-1);
 }
@@ -782,11 +802,11 @@ button { font-family: inherit; }
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-5) 0;
+  padding: var(--space-6) 28px 0;
 }
 
-.tile__header h2 { font-size: 14.5px; font-weight: 600; }
-.tile__meta { font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); }
+.tile__header h2 { font-size: 18px; font-weight: 500; }
+.tile__meta { font-size: 12px; color: var(--text-faint); font-family: var(--font-num); letter-spacing: 0.01em; }
 
 /* ==========================================================================
    Stat tiles
@@ -795,32 +815,33 @@ button { font-family: inherit; }
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 
 .stat-tile {
   min-width: 0; /* lets a long single-line note truncate instead of widening its column */
-  padding: var(--space-4) var(--space-5) var(--space-5);
+  padding: var(--space-6) 28px 26px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .stat-tile__label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
 }
 
 .stat-tile__value {
-  font-family: var(--font-mono);
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 450;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .stat-tile__value--text { font-family: var(--font-display); font-size: 19px; }
@@ -828,7 +849,7 @@ button { font-family: inherit; }
 .stat-tile__delta {
   font-size: 12.5px;
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
 }
 
 .stat-tile__delta.is-up { color: var(--rose); }
@@ -844,18 +865,18 @@ button { font-family: inherit; }
 .charts-grid {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
   align-items: stretch;
 }
 
-.chart-tile { padding-bottom: 20px; display: flex; flex-direction: column; }
+.chart-tile { padding-bottom: 28px; display: flex; flex-direction: column; }
 
 .chart-tile__body {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 12px 20px 0;
+  gap: 28px;
+  padding: var(--space-4) 28px 0;
 }
 
 .chart-tile__canvas-wrap { position: relative; }
@@ -883,10 +904,10 @@ button { font-family: inherit; }
   text-overflow: ellipsis;
 }
 .donut-center__value {
-  font-family: var(--font-mono);
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 450;
+  letter-spacing: -0.025em;
   line-height: 1.15;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -894,14 +915,14 @@ button { font-family: inherit; }
 .donut-center__meta { font-size: 11.5px; color: var(--text-faint); }
 .donut-center.is-focused .donut-center__label { color: var(--focus-color); font-weight: 600; }
 .donut-center > * { animation: fade-in 200ms ease; }
-.chart-tile__canvas-wrap--line { padding: 16px 20px 0; height: 280px; }
+.chart-tile__canvas-wrap--line { padding: 20px 28px 0; height: 280px; }
 
 .trend-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 6px var(--space-4);
   margin: 0;
-  padding: var(--space-3) var(--space-5) var(--space-4);
+  padding: var(--space-4) 28px 0;
   list-style: none;
   font-size: 12px;
   color: var(--text-muted);
@@ -916,9 +937,9 @@ button { font-family: inherit; }
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   margin: 0;
-  padding: 20px 20px 0;
+  padding: var(--space-6) 28px 0;
 }
 
 .budget-item__header {
@@ -937,17 +958,16 @@ button { font-family: inherit; }
 
 .budget-item__summary {
   color: var(--text);
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-size: 11.5px;
   white-space: nowrap;
 }
 
 .budget-item__track {
-  height: 8px;
+  height: 6px;
   overflow: hidden;
   border-radius: var(--radius-full);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 
 .budget-item__fill {
@@ -1016,7 +1036,7 @@ button { font-family: inherit; }
 }
 
 .legend__amount {
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
   color: var(--text);
   font-weight: 500;
@@ -1032,7 +1052,7 @@ button { font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px 12px;
+  padding: var(--space-6) 28px var(--space-4);
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -1175,7 +1195,7 @@ button { font-family: inherit; }
 .tx-table tbody tr.tx-group:first-child td { padding-top: 10px; }
 .tx-group td { font-size: 12px; }
 .tx-group__day { font-weight: 600; color: var(--text); }
-.tx-group__total { float: right; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
+.tx-group__total { float: right; font-family: var(--font-num); font-size: 11.5px; color: var(--text-faint); }
 
 /* Merchant initial, tinted by category; becomes the select-to-hide checkbox on hover. */
 .tx-table__select-col, .tx-table__select { width: 52px; padding-right: 0 !important; }
@@ -1217,7 +1237,7 @@ button { font-family: inherit; }
   .tx-table.is-grouped tbody tr:not(:hover):not(:focus-within) .date-button--column { color: transparent; }
 }
 
-.tx-table__date { color: var(--text-muted); font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+.tx-table__date { color: var(--text-muted); font-family: var(--font-num); font-size: 12.5px; white-space: nowrap; }
 .tx-table__merchant { font-weight: 500; }
 
 .merchant-input {
@@ -1289,7 +1309,7 @@ button { font-family: inherit; }
 
 .tx-table__amount {
   text-align: right;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   white-space: nowrap;
@@ -1309,13 +1329,13 @@ button { font-family: inherit; }
 .amount-edit:hover, .amount-edit:focus-within { background: var(--surface-alt); border-color: var(--border-strong); }
 .amount-edit:focus-within { border-color: var(--accent); }
 
-.amount-edit__prefix { color: var(--text-faint); font-family: var(--font-mono); font-size: 13px; }
+.amount-edit__prefix { color: var(--text-faint); font-family: var(--font-num); font-size: 13px; }
 
 .amount-input {
   border: none;
   background: transparent;
   color: var(--text);
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   font-size: 13px;
@@ -1399,7 +1419,7 @@ button { font-family: inherit; }
   border-top: 1px solid var(--border);
   color: var(--text-faint);
   font-size: 12px;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1535,9 +1555,9 @@ button { font-family: inherit; }
 @keyframes lp-float { 50% { transform: translateY(-8px); } }
 
 .lp-label { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); }
-.lp-value { font-family: var(--font-mono); font-size: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+.lp-value { font-family: var(--font-display); font-size: 30px; font-weight: 450; letter-spacing: -0.025em; color: var(--text); }
 .lp-value small { margin-left: 3px; font-size: 13px; font-weight: 500; color: var(--text-faint); }
-.lp-note { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
+.lp-note { font-family: var(--font-num); font-size: 11.5px; color: var(--text-muted); }
 .lp-note--good { color: var(--accent); }
 .lp-bar { display: flex; gap: 2px; height: 8px; margin: 8px 0 6px; overflow: hidden; border-radius: var(--radius-full); }
 .lp-bar span { flex-basis: 0; }
@@ -1551,7 +1571,7 @@ button { font-family: inherit; }
   border-top: 1px solid var(--border);
 }
 .lp-row i { width: 7px; height: 7px; border-radius: 2px; }
-.lp-row b { margin-left: auto; font-family: var(--font-mono); font-weight: 500; }
+.lp-row b { margin-left: auto; font-family: var(--font-num); font-weight: 500; }
 .lp-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 6px; }
 .lp-cal__day { aspect-ratio: 1; border-radius: 4px; background: var(--surface-alt); border: 1px solid var(--border); }
 .lp-heat-1 { background: var(--heat-1); border-color: transparent; }
@@ -1604,7 +1624,7 @@ button { font-family: inherit; }
   place-items: center;
   width: 22px;
   height: 22px;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-size: 11.5px;
   font-weight: 600;
   color: var(--accent);
@@ -1762,7 +1782,7 @@ button { font-family: inherit; }
   place-items: center;
   width: 40px;
   height: 40px;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -1865,7 +1885,7 @@ button { font-family: inherit; }
 .statement-row__text { display: flex; flex-direction: column; min-width: 0; }
 .statement-row__bank { font-size: 13.5px; font-weight: 500; }
 .statement-row__meta { overflow: hidden; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); text-overflow: ellipsis; white-space: nowrap; }
-.statement-row__status { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); white-space: nowrap; }
+.statement-row__status { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-family: var(--font-num); font-size: 11.5px; color: var(--text-faint); white-space: nowrap; }
 .statement-row__status.is-done { color: var(--accent); }
 .statement-row__skeleton { display: block; width: 46px; height: 10px; background: var(--skeleton); border-radius: var(--radius-full); animation: skeleton-pulse 1.4s ease-in-out infinite; }
 .statements-card__note { margin: 0; padding: var(--space-2) var(--space-5) var(--space-4); font-size: 12px; color: var(--text-faint); }
@@ -2013,7 +2033,7 @@ button { font-family: inherit; }
 .datepicker__day {
   position: relative;
   height: 30px;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-size: 12px;
   color: var(--text);
   background: none;
@@ -2059,7 +2079,7 @@ button { font-family: inherit; }
   color: var(--text-faint);
 }
 
-.datepicker__original { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); }
+.datepicker__original { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-num); }
 .datepicker__original-dot { display: inline-block; flex: none; }
 
 .datepicker__reset {
@@ -2168,12 +2188,12 @@ button { font-family: inherit; }
   flex-direction: column;
   gap: var(--space-4);
   min-width: 0;
-  padding: var(--space-5);
+  padding: var(--space-6) 28px 28px;
 }
 .breakdown-card[hidden] { display: none; }
 .breakdown-card__head { display: flex; flex-direction: column; gap: 6px; }
 .breakdown-card__head h2.stat-tile__label { margin: 0; font-family: var(--font-body); }
-.breakdown-card__value { font-size: 30px; }
+.breakdown-card__value { font-size: 34px; }
 .breakdown-card__unit { margin-left: 4px; font-size: 15px; font-weight: 500; color: var(--text-faint); }
 
 .breakdown-bar {
@@ -2199,11 +2219,11 @@ button { font-family: inherit; }
   border-top: 1px solid var(--border);
 }
 .breakdown-row:first-child { border-top: none; padding-top: 0; }
-.breakdown-row__op { font-family: var(--font-mono); font-size: 13px; line-height: var(--row-line); color: var(--text-faint); text-align: center; }
+.breakdown-row__op { font-family: var(--font-num); font-size: 13px; line-height: var(--row-line); color: var(--text-faint); text-align: center; }
 .breakdown-row__swatch { width: 8px; height: 8px; margin-top: calc((var(--row-line) - 8px) / 2); border-radius: 2px; }
 .breakdown-row__label { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--text); font-weight: 500; }
 .breakdown-row__label small { font-size: 11.5px; font-weight: 400; line-height: 1.4; color: var(--text-faint); }
-.breakdown-row__amount { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.breakdown-row__amount { font-family: var(--font-num); font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
 .breakdown-row--subtotal { border-top-color: var(--border-strong); }
 .breakdown-row--subtotal .breakdown-row__label,
 .breakdown-row--subtotal .breakdown-row__amount { font-weight: 600; }
@@ -2269,7 +2289,7 @@ button { font-family: inherit; }
 
 .calendar__date { font-size: 12px; font-weight: 500; color: var(--text-muted); }
 .calendar__amount {
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-size: 12.5px;
   font-weight: 500;
   white-space: nowrap;
@@ -2329,7 +2349,7 @@ button { font-family: inherit; }
   align-items: center;
   justify-content: flex-end;
   padding-right: 2px;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
@@ -2350,7 +2370,7 @@ button { font-family: inherit; }
 .day-budget[hidden] { display: none; }
 .day-budget__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); font-size: 12.5px; }
 .day-budget__text { color: var(--text-muted); }
-.day-budget__meta { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.day-budget__meta { font-family: var(--font-num); font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
 .day-budget.is-over .day-budget__meta { color: var(--rose); }
 .day-budget__track { display: block; height: 6px; overflow: hidden; background: var(--border); border-radius: var(--radius-full); }
 .day-budget__fill { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width 600ms var(--ease-out); }
@@ -2382,7 +2402,7 @@ button { font-family: inherit; }
 .day-list__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .day-list__merchant { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .day-list__meta { font-size: 12px; color: var(--text-faint); }
-.day-list__amount { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+.day-list__amount { font-family: var(--font-num); font-size: 13px; font-weight: 500; }
 
 /* Marks days with at least one calendar event. */
 .calendar__event-dot {
@@ -2412,7 +2432,7 @@ button { font-family: inherit; }
 
 .calendar-tooltip[hidden] { display: none; }
 .calendar-tooltip__date { font-size: 12px; color: var(--text-muted); }
-.calendar-tooltip__value { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+.calendar-tooltip__value { font-family: var(--font-num); font-size: 14px; font-weight: 600; }
 .calendar-tooltip__meta { font-size: 12px; color: var(--text-faint); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 /* ==========================================================================
@@ -2472,7 +2492,7 @@ button { font-family: inherit; }
   .day-list__amount { font-size: 12px; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 16px 16px 16px; }
-  .stat-tile__value { font-size: 19px; }
+  .stat-tile__value { font-size: 23px; }
 
   /* Top bar: brand + borderless icon actions on the first row, the two
      filters side by side below, and "Hide selected" full width when shown.
@@ -2564,7 +2584,7 @@ button { font-family: inherit; }
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .tx-table__meta-date { display: inline; font-family: var(--font-mono); }
+  .tx-table__meta-date { display: inline; font-family: var(--font-num); }
   .tx-table__account-id { display: none; }
   .tx-table tbody .tx-table__category { grid-area: category; justify-self: end; }
   .merchant-input { min-width: 0; }
@@ -2625,7 +2645,7 @@ button { font-family: inherit; }
   .breakdown-card__value { font-size: 24px; }
   .breakdown-row { font-size: 12.5px; column-gap: 6px; }
   .stat-tile__label { font-size: 9.5px; letter-spacing: 0.05em; }
-  .stat-tile__value { font-size: 16px; }
+  .stat-tile__value { font-size: 19px; }
   .stat-tile__delta { font-size: 10.5px; line-height: 1.35; }
   /* Notes wrap to a second line on phones rather than cutting off mid-word. */
   .stat-tile__delta--truncate {
@@ -2646,7 +2666,7 @@ button { font-family: inherit; }
 
   .charts-grid { gap: 12px; margin-bottom: 12px; }
   .tile__header { padding: 16px 16px 0; }
-  .tile__header h2 { font-size: 13.5px; }
+  .tile__header h2 { font-size: 16px; }
   .tile__meta { font-size: 11px; }
   .chart-tile { padding-bottom: 16px; }
   /* Donut and legend side by side rather than stacked. */
@@ -2657,7 +2677,7 @@ button { font-family: inherit; }
   .legend li { font-size: 12px; }
   /* Smaller doughnut on phones, so a smaller centre label. */
   .donut-center { inset: 24%; gap: 0; }
-  .donut-center__value { font-size: 16px; }
+  .donut-center__value { font-size: 18px; }
   .donut-center__label, .donut-center__meta { font-size: 9.5px; }
   .budget-list { gap: 12px; padding: 16px 16px 0; }
   .budget-item__category { font-size: 12px; }
@@ -2665,7 +2685,7 @@ button { font-family: inherit; }
   .budget-item__track { height: 6px; }
 
   .table-tile__header { padding: 12px 16px 10px; }
-  .table-tile__header h2 { font-size: 15px; }
+  .table-tile__header h2 { font-size: 17px; }
   .field--search input { padding: 6px 8px; font-size: 13px; }
   .table-filter .multiselect__button { height: 32px; padding: 0 8px; gap: 6px; }
   .chip { padding: 4px 10px 4px 8px; font-size: 11.5px; }
@@ -2820,7 +2840,7 @@ body.chat-page {
 .msg__content strong { font-weight: 600; }
 .msg__content code {
   padding: 1px 6px;
-  font-family: var(--font-mono);
+  font-family: var(--font-num);
   font-size: 0.88em;
   background: color-mix(in srgb, var(--text) 7%, transparent);
   border-radius: var(--radius-xs);
@@ -2978,9 +2998,9 @@ body.chat-page {
    Ambience — the login page's light, carried quietly into the app
    ========================================================================== */
 
-/* A soft green and gold glow, with a faint grid beneath it, behind the top
-   of every page. It sits behind everything (isolation keeps z-index -1
-   above the page background) and fades out before the content gets dense. */
+/* A soft gold and green glow behind the top of every page. It sits behind
+   everything (isolation keeps z-index -1 above the page background) and
+   fades out before the content gets dense. */
 body:not(.login-page) { position: relative; isolation: isolate; }
 body:not(.login-page)::before {
   content: '';
@@ -2990,25 +3010,14 @@ body:not(.login-page)::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(48% 60% at 82% -6%, var(--glow-accent), transparent 70%),
-    radial-gradient(38% 50% at 12% -10%, var(--glow-gold), transparent 70%);
+    radial-gradient(55% 60% at 85% -8%, var(--glow-gold), transparent 70%),
+    radial-gradient(40% 50% at 10% -12%, var(--glow-accent), transparent 70%);
 }
-body:not(.login-page)::after {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 560px;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--glow-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--glow-grid) 1px, transparent 1px);
-  background-size: 44px 44px;
-  -webkit-mask-image: radial-gradient(70% 90% at 50% 0%, #000 10%, transparent 75%);
-  mask-image: radial-gradient(70% 90% at 50% 0%, #000 10%, transparent 75%);
-}
+/* Paper grain: a background layer on the page itself, so it can never
+   paint over content. */
+body:not(.login-page) { background-image: var(--grain); background-size: 160px 160px; }
 /* The assistant fills one screen, so its glow follows it. */
-body.chat-page::before, body.chat-page::after { position: fixed; }
+body.chat-page::before { position: fixed; }
 
 /* Dark mode: cards let a touch of that light through. Desktop also frosts
    them; phones skip the blur to keep scrolling smooth and battery-friendly. */
