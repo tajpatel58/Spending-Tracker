@@ -1006,6 +1006,58 @@ button { font-family: inherit; }
 }
 
 .tile__header h2 { font-size: 18px; font-weight: 500; }
+
+/* Category doughnut, opened into a category: a back arrow before the
+   title, and "Show transactions →" in place of the meta. */
+.tile__title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.tile__title h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0 -4px -8px;
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  align-self: center;
+  transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+.tile__back:hover { color: var(--text); background: var(--surface-alt); }
+.tile__back:active { transform: scale(0.94); }
+.tile__back[hidden], .tile__action[hidden], .tile__meta[hidden] { display: none; }
+.tile__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.tile__action svg { transition: transform 200ms var(--ease-out); }
+.tile__action:hover svg { transform: translateX(2px); }
+.chart-tile.is-drilled .tile__header { align-items: center; }
+
+/* Opening or closing a category: the title and legend rows settle in
+   with the ring's sweep. */
+.chart-tile.is-switching .tile__title { animation: fade-in 320ms ease both; }
+.chart-tile.is-switching .legend li {
+  animation: legend-in 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 35ms + 80ms);
+}
+@keyframes legend-in { from { opacity: 0; transform: translateX(-6px); } }
+.legend.is-selectable [data-index] { cursor: pointer; }
 .tile__meta { font-size: 12px; color: var(--text-faint); font-family: var(--font-num); letter-spacing: 0.01em; }
 
 /* ==========================================================================

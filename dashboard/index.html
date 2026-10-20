@@ -264,8 +264,18 @@
   <section class="charts-grid" aria-label="Charts">
     <div class="tile chart-tile">
       <div class="tile__header">
-        <h2>Spending by category</h2>
+        <!-- Choosing a category opens it into its merchants (charts.js renderCategoryChart). -->
+        <div class="tile__title">
+          <button type="button" class="tile__back" id="category-back" aria-label="Back to all categories" title="All categories (Esc)" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor"/></svg>
+          </button>
+          <h2 id="category-chart-title">Spending by category</h2>
+        </div>
         <span class="tile__meta" id="category-chart-meta"></span>
+        <button type="button" class="tile__action" id="category-show-table" hidden>
+          Show transactions
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor"/></svg>
+        </button>
       </div>
       <div class="chart-tile__body">
         <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--donut">

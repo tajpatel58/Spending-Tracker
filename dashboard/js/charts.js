@@ -37,23 +37,36 @@ const shareOf = (part, whole) => {
   return pct > 0 && pct < 1 ? '<1%' : `${Math.round(pct)}%`;
 };
 
+/** Blends two '#RRGGBB' colours: t = 0 gives `a`, 1 gives `b`. */
+function mixHex(a, b, t) {
+  const rgb = (hex) => hex.replace('#', '').match(/../g).map((h) => parseInt(h, 16));
+  const [x, y] = [rgb(a), rgb(b)];
+  return `#${x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
+}
+
 /**
  * Draws a doughnut with a label in its centre and a legend beside it.
  * The centre shows the total; hovering (or tapping) a slice or its legend
  * row lifts that slice, dims the rest and swaps the centre to its name,
  * amount and share. Legends longer than LEGEND_LIMIT get a "+N more" toggle.
  *
- *   entries: [{ id, label, total, color: 'var(--token)' }]
+ * With `onSelect`, choosing the highlighted slice (a click on desktop,
+ * where hovering highlights it; a second tap on touch screens) or a
+ * legend row (click, tap or Enter) calls onSelect(entry). `sweep` redraws
+ * the ring sweeping round, as when the doughnut switches to new contents.
+ *
+ *   entries: [{ id, label, total, color: 'var(--token)' or '#RRGGBB' }]
  *   noun: ['category', 'categories'] — for the centre's "10 categories"
  */
-function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onDblClick }) {
+function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onSelect, sweep = false }) {
   const canvas = document.getElementById(canvasId);
   const wrap = canvas.parentElement;
   const legend = document.getElementById(legendId);
-  const colors = entries.map((e) => cssVar(e.color.slice(4, -1)));
+  const colors = entries.map((e) => (e.color.startsWith('var(') ? cssVar(e.color.slice(4, -1)) : e.color));
   const total = entries.reduce((s, e) => s + e.total, 0);
   let active = null;
   let activatedAt = 0;
+  let pointer = 'mouse'; // how the last press came in: a touch tap highlights, a second one selects
 
   // ---- Centre label ----
   let center = wrap.querySelector('.donut-center');
@@ -97,14 +110,20 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
       cutout: '84%',
       layout: { padding: 8 }, // room for the lifted slice
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      // First load: the ring sweeps round once; afterwards changes are quick.
-      animation: firstDraw ? { duration: 1100, easing: 'easeOutQuart' } : { duration: 350 },
+      // First load (and switching contents): the ring sweeps round; other changes are quick.
+      animation: firstDraw || sweep ? { duration: firstDraw ? 1100 : 750, easing: 'easeOutQuart' } : { duration: 350 },
       onHover: (_event, elements) => setActive(elements.length ? elements[0].index : null),
-      // Touch screens: a tap selects a slice; tapping it again (or the middle) clears it.
+      // Touch screens: a tap highlights a slice; tapping it again selects it (or,
+      // without onSelect, clears it), as does tapping the middle.
       onClick: (_event, elements) => {
         const index = elements.length ? elements[0].index : null;
-        // A tap fires touchstart (which already selected it) then click — don't let the click undo it.
-        if (index === active && Date.now() - activatedAt < 500) return;
+        // A tap fires touchstart (which already highlighted it) then click — don't let the click act on it too.
+        if (pointer !== 'mouse' && index === active && Date.now() - activatedAt < 500) return;
+        if (index !== null && index === active && onSelect) {
+          // Selecting usually redraws this chart, so let Chart.js finish handling the click first.
+          setTimeout(() => onSelect(entries[index]), 0);
+          return;
+        }
         setActive(index === active ? null : index);
       },
     },
@@ -123,19 +142,17 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
     legend.classList.toggle('has-active', index !== null);
   }
   canvas.onmouseleave = () => setActive(null);
-  if (onDblClick) {
-    canvas.ondblclick = (event) => {
-      const hit = instance.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
-      if (hit.length) onDblClick(entries[hit[0].index]);
-    };
-  }
+  canvas.onpointerdown = (event) => { pointer = event.pointerType; };
+  canvas.style.cursor = onSelect && entries.length ? 'pointer' : '';
 
   // ---- Legend ----
   const expanded = expandedLegends.has(legendId);
   const extra = Math.max(0, entries.length - LEGEND_LIMIT);
   legend.classList.toggle('is-expanded', expanded);
+  legend.classList.toggle('is-selectable', Boolean(onSelect));
+  legend.classList.remove('has-active'); // a fresh chart starts with nothing highlighted
   legend.innerHTML = entries.map((e, i) => `
-    <li data-index="${i}" data-id="${escapeAttr(e.id)}" tabindex="0"${i >= LEGEND_LIMIT ? ' class="legend__extra"' : ''}>
+    <li data-index="${i}" data-id="${escapeAttr(e.id)}" tabindex="0" style="--i:${Math.min(i, LEGEND_LIMIT)}"${i >= LEGEND_LIMIT ? ' class="legend__extra"' : ''}>
       <span class="legend__swatch" style="background:${e.color}"></span>
       <span class="legend__name">${escapeAttr(e.label)}</span>
       <span class="legend__amount">${currencyShort(e.total)}</span>
@@ -158,12 +175,16 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
       renderDonut.rerender[legendId]?.();
       return;
     }
-    const i = rowIndex(event); // tap on touch screens
-    if (i !== null) setActive(i === active ? null : i);
-  };
-  legend.ondblclick = (event) => {
     const i = rowIndex(event);
-    if (i !== null && onDblClick) onDblClick(entries[i]);
+    if (i === null) return;
+    if (onSelect) { onSelect(entries[i]); return; }
+    setActive(i === active ? null : i); // tap on touch screens
+  };
+  legend.onkeydown = (event) => {
+    const i = rowIndex(event);
+    if (i === null || !onSelect || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    onSelect(entries[i], { keyboard: true });
   };
 
   canvas.setAttribute('aria-label', entries.length
@@ -174,32 +195,105 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
 }
 renderDonut.rerender = {};
 
+let categoryDrill = null; // the category the doughnut is opened into, if any
+
 /**
  * Renders the "spending by category" doughnut (excl. fixed expenses).
- * Double-clicking a slice or legend row filters the transactions table
- * to that category (see setCategoryFilter below).
+ * Choosing a category opens it: the ring sweeps round into that
+ * category's merchants, shaded from its colour, with a back arrow (or
+ * Escape) to return and "Show transactions" to filter the table to it.
+ * It stays open across month changes while the category has spending.
+ * `sweep` plays the sweep (when opening or closing).
  */
-function renderCategoryChart() {
-  const totals = categoryTotals(getMonthTransactions(state.month).filter(isVariableExpense));
-  const entries = CATEGORIES
-    .filter((c) => isVariableExpense({ category: c.id }))
-    .map((c) => ({ id: c.id, label: c.label, color: c.color, total: totals[c.id] || 0 }))
-    .filter((c) => c.total > 0)
-    .sort((a, b) => b.total - a.total);
+function renderCategoryChart({ sweep = false } = {}) {
+  const variable = getMonthTransactions(state.month).filter(isVariableExpense);
+  const totals = categoryTotals(variable);
+  if (categoryDrill && !totals[categoryDrill]) categoryDrill = null;
+  const category = categoryDrill && catById[categoryDrill];
+
+  let entries;
+  if (category) {
+    // One slice per merchant (names matched regardless of case/spacing), biggest first.
+    const byMerchant = new Map();
+    variable.filter((t) => t.category === category.id).forEach((t) => {
+      const key = t.merchant.trim().toLowerCase();
+      const entry = byMerchant.get(key) || { id: key, label: t.merchant.trim(), total: 0 };
+      entry.total += Math.abs(t.amount);
+      byMerchant.set(key, entry);
+    });
+    const base = cssVar(category.color.slice(4, -1));
+    const surface = cssVar('--surface');
+    entries = [...byMerchant.values()].sort((a, b) => b.total - a.total);
+    // Shades of the category's colour, fading towards the card for smaller merchants.
+    entries.forEach((e, i) => { e.color = mixHex(base, surface, entries.length > 1 ? (i / (entries.length - 1)) * 0.62 : 0); });
+  } else {
+    entries = CATEGORIES
+      .filter((c) => isVariableExpense({ category: c.id }))
+      .map((c) => ({ id: c.id, label: c.label, color: c.color, total: totals[c.id] || 0 }))
+      .filter((c) => c.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }
 
   categoryChart = renderDonut({
     chart: categoryChart,
     canvasId: 'category-chart',
     legendId: 'category-legend',
     entries,
-    totalLabel: 'Excl. fixed',
-    noun: ['category', 'categories'],
+    totalLabel: category ? category.label : 'Excl. fixed',
+    noun: category ? ['merchant', 'merchants'] : ['category', 'categories'],
     emptyText: 'No spending this month',
-    onDblClick: (entry) => setCategoryFilter(entry.id),
+    onSelect: category ? null : (entry, how) => openCategory(entry.id, how),
+    sweep,
   });
+
+  const tile = document.getElementById('category-chart').closest('.chart-tile');
+  tile.classList.toggle('is-drilled', Boolean(category));
+  document.getElementById('category-chart-title').textContent = category ? category.label : 'Spending by category';
+  document.getElementById('category-back').hidden = !category;
+  document.getElementById('category-show-table').hidden = !category;
+  document.getElementById('category-chart-meta').hidden = Boolean(category);
   document.getElementById('category-chart-meta').textContent = `${entries.length} categories`;
+  if (sweep && !motion.reduced()) {
+    // The title and legend settle in with the new ring.
+    tile.classList.remove('is-switching');
+    void tile.offsetWidth;
+    tile.classList.add('is-switching');
+    clearTimeout(tile.switchTimer);
+    tile.switchTimer = setTimeout(() => tile.classList.remove('is-switching'), 700);
+  }
 }
 renderDonut.rerender['category-legend'] = () => renderCategoryChart();
+
+/**
+ * Opens the doughnut into a category's merchants (or, with null, back
+ * to all categories). From the keyboard, focus moves to the back arrow.
+ */
+function openCategory(categoryId, { keyboard = false } = {}) {
+  categoryDrill = categoryId;
+  expandedLegends.delete('category-legend'); // each view starts with its legend folded
+  renderCategoryChart({ sweep: true });
+  if (categoryId && keyboard) document.getElementById('category-back').focus({ preventScroll: true });
+}
+
+/** Wires up the category doughnut's back arrow, Escape and "Show transactions". */
+function initCategoryDrill() {
+  const tile = document.getElementById('category-chart').closest('.chart-tile');
+  document.getElementById('category-back').addEventListener('click', (event) => {
+    const from = categoryDrill;
+    openCategory(null);
+    // From the keyboard (Enter, or Escape below), focus returns to the category's row.
+    if (event.detail === 0) document.querySelector(`#category-legend [data-id="${CSS.escape(from)}"]`)?.focus({ preventScroll: true });
+  });
+  // Escape goes back while the pointer is over the tile or focus is in it.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !categoryDrill) return;
+    if (tile.matches(':hover') || tile.contains(document.activeElement)) document.getElementById('category-back').click();
+  });
+  document.getElementById('category-show-table').addEventListener('click', () => {
+    setCategoryFilter(categoryDrill);
+    document.querySelector('.table-tile').scrollIntoView({ block: 'start', behavior: motion.reduced() ? 'auto' : 'smooth' });
+  });
+}
 
 /** Filters the transactions table down to a single category. */
 function setCategoryFilter(categoryId) {

@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSorting();
     initTableEditing();
     initTableExport();
+    initCategoryDrill();
 
     renderAll();
     finishLoading();
