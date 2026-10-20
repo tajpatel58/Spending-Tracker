@@ -70,8 +70,8 @@ const motion = (() => {
     cancelAnimationFrame(frames.get(el));
     if (before !== target && from && Date.now() < flashUntil) flash(el);
     // Animate plain numeric text, or a money figure whose only markup is its
-    // smaller pence (moneyMarkup) — not values like "£2.77/day" with a unit.
-    const money = el.children.length === 1 && el.firstElementChild.classList.contains('money__pence');
+    // £ sign and pence (moneyMarkup) — not values like "£2.77/day" with a unit.
+    const money = el.children.length > 0 && [...el.children].every((child) => child.matches('.money__sym, .money__pence'));
     if (!to || (el.children.length && !money) || reduced()) return;
     // Count from the old figure if it had the same sign/prefix, otherwise from zero.
     const start = from && from.prefix === to.prefix ? from.value : 0;

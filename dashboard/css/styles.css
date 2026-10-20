@@ -1949,8 +1949,17 @@ button { font-family: inherit; }
   margin: 0;
 }
 .empty-state[hidden] { display: none; }
-/* Headline money figures (moneyMarkup in format.js): the pence sit smaller,
-   raised and quieter, as on a price tag. */
+/* Headline money figures (moneyMarkup in format.js): the £ sign and the
+   pence sit smaller, raised and quieter either side of the pounds, as on
+   a price tag. */
+.money__sym {
+  margin-right: 0.04em;
+  font-size: 0.62em;
+  vertical-align: 0.5em;
+  line-height: 0;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
 .money__pence {
   margin-left: 0.03em;
   font-size: 0.56em;

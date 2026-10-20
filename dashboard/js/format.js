@@ -19,11 +19,14 @@ const signedFixed = (n, digits) => n.toFixed(digits).replace('-', MINUS);
 
 /**
  * HTML for a headline money figure: the pence drop to a smaller, raised,
- * quieter size, e.g. "£1,234.56" -> £1,234<span class="money__pence">.56</span>.
+ * quieter size, and the £ sign is set small and raised beside the figure, e.g.
+ * "£1,234.56" -> <span class="money__sym">£</span>1,234<span class="money__pence">.56</span>.
  * Takes the already formatted string (from currency()), so the text reads
  * the same to screen readers and copy/paste.
  */
-const moneyMarkup = (text) => text.replace(/(\.\d+)(?!.*\d)/, '<span class="money__pence">$1</span>');
+const moneyMarkup = (text) => text
+  .replace('£', '<span class="money__sym">£</span>')
+  .replace(/(\.\d+)(?!.*\d)/, '<span class="money__pence">$1</span>');
 
 /** Formats an ISO date ('2026-08-14') as "14 Aug". */
 function formatDate(iso) {
