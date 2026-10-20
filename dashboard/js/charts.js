@@ -57,8 +57,9 @@ function mixHex(a, b, t) {
  *
  *   entries: [{ id, label, total, color: 'var(--token)' or '#RRGGBB' }]
  *   noun: ['category', 'categories'] — for the centre's "10 categories"
+ *   count: the number the centre counts, when it isn't entries.length
  */
-function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onSelect, sweep = false }) {
+function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onSelect, sweep = false, count = entries.length }) {
   const canvas = document.getElementById(canvasId);
   const wrap = canvas.parentElement;
   const legend = document.getElementById(legendId);
@@ -83,7 +84,7 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
     center.classList.toggle('is-focused', Boolean(e));
     labelEl.textContent = e ? e.label : totalLabel;
     valueEl.textContent = currencyShort(e ? e.total : total);
-    metaEl.textContent = e ? `${shareOf(e.total, total)} of total` : `${entries.length} ${noun[entries.length === 1 ? 0 : 1]}`;
+    metaEl.textContent = e ? `${shareOf(e.total, total)} of total` : `${count} ${noun[count === 1 ? 0 : 1]}`;
     if (e) center.style.setProperty('--focus-color', colors[index]);
   };
 
@@ -213,19 +214,8 @@ function renderCategoryChart({ sweep = false } = {}) {
 
   let entries;
   if (category) {
-    // One slice per merchant (names matched regardless of case/spacing), biggest first.
-    const byMerchant = new Map();
-    variable.filter((t) => t.category === category.id).forEach((t) => {
-      const key = t.merchant.trim().toLowerCase();
-      const entry = byMerchant.get(key) || { id: key, label: t.merchant.trim(), total: 0 };
-      entry.total += Math.abs(t.amount);
-      byMerchant.set(key, entry);
-    });
-    const base = cssVar(category.color.slice(4, -1));
-    const surface = cssVar('--surface');
-    entries = [...byMerchant.values()].sort((a, b) => b.total - a.total);
-    // Shades of the category's colour, fading towards the card for smaller merchants.
-    entries.forEach((e, i) => { e.color = mixHex(base, surface, entries.length > 1 ? (i / (entries.length - 1)) * 0.62 : 0); });
+    // One slice per merchant, in shades of the category's colour.
+    entries = shadeEntries(merchantEntries(variable.filter((t) => t.category === category.id)), category.color);
   } else {
     entries = CATEGORIES
       .filter((c) => isVariableExpense({ category: c.id }))
@@ -246,15 +236,25 @@ function renderCategoryChart({ sweep = false } = {}) {
     sweep,
   });
 
-  const tile = document.getElementById('category-chart').closest('.chart-tile');
-  tile.classList.toggle('is-drilled', Boolean(category));
-  document.getElementById('category-chart-title').textContent = category ? category.label : 'Spending by category';
-  document.getElementById('category-back').hidden = !category;
-  document.getElementById('category-show-table').hidden = !category;
-  document.getElementById('category-chart-meta').hidden = Boolean(category);
   document.getElementById('category-chart-meta').textContent = `${entries.length} categories`;
+  setDrillHeader('category', category ? category.label : null, 'Spending by category', sweep);
+}
+
+/**
+ * Updates a doughnut tile's header for being opened (`drilledLabel`) or
+ * not: the title, back arrow, "Show transactions" and meta. Elements are
+ * found by prefix, e.g. 'category' -> #category-chart-title. `sweep`
+ * lets the title and legend settle in with the new ring.
+ */
+function setDrillHeader(prefix, drilledLabel, title, sweep) {
+  const drilled = drilledLabel !== null;
+  const tile = document.getElementById(`${prefix}-chart`).closest('.chart-tile');
+  tile.classList.toggle('is-drilled', drilled);
+  document.getElementById(`${prefix}-chart-title`).textContent = drilled ? drilledLabel : title;
+  document.getElementById(`${prefix}-back`).hidden = !drilled;
+  document.getElementById(`${prefix}-show-table`).hidden = !drilled;
+  document.getElementById(`${prefix}-chart-meta`).hidden = drilled;
   if (sweep && !motion.reduced()) {
-    // The title and legend settle in with the new ring.
     tile.classList.remove('is-switching');
     void tile.offsetWidth;
     tile.classList.add('is-switching');
@@ -277,20 +277,34 @@ function openCategory(categoryId, { keyboard = false } = {}) {
 
 /** Wires up the category doughnut's back arrow, Escape and "Show transactions". */
 function initCategoryDrill() {
-  const tile = document.getElementById('category-chart').closest('.chart-tile');
-  document.getElementById('category-back').addEventListener('click', (event) => {
-    const from = categoryDrill;
-    openCategory(null);
-    // From the keyboard (Enter, or Escape below), focus returns to the category's row.
-    if (event.detail === 0) document.querySelector(`#category-legend [data-id="${CSS.escape(from)}"]`)?.focus({ preventScroll: true });
+  initDrill({
+    prefix: 'category',
+    current: () => categoryDrill,
+    open: openCategory,
+    showTable: () => setCategoryFilter(categoryDrill),
   });
-  // Escape goes back while the pointer is over the tile or focus is in it.
+}
+
+/**
+ * Wires up an openable doughnut's back arrow, Escape (while the pointer
+ * is over the tile or focus is in it) and "Show transactions", which
+ * filters the table and scrolls to it.
+ */
+function initDrill({ prefix, current, open, showTable }) {
+  const tile = document.getElementById(`${prefix}-chart`).closest('.chart-tile');
+  const back = document.getElementById(`${prefix}-back`);
+  back.addEventListener('click', (event) => {
+    const from = current();
+    open(null);
+    // From the keyboard (Enter, or Escape below), focus returns to the opened row.
+    if (event.detail === 0) document.querySelector(`#${prefix}-legend [data-id="${CSS.escape(from)}"]`)?.focus({ preventScroll: true });
+  });
   document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || !categoryDrill) return;
-    if (tile.matches(':hover') || tile.contains(document.activeElement)) document.getElementById('category-back').click();
+    if (event.key !== 'Escape' || !current()) return;
+    if (tile.matches(':hover') || tile.contains(document.activeElement)) back.click();
   });
-  document.getElementById('category-show-table').addEventListener('click', () => {
-    setCategoryFilter(categoryDrill);
+  document.getElementById(`${prefix}-show-table`).addEventListener('click', () => {
+    showTable();
     document.querySelector('.table-tile').scrollIntoView({ block: 'start', behavior: motion.reduced() ? 'auto' : 'smooth' });
   });
 }
@@ -302,38 +316,121 @@ function setCategoryFilter(categoryId) {
   renderTable();
 }
 
+let userDrill = null;        // the user the doughnut is opened into, if any
+const USER_DRILL_LIMIT = 10; // transactions given their own slice when opened into a user
+
+/** One doughnut entry per merchant (names matched regardless of case/spacing), biggest first. */
+function merchantEntries(transactions) {
+  const byMerchant = new Map();
+  transactions.forEach((t) => {
+    const key = t.merchant.trim().toLowerCase();
+    const entry = byMerchant.get(key) || { id: key, label: t.merchant.trim(), total: 0 };
+    entry.total += Math.abs(t.amount);
+    byMerchant.set(key, entry);
+  });
+  return [...byMerchant.values()].sort((a, b) => b.total - a.total);
+}
+
+/** Colours entries in shades of `color`, fading towards the card for smaller ones. */
+function shadeEntries(entries, color) {
+  const base = color.startsWith('var(') ? cssVar(color.slice(4, -1)) : color;
+  const surface = cssVar('--surface');
+  entries.forEach((e, i) => { e.color = mixHex(base, surface, entries.length > 1 ? (i / (entries.length - 1)) * 0.62 : 0); });
+  return entries;
+}
+
 /**
  * Renders the "spending by user" doughnut. Fixed expenses get their own
  * slice rather than counting towards a user, so spend splits into Fixed
  * Expenses plus each user (e.g. Joint, Taj). Colours follow the user (see
  * spendOwnerColor), not their rank, so they don't swap month to month.
+ *
+ * Choosing a user opens it, as the category doughnut does: into that
+ * user's biggest transactions (the rest share one "Other" slice), with a
+ * back arrow (or Escape) and "Show transactions" to filter the table to them.
  */
-function renderUserChart() {
+function renderUserChart({ sweep = false } = {}) {
+  const expenses = (TRANSACTIONS[state.month] || []).filter((transaction) => !transaction.hidden && isExpense(transaction));
   const totals = {};
-  (TRANSACTIONS[state.month] || [])
-    .filter((transaction) => !transaction.hidden && isExpense(transaction))
-    .forEach((transaction) => {
-      const user = spendOwner(transaction);
-      totals[user] = (totals[user] || 0) + Math.abs(transaction.amount);
-    });
-  const entries = Object.entries(totals)
-    .map(([user, total]) => ({ id: user, label: user, total, color: spendOwnerColor(user) }))
-    .filter((entry) => entry.total > 0)
-    .sort((a, b) => b.total - a.total);
+  expenses.forEach((transaction) => {
+    const user = spendOwner(transaction);
+    totals[user] = (totals[user] || 0) + Math.abs(transaction.amount);
+  });
+  if (userDrill && !totals[userDrill]) userDrill = null;
+
+  let entries;
+  let count;
+  if (userDrill) {
+    // The user's biggest transactions, in shades of their colour; the rest share a grey "Other" slice.
+    const own = expenses
+      .filter((t) => spendOwner(t) === userDrill)
+      .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+    count = own.length;
+    entries = shadeEntries(own.slice(0, USER_DRILL_LIMIT).map((t, i) => ({
+      id: String(t.id ?? i),
+      label: `${t.merchant.trim()} · ${formatDate(t.date).replace(/^0/, '')}`,
+      total: Math.abs(t.amount),
+    })), spendOwnerColor(userDrill));
+    const rest = own.slice(USER_DRILL_LIMIT);
+    if (rest.length) {
+      entries.push({
+        id: 'other',
+        label: `Other (${rest.length})`,
+        total: rest.reduce((sum, t) => sum + Math.abs(t.amount), 0),
+        color: cssVar('--border'),
+      });
+    }
+  } else {
+    entries = Object.entries(totals)
+      .map(([user, total]) => ({ id: user, label: user, total, color: spendOwnerColor(user) }))
+      .filter((entry) => entry.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }
 
   userChart = renderDonut({
     chart: userChart,
     canvasId: 'user-chart',
     legendId: 'user-legend',
     entries,
-    totalLabel: 'Total spend',
-    noun: ['group', 'groups'],
+    totalLabel: userDrill || 'Total spend',
+    noun: userDrill ? ['transaction', 'transactions'] : ['group', 'groups'],
+    count,
     emptyText: 'No spending this month',
+    onSelect: userDrill ? null : (entry, how) => openUser(entry.id, how),
+    sweep,
   });
-  const userCount = entries.filter((entry) => entry.id !== FIXED_EXPENSES_LABEL).length;
-  document.getElementById('user-chart-meta').textContent = `${userCount} user${userCount === 1 ? '' : 's'}`;
+  if (!userDrill) {
+    const userCount = entries.filter((entry) => entry.id !== FIXED_EXPENSES_LABEL).length;
+    document.getElementById('user-chart-meta').textContent = `${userCount} user${userCount === 1 ? '' : 's'}`;
+  }
+  setDrillHeader('user', userDrill, 'Spending by user', sweep);
 }
 renderDonut.rerender['user-legend'] = () => renderUserChart();
+
+/**
+ * Opens the user doughnut into a user's spending (or, with null, back to
+ * everyone). From the keyboard, focus moves to the back arrow.
+ */
+function openUser(user, { keyboard = false } = {}) {
+  userDrill = user;
+  expandedLegends.delete('user-legend'); // each view starts with its legend folded
+  renderUserChart({ sweep: true });
+  if (user && keyboard) document.getElementById('user-back').focus({ preventScroll: true });
+}
+
+/** Wires up the user doughnut's back arrow, Escape and "Show transactions". */
+function initUserDrill() {
+  initDrill({
+    prefix: 'user',
+    current: () => userDrill,
+    open: openUser,
+    showTable: () => {
+      state.users = new Set([userDrill]);
+      syncTableFilters();
+      renderTable();
+    },
+  });
+}
 
 /** The date each budget group's running total first went over its budget, e.g. { Groceries: '2026-10-14' }. */
 function budgetCrossings(month) {

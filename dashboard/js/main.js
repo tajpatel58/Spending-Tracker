@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTableEditing();
     initTableExport();
     initCategoryDrill();
+    initUserDrill();
     initPaceFixedToggle();
 
     renderAll();
