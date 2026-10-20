@@ -248,7 +248,7 @@ body {
 }
 .is-loading .stat-tile__value { width: 55%; }
 .is-loading .stat-tile__delta { width: 35%; }
-.is-loading .stat-tile__delta > * { visibility: hidden; }
+.is-loading .stat-tile__delta > *, .is-loading .stat-tile__value > * { visibility: hidden; }
 .is-loading #day-title { width: 45%; }
 .is-loading #account-filter-label { min-width: 80px; }
 .is-loading #month-label { display: inline-block; min-width: 96px; }
@@ -1223,6 +1223,49 @@ button { font-family: inherit; }
 .stat-tile__delta.is-positive { color: var(--accent); }
 .stat-tile__delta.is-negative { color: var(--rose); }
 .stat-tile__delta--truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-tile__delta.is-ahead { color: var(--amber); }
+/* "2 of 6": the out-of part set quieter than the count. */
+.stat-tile__value-of { font-size: 0.6em; color: var(--text-faint); letter-spacing: 0; white-space: nowrap; }
+
+/* Over budget tile: the count with a strip of mini bars beside it, one
+   per budget group, so it never grows however many are over. */
+.stat-tile__row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); min-width: 0; }
+.budget-strip {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 3px;
+  flex: 0 1 72px;
+  min-width: 40px;
+  margin: 0 0 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.budget-strip__bar {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  background: var(--surface-alt);
+  box-shadow: inset 0 0 0 var(--hairline) var(--border);
+  border-radius: 2px;
+}
+.budget-strip__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--text-faint);
+  border-radius: inherit;
+  transition: width 500ms var(--ease-out), background-color 200ms ease;
+}
+.budget-strip__over { position: absolute; inset: 0 0 0 auto; background: var(--rose); border-radius: 0 2px 2px 0; }
+.budget-strip:hover .budget-strip__fill { filter: brightness(1.08); }
+.budget-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.is-loading .budget-strip { visibility: hidden; }
+@media (max-width: 560px) {
+  .budget-strip { flex-basis: 56px; gap: 2px; margin-bottom: 3px; }
+  .budget-strip__bar { height: 2.5px; }
+}
 
 /* ==========================================================================
    Charts

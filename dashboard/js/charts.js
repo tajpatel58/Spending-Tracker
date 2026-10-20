@@ -432,6 +432,16 @@ function initUserDrill() {
   });
 }
 
+/** Each budget group's colour, shared by the budget bars and the Over budget tile's strip. */
+const BUDGET_GROUP_COLORS = {
+  'Fixed Expenses': 'var(--cat-fixed-expense)',
+  'Dining Out': 'var(--cat-dining)',
+  Groceries: 'var(--cat-groceries)',
+  Shopping: 'var(--cat-shopping)',
+  Transport: 'var(--cat-transport)',
+  Extras: 'var(--budget-extras)',
+};
+
 /** The date each budget group's running total first went over its budget, e.g. { Groceries: '2026-10-14' }. */
 function budgetCrossings(month) {
   const running = {};
@@ -459,21 +469,13 @@ function budgetCrossings(month) {
  */
 function renderBudgetChart() {
   const groupNames = Object.keys(BUDGETS); // chart order follows BUDGETS in state.js
-  const groupColors = {
-    'Fixed Expenses': 'var(--cat-fixed-expense)',
-    'Dining Out': 'var(--cat-dining)',
-    Groceries: 'var(--cat-groceries)',
-    Shopping: 'var(--cat-shopping)',
-    Transport: 'var(--cat-transport)',
-    Extras: 'var(--budget-extras)',
-  };
   const actualByGroup = budgetGroupActuals(state.month);
 
   const entries = groupNames.map((name) => ({
     label: name,
     actual: actualByGroup[name] || 0,
     budget: BUDGETS[name] || 0,
-    color: groupColors[name],
+    color: BUDGET_GROUP_COLORS[name],
   }));
   // How far through the month the data runs (statements arrive in batches).
   const days = daysIn(state.month);

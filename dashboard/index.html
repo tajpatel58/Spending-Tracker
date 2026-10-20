@@ -275,11 +275,15 @@
     </div>
     <div class="tile stat-tile">
       <div class="stat-tile__head">
-        <span class="stat-tile__label">Categories outside budget</span>
+        <span class="stat-tile__label">Over budget</span>
         <span class="stat-tile__delta stat-tile__delta--pill" id="stat-over-budget-change" hidden></span>
       </div>
-      <span class="stat-tile__value" id="stat-over-budget">0</span>
-      <span class="stat-tile__delta" id="stat-over-budget-note">—</span>
+      <!-- The count, with one mini bar per budget group beside it (stats.js renderOverBudget). -->
+      <div class="stat-tile__row">
+        <span class="stat-tile__value" id="stat-over-budget">0</span>
+        <button type="button" class="budget-strip" id="budget-strip" aria-label="Go to budget vs actual"></button>
+      </div>
+      <span class="stat-tile__delta stat-tile__delta--truncate" id="stat-over-budget-note">—</span>
       <div class="sparkline" id="spark-over-budget" role="img" hidden></div>
     </div>
   </section>
@@ -311,7 +315,7 @@
 
     <div class="tile chart-tile chart-tile--user">
       <div class="tile__header">
-        <!-- Choosing a user opens it into their categories (charts.js renderUserChart). -->
+        <!-- Choosing a user opens it into their biggest transactions (charts.js renderUserChart). -->
         <div class="tile__title">
           <button type="button" class="tile__back" id="user-back" aria-label="Back to all users" title="All users (Esc)" hidden>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor"/></svg>

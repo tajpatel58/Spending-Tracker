@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTableExport();
     initCategoryDrill();
     initUserDrill();
+    initBudgetStrip();
     initPaceFixedToggle();
 
     renderAll();

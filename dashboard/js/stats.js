@@ -116,17 +116,91 @@ function renderStats() {
   document.getElementById('stat-daily-avg').innerHTML = moneyMarkup(currency(figures.dailyAvg));
   document.getElementById('stat-daily-note').textContent = 'Excluding Fixed Expenses';
 
-  const { overBudget } = figures;
-  document.getElementById('stat-over-budget').textContent = overBudget.length;
-  const overBudgetNote = document.getElementById('stat-over-budget-note');
-  overBudgetNote.textContent = overBudget.length ? overBudget.join(', ') : `All ${Object.keys(BUDGETS).length} within budget`;
-  overBudgetNote.title = overBudgetNote.textContent;
-  overBudgetNote.className = 'stat-tile__delta stat-tile__delta--truncate ' + (overBudget.length ? 'is-negative' : 'is-positive');
+  renderOverBudget(state.month);
 
   renderTileTrends(idx);
 
   document.getElementById('page-subtitle').textContent = `Spending overview — ${MONTH_LABEL(state.month)}`;
   renderPaceChart(pace);
+}
+
+/**
+ * Each budget group's standing for a month, in BUDGETS order: what's
+ * spent against its budget, and whether it's 'over', 'ahead' (under
+ * budget but past an even pace for the days loaded — not Fixed Expenses,
+ * whose bills land on set dates) or 'ok'.
+ */
+function budgetStanding(month) {
+  const actualByGroup = budgetGroupActuals(month);
+  const days = daysIn(month);
+  const loaded = daysLoaded(month);
+  const complete = loaded >= days;
+  const groups = Object.entries(BUDGETS).map(([group, budget]) => {
+    const actual = actualByGroup[group] || 0;
+    const pace = budget * (loaded / days);
+    const status = budget && actual > budget ? 'over'
+      : budget && group !== 'Fixed Expenses' && !complete && loaded > 0 && actual > pace ? 'ahead'
+        : 'ok';
+    return { group, actual, budget, status };
+  });
+  return { groups, complete };
+}
+
+/**
+ * The "Over budget" tile: "2 of 6", beside a stack of thin bars, one per
+ * budget group in the budget chart's order and colours, filled to how
+ * much of its budget is spent. As in the chart, a group over budget is
+ * drawn to the scale of what was spent: its colour runs to the budget and
+ * the overspend carries on in rose. So the tile
+ * stays the same size however many groups are over; each bar's name and
+ * figures are in its tooltip, and the strip jumps to the budget chart.
+ * Below, a short note: the total overspend, how many are ahead of pace,
+ * or what's left.
+ */
+function renderOverBudget(month) {
+  const { groups, complete } = budgetStanding(month);
+  const over = groups.filter((g) => g.status === 'over');
+  const ahead = groups.filter((g) => g.status === 'ahead');
+  document.getElementById('stat-over-budget').innerHTML =
+    `${over.length}<span class="stat-tile__value-of"> of ${groups.length}</span>`;
+
+  const describe = (g) => `${g.group}: ${currencyShort(g.actual)} of ${currencyShort(g.budget)}`
+    + (g.status === 'over' ? `, ${currencyShort(g.actual - g.budget)} over` : g.status === 'ahead' ? ', ahead of pace' : '');
+  const strip = document.getElementById('budget-strip');
+  strip.innerHTML = groups.map((g) => {
+    const scale = Math.max(g.budget, g.actual) || 1;
+    const filled = (Math.min(g.actual, g.budget) / scale) * 100;
+    return `<span class="budget-strip__bar is-${g.status}" title="${escapeAttr(describe(g))}">`
+      + `<span class="budget-strip__fill" style="width:${filled.toFixed(1)}%; background:${BUDGET_GROUP_COLORS[g.group] || 'var(--text-faint)'}"></span>`
+      + (g.status === 'over' ? `<span class="budget-strip__over" style="left:${filled.toFixed(1)}%"></span>` : '')
+      + '</span>';
+  }).join('');
+  strip.title = groups.map(describe).join('\n');
+  strip.setAttribute('aria-label', `${groups.map(describe).join('; ')}. Go to budget vs actual`);
+
+  const note = document.getElementById('stat-over-budget-note');
+  const overBy = over.reduce((sum, g) => sum + g.actual - g.budget, 0);
+  const left = groups.filter((g) => g.status !== 'over').reduce((sum, g) => sum + g.budget - g.actual, 0);
+  let tone;
+  if (over.length) {
+    note.textContent = `${currencyShort(overBy)} over in total`;
+    tone = 'is-negative';
+  } else if (ahead.length) {
+    note.textContent = `${ahead.length} ahead of pace`;
+    tone = 'is-ahead';
+  } else {
+    note.textContent = `All within · ${currencyShort(left)} ${complete ? 'unspent' : 'left'}`;
+    tone = 'is-positive';
+  }
+  note.className = `stat-tile__delta stat-tile__delta--truncate ${tone}`;
+}
+
+/** The over-budget tile's strip of bars scrolls to the budget chart. */
+function initBudgetStrip() {
+  document.getElementById('budget-strip').addEventListener('click', () => {
+    document.getElementById('budget-list').closest('.tile')
+      .scrollIntoView({ block: 'center', behavior: motion.reduced() ? 'auto' : 'smooth' });
+  });
 }
 
 /**
