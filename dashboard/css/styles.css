@@ -267,7 +267,9 @@ body {
   border: 22px solid var(--skeleton);
   border-radius: 50%;
 }
-.is-loading .chart-tile__canvas-wrap--line::before {
+.is-loading .hero-tile__chart::before { animation: skeleton-pulse 1.4s ease-in-out infinite; }
+.is-loading .chart-tile__canvas-wrap--line::before,
+.is-loading .hero-tile__chart::before {
   content: '';
   position: absolute;
   inset: 14px 18px 18px;
@@ -1047,6 +1049,38 @@ button { font-family: inherit; }
   color: var(--text-muted);
   font-family: var(--font-num);
 }
+
+/* Overview: a large Total spend tile spanning two rows, beside a 2×2 of
+   smaller tiles whose figures settle to the bottom edge. */
+.stats-grid--hero { grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); }
+.hero-tile { grid-row: span 2; gap: 6px; padding-bottom: 20px; }
+.stats-grid--hero > .stat-tile:not(.hero-tile) .stat-tile__label { margin-bottom: auto; padding-bottom: var(--space-3); }
+.hero-tile__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.stat-tile__value--hero { margin-top: var(--space-2); font-size: 46px; line-height: 1.05; letter-spacing: -0.035em; }
+.hero-tile__meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0; }
+.hero-tile__meta > :not([hidden]) ~ :not([hidden])::before { content: '·'; margin-right: 10px; color: var(--text-faint); }
+.hero-tile__meta [hidden] { display: none; }
+#stat-pace { font-weight: 500; }
+.hero-tile__chart { position: relative; height: 150px; margin: var(--space-4) -6px 0; }
+.trend-legend.hero-tile__legend { padding: var(--space-3) 0 0; }
+.hero-tile__legend [hidden] { display: none; }
+.hero-legend__line { width: 14px; border-top: 2px solid var(--accent); }
+.hero-legend__line--last { border-top: 1.5px dashed var(--text-faint); }
+.hero-legend__line--target { border-top: 1.5px dotted var(--gold); }
+
+/* "↑ 12.3% vs last month" as a soft pill, tinted by direction. */
+.stat-tile__delta--pill {
+  flex: none;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--surface-alt);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-full);
+}
+.stat-tile__delta--pill.is-up { background: var(--rose-soft); border-color: transparent; }
+.stat-tile__delta--pill.is-down { background: var(--accent-soft); border-color: transparent; }
 
 .stat-tile__delta.is-up { color: var(--rose); }
 .stat-tile__delta.is-down { color: var(--accent); }
@@ -2771,6 +2805,7 @@ button { font-family: inherit; }
 
 @media (max-width: 900px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-tile { grid-column: 1 / -1; grid-row: auto; } /* full width above the 2×2 */
   .charts-grid { grid-template-columns: 1fr; }
   .calendar-grid { grid-template-columns: minmax(0, 1fr); }
   .day-column { position: static; }
@@ -2991,6 +3026,11 @@ button { font-family: inherit; }
   .stat-tile__label { font-size: 9.5px; letter-spacing: 0.05em; }
   .stat-tile__value { font-size: 19px; }
   .stat-tile__delta { font-size: 10.5px; line-height: 1.35; }
+  .stat-tile__value--hero { margin-top: 2px; font-size: 32px; }
+  .stat-tile__delta--pill { padding: 2px 8px; }
+  .hero-tile { padding-bottom: 14px; }
+  .hero-tile__chart { height: 120px; margin-top: var(--space-3); }
+  .trend-legend.hero-tile__legend { gap: 4px 12px; padding-top: var(--space-2); font-size: 11px; }
   /* Notes wrap to a second line on phones rather than cutting off mid-word. */
   .stat-tile__delta--truncate {
     display: -webkit-box;

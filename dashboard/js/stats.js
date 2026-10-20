@@ -1,11 +1,39 @@
 /**
  * stats.js
  * ---------------------------------------------------------------------
- * Renders the stat tiles at the top of the dashboard: total spend,
- * income, total saved, transaction count, daily average, and the number
- * of budget categories that are over budget.
+ * Renders the stat tiles at the top of the dashboard: the large total
+ * spend tile (with its pace against the target, the transaction count
+ * and the running-total chart from charts.js), then income, total saved,
+ * daily average, and the number of budget categories that are over
+ * budget.
  * ---------------------------------------------------------------------
  */
+
+/**
+ * How many days of a month have data loaded: up to the latest loaded
+ * transaction in the month it falls in, every day of months before it.
+ * Statements arrive in batches, so this can trail today.
+ */
+function daysLoaded(month) {
+  const loadedTo = lastLoadedDate();
+  if (!loadedTo || loadedTo.slice(0, 7) < month) return 0;
+  if (loadedTo.slice(0, 7) > month) return daysIn(month);
+  return Number(loadedTo.slice(8, 10));
+}
+
+/**
+ * Spend so far against the month's spending target (spendingAllowance),
+ * pro rata for the days loaded — or against the whole target once the
+ * month is complete. Null when there's no target (no salary last month).
+ */
+function monthPace(month, spent) {
+  const target = spendingAllowance(month);
+  if (target === null) return null;
+  const days = daysIn(month);
+  const loaded = daysLoaded(month);
+  const expected = target * (loaded / days);
+  return { target, expected, gap: expected - spent, complete: loaded >= days, loaded };
+}
 
 /**
  * Renders the stat tiles for the currently selected month.
@@ -24,12 +52,24 @@ function renderStats() {
   const deltaEl = document.getElementById('stat-total-delta');
   if (prevTotal !== null && prevTotal > 0) {
     const pct = ((total - prevTotal) / prevTotal) * 100;
-    const sign = pct >= 0 ? '+' : '';
-    deltaEl.textContent = `${sign}${signedFixed(pct, 1)}% vs last month`;
-    deltaEl.className = 'stat-tile__delta ' + (pct >= 0 ? 'is-up' : 'is-down');
+    deltaEl.textContent = `${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}% vs last month`;
+    deltaEl.className = 'stat-tile__delta stat-tile__delta--pill ' + (pct >= 0 ? 'is-up' : 'is-down');
   } else {
-    deltaEl.textContent = 'No prior month data';
-    deltaEl.className = 'stat-tile__delta';
+    deltaEl.textContent = 'No prior month';
+    deltaEl.className = 'stat-tile__delta stat-tile__delta--pill';
+  }
+
+  // "£180 under pace": spend so far against where the target says it should be by now.
+  const paceEl = document.getElementById('stat-pace');
+  const pace = monthPace(state.month, total);
+  paceEl.hidden = !pace;
+  if (pace) {
+    const under = pace.gap >= 0;
+    paceEl.textContent = `${currencyShort(Math.abs(pace.gap))} ${under ? 'under' : 'over'} ${pace.complete ? 'target' : 'pace'}`;
+    paceEl.className = 'stat-tile__delta ' + (under ? 'is-positive' : 'is-negative');
+    paceEl.title = pace.complete
+      ? `Target ${currency(pace.target)} (last month's salary less ${currencyShort(MONTHLY_SAVINGS_TARGET)} savings)`
+      : `By day ${pace.loaded} the ${currency(pace.target)} target allows ${currency(pace.expected)}`;
   }
 
   const income = txs
@@ -49,9 +89,9 @@ function renderStats() {
   }
 
   const expenseCount = txs.filter(isExpense).length;
-  document.getElementById('stat-count').textContent = txs.length;
   const avg = expenseCount ? total / expenseCount : 0;
-  document.getElementById('stat-avg').textContent = expenseCount ? `${currency(avg)} avg / expense` : '—';
+  document.getElementById('stat-count-note').textContent = `${txs.length} transaction${txs.length === 1 ? '' : 's'}`
+    + (expenseCount ? ` · ${currency(avg)} avg` : '');
 
   const [y, m] = state.month.split('-').map(Number);
   const dim = new Date(y, m, 0).getDate();
@@ -68,4 +108,5 @@ function renderStats() {
   overBudgetNote.className = 'stat-tile__delta stat-tile__delta--truncate ' + (overBudget.length ? 'is-negative' : 'is-positive');
 
   document.getElementById('page-subtitle').textContent = `Spending overview — ${MONTH_LABEL(state.month)}`;
+  renderPaceChart(pace);
 }

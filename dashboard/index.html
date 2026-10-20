@@ -216,11 +216,27 @@
   </div>
 
   <!-- Stat tiles -->
-  <section class="stats-grid" aria-label="Summary statistics">
-    <div class="tile stat-tile">
-      <span class="stat-tile__label">Total spend</span>
-      <span class="stat-tile__value" id="stat-total">£0</span>
-      <span class="stat-tile__delta" id="stat-total-delta">—</span>
+  <!-- A large Total spend tile (with the month's running total charted
+       against last month and the target) beside four smaller tiles. -->
+  <section class="stats-grid stats-grid--hero" aria-label="Summary statistics">
+    <div class="tile stat-tile hero-tile">
+      <div class="hero-tile__head">
+        <span class="stat-tile__label">Total spend</span>
+        <span class="stat-tile__delta stat-tile__delta--pill" id="stat-total-delta">—</span>
+      </div>
+      <span class="stat-tile__value stat-tile__value--hero" id="stat-total">£0</span>
+      <p class="hero-tile__meta">
+        <span class="stat-tile__delta" id="stat-pace" hidden></span>
+        <span class="stat-tile__delta" id="stat-count-note">—</span>
+      </p>
+      <div class="hero-tile__chart">
+        <canvas id="pace-chart" role="img" aria-label="Running total of this month's spending against last month and the spending target"></canvas>
+      </div>
+      <ul class="trend-legend hero-tile__legend" aria-hidden="true">
+        <li><span class="hero-legend__line hero-legend__line--this"></span><span id="pace-legend-this">This month</span></li>
+        <li id="pace-legend-last-item"><span class="hero-legend__line hero-legend__line--last"></span><span id="pace-legend-last">Last month</span></li>
+        <li id="pace-legend-target-item"><span class="hero-legend__line hero-legend__line--target"></span>Target pace</li>
+      </ul>
     </div>
     <div class="tile stat-tile">
       <span class="stat-tile__label">Income</span>
@@ -231,11 +247,6 @@
       <span class="stat-tile__label">Total saved</span>
       <span class="stat-tile__value" id="stat-saved">£0</span>
       <span class="stat-tile__delta" id="stat-saved-note">Income − total spend</span>
-    </div>
-    <div class="tile stat-tile">
-      <span class="stat-tile__label">Transactions</span>
-      <span class="stat-tile__value" id="stat-count">0</span>
-      <span class="stat-tile__delta" id="stat-avg">—</span>
     </div>
     <div class="tile stat-tile">
       <span class="stat-tile__label">Daily average</span>
@@ -406,7 +417,7 @@
     7. state.js                    — current filters/sort + derived data
     8. theme.js                     — light/dark mode
     9. stats.js                      — the stat tiles
-    10. charts.js                     — the 4 charts
+    10. charts.js                     — the charts (incl. the Total spend tile's running total)
     10b. datepicker.js                 — pop-over calendar for changing a date
     11. table.js                       — the transactions table + editing
         (toast.js, loaded just before it, shows the "… · Undo" confirmations)

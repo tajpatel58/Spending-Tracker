@@ -1,13 +1,14 @@
 /**
  * charts.js
  * ---------------------------------------------------------------------
- * Renders the four charts: spending by category, spending by user, the
- * 6-month spending trend, and budget vs actual. Uses Chart.js, loaded
- * via CDN in index.html.
+ * Renders the charts: the month's running total in the Total spend
+ * tile, spending by category, spending by user, the 6-month spending
+ * trend, and budget vs actual. Uses Chart.js, loaded via CDN in
+ * index.html.
  * ---------------------------------------------------------------------
  */
 
-let categoryChart, trendChart, userChart;
+let categoryChart, trendChart, userChart, paceChart;
 
 const LEGEND_LIMIT = 6;               // legend rows shown before "+N more"
 const expandedLegends = new Set();    // legends the viewer has expanded (kept across re-renders)
@@ -350,6 +351,166 @@ function htmlTooltip(build) {
     el.classList.remove('is-placing');
     el.classList.add('is-visible');
   };
+}
+
+/** A month's spending as a running total, one value per day. */
+function runningTotals(month) {
+  const byDay = new Array(daysIn(month)).fill(0);
+  getMonthTransactions(month).filter(isExpense).forEach((t) => {
+    byDay[Number(t.date.slice(8, 10)) - 1] += Math.abs(t.amount);
+  });
+  let sum = 0;
+  return byDay.map((value) => (sum += value));
+}
+
+/**
+ * The Total spend tile's chart: this month's running total day by day,
+ * shaded beneath and ending in a dot on the last day with data; last
+ * month's running total (dashed) for comparison; and a straight gold
+ * line climbing to the month's spending target. `pace` comes from
+ * monthPace (stats.js) and is null when there's no target.
+ */
+function renderPaceChart(pace) {
+  const month = state.month;
+  const days = daysIn(month);
+  const labels = Array.from({ length: days }, (_, i) => i + 1);
+  const loaded = daysLoaded(month);
+  const thisMonth = runningTotals(month).map((value, i) => (i < loaded ? value : null));
+  const prevKey = shiftMonth(month, -1);
+  const prev = TRANSACTIONS[prevKey]?.length ? runningTotals(prevKey) : null;
+  // Day 31 against a 30-day month compares with its last day.
+  const lastMonth = prev ? labels.map((d) => prev[Math.min(d, prev.length) - 1]) : [];
+  const target = pace ? labels.map((d) => pace.target * (d / days)) : [];
+
+  const accent = cssVar('--accent');
+  const gold = cssVar('--gold');
+  const muted = cssVar('--text-faint');
+  const surface = cssVar('--surface');
+  const monthName = MONTH_LABEL(month).split(' ')[0];
+  const peak = Math.max(0, ...thisMonth.filter((v) => v !== null), ...lastMonth, ...target);
+
+  // A hairline down from the hovered day.
+  const hoverLine = {
+    id: 'hoverLine',
+    afterDatasetsDraw(chart) {
+      const active = chart.tooltip?.getActiveElements();
+      if (!active?.length) return;
+      const { ctx, chartArea } = chart;
+      ctx.save();
+      ctx.strokeStyle = cssVar('--border-strong');
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath();
+      ctx.moveTo(active[0].element.x, chartArea.top);
+      ctx.lineTo(active[0].element.x, chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+    },
+  };
+
+  const canvas = document.getElementById('pace-chart');
+  if (paceChart) paceChart.destroy();
+  canvas.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible');
+  const firstDraw = isFirstDraw('pace-chart');
+  paceChart = new Chart(canvas, {
+    type: 'line',
+    plugins: [hoverLine],
+    data: {
+      labels,
+      datasets: [
+        {
+          label: monthName,
+          data: thisMonth,
+          borderColor: accent,
+          borderWidth: 2,
+          cubicInterpolationMode: 'monotone',
+          fill: 'origin',
+          // Soft wash of the accent fading to nothing at the baseline.
+          backgroundColor: ({ chart }) => {
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return 'transparent';
+            const wash = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            wash.addColorStop(0, fade(accent, 0.2));
+            wash.addColorStop(1, fade(accent, 0));
+            return wash;
+          },
+          pointRadius: (c) => (c.dataIndex === loaded - 1 ? 4 : 0), // the latest day with data
+          pointHoverRadius: 4,
+          pointBackgroundColor: surface,
+          pointBorderColor: accent,
+          pointBorderWidth: 2,
+          order: 1,
+        },
+        {
+          label: MONTH_LABEL(prevKey).split(' ')[0],
+          data: lastMonth,
+          borderColor: muted,
+          borderWidth: 1.25,
+          borderDash: [3, 3],
+          cubicInterpolationMode: 'monotone',
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          pointBackgroundColor: muted,
+          order: 2,
+        },
+        {
+          label: 'Target pace',
+          data: target,
+          borderColor: gold,
+          borderWidth: 1.25,
+          borderDash: [1, 3],
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          pointBackgroundColor: gold,
+          order: 2,
+        },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      layout: { padding: { top: 6, left: 2, right: 6 } },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: false,
+          filter: (item) => item.raw !== null && item.raw !== undefined,
+          itemSort: (a, b) => a.datasetIndex - b.datasetIndex,
+          external: htmlTooltip((points) => ({
+            title: `${points[0].label} ${monthName}`,
+            rows: points.map((p) => ({
+              label: p.dataset.label,
+              value: currency(p.raw),
+              swatch: [accent, 'line', gold][p.datasetIndex],
+            })),
+          })),
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            autoSkip: false,
+            maxRotation: 0,
+            padding: 4,
+            color: muted,
+            font: { family: 'Geist', size: 11 },
+            callback: (_value, i) => ([0, 7, 14, 21, days - 1].includes(i) ? `${labels[i]} ${monthName.slice(0, 3)}` : ''),
+          },
+        },
+        y: { display: false, beginAtZero: true, suggestedMax: peak * 1.08 },
+      },
+      // First load: the lines rise in slowly; later changes (month, edits) are quick.
+      animation: firstDraw ? { duration: 1000, easing: 'easeOutQuart' } : { duration: 400 },
+    },
+  });
+  document.getElementById('pace-legend-this').textContent = monthName;
+  document.getElementById('pace-legend-last').textContent = MONTH_LABEL(prevKey).split(' ')[0];
+  document.getElementById('pace-legend-last-item').hidden = !prev;
+  document.getElementById('pace-legend-target-item').hidden = !pace;
+  canvas.setAttribute('aria-label', `Running total for ${MONTH_LABEL(month)}: ${currency(thisMonth[loaded - 1] || 0)} by day ${loaded}`
+    + (prev ? `, against ${currency(lastMonth[Math.max(loaded, 1) - 1])} by the same day last month` : '')
+    + (pace ? `, and a ${currency(pace.target)} target` : ''));
 }
 
 /**
