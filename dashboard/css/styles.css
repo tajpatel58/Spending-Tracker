@@ -3796,6 +3796,30 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 @keyframes vt-fade-out { to { opacity: 0; } }
 @keyframes vt-rise-in { from { opacity: 0; transform: translateY(8px); } }
 
+/* Changing month (motion.js monthTransition): the page slides out
+   towards the month you came from and fades, while the new month slides
+   in from the side you're heading; the month name in the header does the
+   same over a shorter distance. Everything else (header, tab bar) holds
+   still, so the page-to-page cross-fade above is switched off here. */
+html[data-month-step="next"] { --month-step: 1; }
+html[data-month-step="prev"] { --month-step: -1; }
+html.month-transition main { view-transition-name: month-page; }
+html.is-swiping, html.is-swiping body { overflow-x: clip; } /* see initMonthSwipe in filters.js */
+html.month-transition #month-label { view-transition-name: month-label; }
+html.month-transition::view-transition-old(root),
+html.month-transition::view-transition-new(root) { animation: none; }
+html.month-transition::view-transition-group(month-page),
+html.month-transition::view-transition-group(month-label) { animation-duration: 420ms; animation-timing-function: var(--ease-out); }
+/* The old month is nearly gone before the new one arrives, so the two never double-expose. */
+html.month-transition::view-transition-old(month-page) { animation: 160ms ease-in both month-out; }
+html.month-transition::view-transition-new(month-page) { animation: 400ms var(--ease-out) 120ms both month-in; }
+html.month-transition::view-transition-old(month-label) { animation: 140ms ease-in both month-label-out; }
+html.month-transition::view-transition-new(month-label) { animation: 320ms var(--ease-out) 100ms both month-label-in; }
+@keyframes month-out { to { opacity: 0; transform: translateX(calc(var(--month-step, 1) * -32px)); } }
+@keyframes month-in { from { opacity: 0; transform: translateX(calc(var(--month-step, 1) * 32px)); } }
+@keyframes month-label-out { to { opacity: 0; transform: translateX(calc(var(--month-step, 1) * -10px)); } }
+@keyframes month-label-in { from { opacity: 0; transform: translateX(calc(var(--month-step, 1) * 10px)); } }
+
 /* After a refresh, cards whose figure changed glow briefly. */
 .tile.is-changed { animation: changed-glow 1800ms ease-out; }
 @keyframes changed-glow {

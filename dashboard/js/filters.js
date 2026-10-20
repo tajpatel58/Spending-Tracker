@@ -24,15 +24,21 @@ function renderMonthOptions() {
   document.getElementById('month-next').disabled = index === -1 || index >= MONTHS.length - 1;
 }
 
-/** Switches the dashboard to a month ('YYYY-MM'), remembering it for the other page. */
+/**
+ * Switches the dashboard to a month ('YYYY-MM'), remembering it for the
+ * other page. The page slides the way you moved (motion.js).
+ */
 function setMonth(key) {
   if (!key || key === state.month) return;
   const direction = key > state.month ? 1 : -1;
-  state.month = key;
-  try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
-  renderMonthOptions();
-  renderAll();
-  if (typeof motion !== 'undefined') motion.monthChanged(direction);
+  const update = () => {
+    state.month = key;
+    try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
+    renderMonthOptions();
+    renderAll();
+  };
+  if (typeof motion !== 'undefined') motion.monthTransition(direction, update);
+  else update();
 }
 
 /**
@@ -55,6 +61,72 @@ function initMonthSelect() {
     if (event.key === 'ArrowLeft') step(-1);
     if (event.key === 'ArrowRight') step(1);
   });
+  initMonthSwipe(step);
+}
+
+/**
+ * Touch screens: swiping sideways across the page changes month — left
+ * for the next, right for the previous. The page follows the finger a
+ * little, then slides on to the new month, or springs back if the swipe
+ * was short or there's no month that way. Swipes starting on the line
+ * and bar charts, fields or sideways-scrolling rows, or at the screen's
+ * edges (the browser's own back/forward gesture), are left alone.
+ */
+function initMonthSwipe(step) {
+  const main = document.querySelector('main');
+  if (!main) return;
+  let start = null;
+  let horizontal = null;
+  let dx = 0;
+  const neighbour = (delta) => MONTHS[MONTHS.findIndex((m) => m.key === state.month) + delta];
+  // Charts you drag along to read (the running total, the trend) keep the gesture for themselves.
+  const ignore = (el) => el.closest('.hero-tile__chart, .chart-tile__canvas-wrap--line, input, select, textarea, .chip-row, .table-scroll, .multiselect__panel');
+  // While the page is pulled sideways, clip what pokes out of the screen so the
+  // browser doesn't treat it as a wider page (and zoom out to fit it).
+  const swiping = (on) => document.documentElement.classList.toggle('is-swiping', on);
+  const springBack = () => {
+    main.style.transition = 'transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1)';
+    main.style.transform = '';
+    setTimeout(() => { main.style.transition = ''; swiping(false); }, 340);
+  };
+
+  main.addEventListener('touchstart', (event) => {
+    const touch = event.touches[0];
+    start = null;
+    if (event.touches.length !== 1 || ignore(event.target)) return;
+    if (touch.clientX < 24 || touch.clientX > window.innerWidth - 24) return;
+    start = { x: touch.clientX, y: touch.clientY, time: event.timeStamp };
+    horizontal = null;
+    dx = 0;
+  }, { passive: true });
+
+  main.addEventListener('touchmove', (event) => {
+    if (!start) return;
+    const touch = event.touches[0];
+    dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    // Decide once, after a little movement, whether this is a sideways swipe or a scroll.
+    if (horizontal === null && Math.hypot(dx, dy) > 10) horizontal = Math.abs(dx) > Math.abs(dy) * 1.4;
+    if (!horizontal) return;
+    event.preventDefault();
+    swiping(true);
+    const resist = neighbour(dx < 0 ? 1 : -1) ? 0.35 : 0.12; // stiffer at the first/last month
+    main.style.transition = 'none';
+    main.style.transform = `translateX(${dx * resist}px)`;
+  }, { passive: false });
+
+  const end = (event) => {
+    if (!start || !horizontal) { start = null; return; }
+    const fast = Math.abs(dx) / Math.max(1, event.timeStamp - start.time) > 0.5;
+    start = null;
+    const delta = dx < 0 ? 1 : -1;
+    if ((Math.abs(dx) > 70 || (fast && Math.abs(dx) > 30)) && neighbour(delta)) {
+      step(delta); // the slide takes it from here
+      setTimeout(() => swiping(false), 600);
+    } else springBack();
+  };
+  main.addEventListener('touchend', end);
+  main.addEventListener('touchcancel', () => { if (start && horizontal) springBack(); start = null; });
 }
 
 /**

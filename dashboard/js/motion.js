@@ -9,7 +9,8 @@
  *   - On first load, cards in view rise into place one after another;
  *     cards further down rise in (and replay their charts) as you scroll
  *     to them.
- *   - Switching month nudges the page in the direction you moved.
+ *   - Switching month slides the page the way you moved (swiping
+ *     sideways on a phone does it too — see filters.js).
  *   - Once you scroll, the header gains a soft shadow.
  *   - In the top nav, a soft highlight glides to whichever tab the mouse
  *     is over.
@@ -153,6 +154,38 @@ const motion = (() => {
 
   // ---------- Month changes ----------
 
+  let monthTransitions = 0; // so an earlier, interrupted slide doesn't tidy up after a newer one
+
+  /**
+   * Runs a month change (`update` redraws the page) as a slide in the
+   * direction of travel (−1 = earlier month, 1 = later): the old month
+   * slides away and fades as the new one slides in from the other side,
+   * the month name in the header slides with it, and the rest of the
+   * header holds still (see "Changing month" in styles.css). Browsers
+   * without view transitions get the simpler nudge below.
+   */
+  function monthTransition(direction, update) {
+    const main = document.querySelector('main');
+    const settle = () => { if (main) { main.style.transition = 'none'; main.style.transform = ''; } }; // after a swipe
+    if (reduced()) { settle(); update(); if (main) main.style.transition = ''; return; }
+    if (!document.startViewTransition) { settle(); update(); if (main) main.style.transition = ''; monthChanged(direction); return; }
+
+    const root = document.documentElement;
+    const id = ++monthTransitions;
+    root.dataset.monthStep = direction > 0 ? 'next' : 'prev';
+    root.classList.add('month-transition');
+    const transition = document.startViewTransition(() => { settle(); update(); });
+    // A slide can be cut short (another month change, or the viewport resizing as a
+    // phone's address bar slides away); the new month is already drawn either way.
+    transition.ready.catch(() => {});
+    transition.finished.finally(() => {
+      if (main) main.style.transition = '';
+      if (id !== monthTransitions) return;
+      root.classList.remove('month-transition');
+      delete root.dataset.monthStep;
+    });
+  }
+
   /** Nudges the page content in the direction of travel (−1 = earlier month, 1 = later). */
   function monthChanged(direction) {
     if (reduced()) return;
@@ -212,5 +245,5 @@ const motion = (() => {
   document.addEventListener('DOMContentLoaded', navGlide);
   document.addEventListener('DOMContentLoaded', watchFigures);
   document.addEventListener('DOMContentLoaded', watchHeader);
-  return { reveal, monthChanged, reduced };
+  return { reveal, monthTransition, reduced };
 })();
