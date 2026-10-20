@@ -288,7 +288,7 @@
       </div>
     </div>
 
-    <div class="tile chart-tile">
+    <div class="tile chart-tile chart-tile--trend">
       <div class="tile__header">
         <h2>Spending trend</h2>
         <span class="tile__meta">Last 6 months</span>
@@ -302,6 +302,8 @@
         <li><span class="trend-legend__swatch trend-legend__swatch--forecast"></span>Still to come</li>
         <li><span class="trend-legend__line"></span>Spending target</li>
       </ul>
+      <!-- Monthly average, highest month, and this month's forecast (charts.js). -->
+      <dl class="trend-summary" id="trend-summary"></dl>
     </div>
 
     <div class="tile chart-tile chart-tile--budget">

@@ -82,6 +82,7 @@
   --gold: #A9844A;
   --rose: #A8473C;
   --rose-soft: rgba(168, 71, 60, 0.09);
+  --amber: #9A6213; /* "ahead of pace": a warning short of rose */
   /* Elevation: 1 = cards, 2 = menus/tooltips/date picker, 3 = dialogs and floating panels */
   /* Warm, layered and soft: a tight contact shadow plus a wide, faint ambient one. */
   --shadow-1: 0 1px 1px rgba(40, 32, 18, 0.03), 0 2px 4px rgba(40, 32, 18, 0.025), 0 12px 32px -12px rgba(40, 32, 18, 0.08);
@@ -127,6 +128,7 @@
   --gold: #D4B67C;
   --rose: #DC8273;
   --rose-soft: rgba(220, 130, 115, 0.13);
+  --amber: #E3A857;
   /* Dark mode separates layers by depth, not outlines: cards get a faint
      top highlight and a softer edge instead of a full-strength border. */
   --shadow-1: inset 0 1px 0 rgba(255, 240, 210, 0.045), 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 36px -14px rgba(0, 0, 0, 0.5);
@@ -1146,6 +1148,30 @@ button { font-family: inherit; }
 .donut-center.is-focused .donut-center__label { color: var(--focus-color); font-weight: 600; }
 .donut-center > * { animation: fade-in 200ms ease; }
 .chart-tile__canvas-wrap--line { padding: 20px 28px 0; height: 280px; }
+/* Desktop: the trend chart takes whatever height its row gives it (the
+   Budget tile beside it sets that), so the tile has no dead space. A
+   zero basis keeps the chart itself from making the row taller. */
+@media (min-width: 901px) {
+  .chart-tile--trend .chart-tile__canvas-wrap--line { flex: 1 1 0; min-height: 260px; height: auto; }
+}
+
+/* Foot of the trend tile: average, highest month, this month's forecast. */
+.trend-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: var(--space-5) 28px 0;
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--border);
+}
+.trend-summary:empty { display: none; }
+.trend-summary__item { min-width: 0; padding: 0 var(--space-4); border-left: var(--hairline) solid var(--border); }
+.trend-summary__item:first-child { padding-left: 0; border-left: none; }
+.trend-summary dt { font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trend-summary dd { margin: 0; }
+.trend-summary__value { margin-top: var(--space-1); font-family: var(--font-display); font-size: 22px; font-weight: 450; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+.trend-summary__note { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trend-summary__note.is-positive { color: var(--accent); }
+.trend-summary__note.is-negative { color: var(--rose); }
 
 /* Trend chart tooltip (charts.js htmlTooltip): a frosted card like the menus,
    gliding from bar to bar. */
@@ -1198,7 +1224,7 @@ button { font-family: inherit; }
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   margin: 0;
   padding: var(--space-6) 28px 0;
 }
@@ -1230,12 +1256,52 @@ button { font-family: inherit; }
 .budget-item__status { min-width: 3.5ch; text-align: right; font-weight: 500; color: var(--text); }
 .budget-item.is-over .budget-item__status { color: var(--rose); }
 
+.budget-item__bar { position: relative; }
 .budget-item__track {
+  position: relative;
+  display: block;
   height: 6px;
   overflow: hidden;
   border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--text) 6%, transparent);
 }
+/* Over budget: the colour stops square at the budget line... */
+.budget-item.is-over .budget-item__fill { border-radius: var(--radius-full) 0 0 var(--radius-full); }
+/* ...and the overspend runs on past it in rose stripes, growing in after the bar. */
+.budget-item__overflow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(-45deg, var(--rose) 0 2px, color-mix(in srgb, var(--rose) 35%, transparent) 2px 4px);
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  transform-origin: left center;
+  animation: grow-x 600ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms + 650ms);
+}
+/* Fine marks standing just proud of the bar, cut out from it by a ring of
+   the card colour: the budget line (over-budget bars) and the gold pace
+   tick — where spending would be by now if spread evenly. */
+.budget-item__limit,
+.budget-item__pace {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  box-shadow: 0 0 0 1.5px var(--surface);
+  animation: fade-in 400ms ease both;
+  animation-delay: calc(var(--i, 0) * 40ms + 550ms);
+}
+.budget-item__limit { background: var(--text-muted); }
+.budget-item__pace { background: var(--gold); }
+.budget-item.is-ahead .budget-item__pace { background: var(--amber); }
+
+/* "£12/day left", "£35 ahead of pace · …", "Went over on 14 Oct". */
+.budget-item__note { margin: 6px 0 0; font-family: var(--font-num); font-size: 11.5px; color: var(--text-faint); }
+.budget-item__note.is-ahead { color: var(--amber); }
+.budget-item__note.is-negative { color: var(--rose); }
+.budget-item__note.is-positive { color: var(--accent); }
 .budget-item__fill {
   display: block;
   height: 100%;
@@ -3058,6 +3124,11 @@ button { font-family: inherit; }
   .chart-tile__canvas-wrap--donut { width: 124px; height: 124px; align-self: center; }
   .chart-tile__body .legend { flex: 1; min-width: 0; }
   .chart-tile__canvas-wrap--line { padding: 10px 16px 0; height: 210px; }
+  .trend-summary { margin: var(--space-4) 16px 0; padding-top: var(--space-3); }
+  .trend-summary__item { padding: 0 var(--space-3); }
+  .trend-summary dt { min-height: 2.8em; font-size: 9.5px; line-height: 1.4; letter-spacing: 0.06em; white-space: normal; } /* wrap rather than cut off, two lines each so the figures line up */
+  .trend-summary__value { font-size: 17px; }
+  .trend-summary__note { font-size: 10.5px; }
   .legend li { font-size: 12px; }
   /* Smaller doughnut on phones, so a smaller centre label. */
   .donut-center { inset: 24%; gap: 0; }
@@ -3067,6 +3138,7 @@ button { font-family: inherit; }
   .budget-item__category { font-size: 12px; }
   .budget-item__summary { font-size: 11px; }
   .budget-item__track { height: 6px; }
+  .budget-item__note { margin-top: 4px; font-size: 11px; }
 
   .table-tile__header { padding: 12px 16px 10px; }
   .table-tile__header h2 { font-size: 17px; }
@@ -3587,6 +3659,9 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 /* ...and cards further down rise in as they're scrolled to (motion.js). */
 .reveal-pending { opacity: 0; transform: translateY(18px); }
 .reveal-pending .budget-item__fill,
+.reveal-pending .budget-item__overflow,
+.reveal-pending .budget-item__limit,
+.reveal-pending .budget-item__pace,
 .reveal-pending .breakdown-bar__seg { animation-play-state: paused; } /* their bars grow on arrival */
 .reveal-in { animation: rise-in 650ms var(--ease-out) both; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } }

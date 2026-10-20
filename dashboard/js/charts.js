@@ -241,7 +241,31 @@ function renderUserChart() {
 }
 renderDonut.rerender['user-legend'] = () => renderUserChart();
 
-/** Renders the budget-vs-actual progress bars. */
+/** The date each budget group's running total first went over its budget, e.g. { Groceries: '2026-10-14' }. */
+function budgetCrossings(month) {
+  const running = {};
+  const crossed = {};
+  getMonthTransactions(month)
+    .filter(isExpense)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .forEach((t) => {
+      const group = BUDGET_GROUPS[t.category] || 'Extras';
+      running[group] = (running[group] || 0) + Math.abs(t.amount);
+      if (!crossed[group] && BUDGETS[group] && running[group] > BUDGETS[group]) crossed[group] = t.date;
+    });
+  return crossed;
+}
+
+/**
+ * Renders the budget-vs-actual bars. Each bar carries a fine gold tick
+ * at where spending would be by now if spread evenly over the month (it
+ * and the note turn amber when a group is ahead of it). A group over
+ * budget is drawn to the scale of what was spent: its colour fills to
+ * the budget line, and the overspend runs on past it as rose stripes.
+ * Under each bar, a quiet note says what's left per day, how far ahead
+ * of pace it is, or when it went over. Fixed Expenses skips the pace and
+ * per-day figures, as bills land on set dates rather than evenly.
+ */
 function renderBudgetChart() {
   const groupNames = Object.keys(BUDGETS); // chart order follows BUDGETS in state.js
   const groupColors = {
@@ -260,30 +284,75 @@ function renderBudgetChart() {
     budget: BUDGETS[name] || 0,
     color: groupColors[name],
   }));
+  // How far through the month the data runs (statements arrive in batches).
+  const days = daysIn(state.month);
+  const loaded = daysLoaded(state.month);
+  const complete = loaded >= days;
+  const daysLeft = days - loaded;
+  const crossings = budgetCrossings(state.month);
+
   const list = document.getElementById('budget-list');
   list.classList.toggle('is-entering', isFirstDraw('budget-list')); // bars grow in on first load
   list.innerHTML = entries.map((entry, i) => {
-    const percentage = entry.budget ? Math.round((entry.actual / entry.budget) * 100) : 0;
-    const progress = Math.min(percentage, 100);
-    const over = entry.budget > 0 && entry.actual > entry.budget;
-    // Under budget: "78%". Over: "£20 over", in rose (the bar simply fills).
-    const status = over ? `${currencyShort(entry.actual - entry.budget)} over` : `${percentage}%`;
+    const { actual, budget } = entry;
+    const percentage = budget ? Math.round((actual / budget) * 100) : 0;
+    const over = budget > 0 && actual > budget;
+    const steady = entry.label !== 'Fixed Expenses'; // spent through the month, so pace applies
+    const paceAmount = budget * (loaded / days);
+    const showPace = steady && budget > 0 && !complete && loaded > 0 && !over;
+    const ahead = showPace && actual > paceAmount;
+
+    // The bar's scale: the budget, or what was spent once that's more.
+    const scale = Math.max(budget, actual) || 1;
+    const fillWidth = (Math.min(actual, budget) / scale) * 100;
+    const limitAt = (budget / scale) * 100;
+    const pacePosition = (paceAmount / scale) * 100;
+
+    // Under budget: "78%". Over: "£20 over", in rose.
+    const status = over ? `${currencyShort(actual - budget)} over` : `${percentage}%`;
+    let note = '';
+    let tone = '';
+    if (over) {
+      const date = crossings[entry.label];
+      note = date ? `Went over on ${formatDate(date).replace(/^0/, '')}` : 'Over budget';
+      tone = 'is-negative';
+    } else if (budget > 0 && complete) {
+      note = `${currencyShort(budget - actual)} unspent`;
+      tone = 'is-positive';
+    } else if (budget > 0 && !steady) {
+      note = `${currencyShort(budget - actual)} left`;
+    } else if (budget > 0) {
+      const perDay = daysLeft > 0 ? `${currencyShort((budget - actual) / daysLeft)}/day left` : `${currencyShort(budget - actual)} left`;
+      note = ahead ? `${currencyShort(actual - paceAmount)} ahead of pace · ${perDay}` : perDay;
+      tone = ahead ? 'is-ahead' : '';
+    }
+
+    const label = `${entry.label}: ${currencyShort(actual)} of ${currencyShort(budget)} budget (${percentage}%)`
+      + (showPace ? `, pace for today ${currencyShort(paceAmount)}` : '');
     return `
-      <li class="budget-item${over ? ' is-over' : ''}">
+      <li class="budget-item${over ? ' is-over' : ''}${ahead ? ' is-ahead' : ''}" style="--i:${i}">
         <div class="budget-item__header">
           <span class="budget-item__category">${entry.label}</span>
           <span class="budget-item__summary">
-            <span class="budget-item__amounts">${currencyShort(entry.actual)} of ${currencyShort(entry.budget)}</span>
+            <span class="budget-item__amounts">${currencyShort(actual)} of ${currencyShort(budget)}</span>
             <span class="budget-item__status">${status}</span>
           </span>
         </div>
-        <div class="budget-item__track" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="${Math.max(100, percentage)}" aria-label="${entry.label}:${currencyShort(entry.actual)} of ${currencyShort(entry.budget)} budget (${percentage}%)">
-          <span class="budget-item__fill" style="width:${progress}%; background:${entry.color}; --i:${i}"></span>
+        <div class="budget-item__bar" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="${Math.max(100, percentage)}" aria-label="${label}">
+          <span class="budget-item__track">
+            <span class="budget-item__fill" style="width:${fillWidth}%; background:${entry.color}"></span>
+            ${over ? `<span class="budget-item__overflow" style="left:${limitAt}%; width:${100 - limitAt}%"></span>` : ''}
+          </span>
+          ${over ? `<span class="budget-item__limit" style="left:${limitAt}%" title="Budget ${currencyShort(budget)}"></span>` : ''}
+          ${showPace ? `<span class="budget-item__pace" style="left:${pacePosition}%" title="Pace for day ${loaded}: ${currencyShort(paceAmount)}"></span>` : ''}
         </div>
+        ${note ? `<p class="budget-item__note ${tone}">${note}</p>` : ''}
       </li>
     `;
   }).join('') || '<li class="legend__name">No spending this month</li>';
-  document.getElementById('budget-chart-meta').textContent = `${entries.length} groups`;
+  document.getElementById('budget-chart-meta').textContent = complete || !loaded
+    ? `${entries.length} groups`
+    : `Day ${loaded} of ${days}`;
 }
 
 /** Diagonal stripes in `color` — the "still to come" part of this month's bar. */
@@ -514,6 +583,55 @@ function renderPaceChart(pace) {
 }
 
 /**
+ * The three figures along the foot of the Spending trend tile: the
+ * average of the full months shown, the highest of them, and this
+ * month's forecast against its target (or, when this month isn't
+ * shown, the latest month against the average).
+ */
+function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth }) {
+  const spent = months.map((_, i) => fixed[i] + everyday[i]);
+  const full = months.map((key, i) => ({ key, total: spent[i] })).filter((m) => m.key !== currentMonth && m.total > 0);
+  const average = full.length ? full.reduce((s, m) => s + m.total, 0) / full.length : null;
+  const highest = full.reduce((best, m) => (!best || m.total > best.total ? m : best), null);
+  const monthName = (key) => MONTH_LABEL(key).split(' ')[0];
+  const versus = (value, base, noun) => {
+    const gap = value - base;
+    return { text: `${currencyShort(Math.abs(gap))} ${gap > 0 ? 'over' : 'under'} ${noun}`, tone: gap > 0 ? 'is-negative' : 'is-positive' };
+  };
+
+  const items = [];
+  if (average !== null) {
+    items.push({ label: 'Monthly average', value: currencyShort(average), note: { text: `Last ${full.length} full month${full.length === 1 ? '' : 's'}` } });
+  }
+  if (highest) {
+    items.push({ label: 'Highest', value: currencyShort(highest.total), note: { text: MONTH_LABEL(highest.key) } });
+  }
+  const i = months.indexOf(currentMonth);
+  if (i >= 0) {
+    const forecast = spent[i] + toCome[i];
+    items.push({
+      label: `${monthName(currentMonth)} forecast`,
+      value: currencyShort(forecast),
+      note: target[i] !== null ? versus(forecast, target[i], 'target') : average !== null ? versus(forecast, average, 'average') : { text: '' },
+    });
+  } else {
+    const last = months.length - 1;
+    items.push({
+      label: monthName(months[last]),
+      value: currencyShort(spent[last]),
+      note: average !== null ? versus(spent[last], average, 'average') : { text: '' },
+    });
+  }
+
+  document.getElementById('trend-summary').innerHTML = items.map((item) => `
+    <div class="trend-summary__item">
+      <dt>${item.label}</dt>
+      <dd class="trend-summary__value">${item.value}</dd>
+      <dd class="trend-summary__note ${item.note.tone || ''}">${item.note.text}</dd>
+    </div>`).join('');
+}
+
+/**
  * Renders the spending trend for the last six months: each month's bar
  * splits into fixed costs and everyday spending, the current month adds
  * a striped "still to come" segment up to its forecast (forecast.js), and
@@ -538,6 +656,8 @@ function renderTrendChart() {
   const swatches = { Fixed: colors.fixed, Everyday: colors.everyday, 'Still to come': colors.toCome };
   const text = cssVar('--text');
   const faint = cssVar('--text-faint');
+
+  renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth });
 
   const ctx = document.getElementById('trend-chart');
   if (trendChart) trendChart.destroy();
