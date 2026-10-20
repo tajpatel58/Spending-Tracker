@@ -21,6 +21,8 @@ const state = {
   selectedTransactionIds: new Set(),
   search: '',
   sort: { key: 'date', dir: 'desc' },
+  // The Total spend tile's pace chart without fixed expenses (remembered on this device).
+  paceWithoutFixed: (() => { try { return localStorage.getItem('ledger-pace-without-fixed') === '1'; } catch { return false; } })(),
 };
 
 // Lookup tables used throughout the rendering code.

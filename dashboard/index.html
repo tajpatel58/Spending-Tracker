@@ -233,11 +233,18 @@
       <div class="hero-tile__chart">
         <canvas id="pace-chart" role="img" aria-label="Running total of this month's spending against last month and the spending target"></canvas>
       </div>
-      <ul class="trend-legend hero-tile__legend" aria-hidden="true">
-        <li><span class="hero-legend__line hero-legend__line--this"></span><span id="pace-legend-this">This month</span></li>
-        <li id="pace-legend-last-item"><span class="hero-legend__line hero-legend__line--last"></span><span id="pace-legend-last">Last month</span></li>
-        <li id="pace-legend-target-item"><span class="hero-legend__line hero-legend__line--target"></span>Target pace</li>
-      </ul>
+      <div class="hero-tile__foot">
+        <ul class="trend-legend hero-tile__legend" aria-hidden="true">
+          <li><span class="hero-legend__line hero-legend__line--this"></span><span id="pace-legend-this">This month</span></li>
+          <li id="pace-legend-last-item"><span class="hero-legend__line hero-legend__line--last"></span><span id="pace-legend-last">Last month</span></li>
+          <li id="pace-legend-target-item"><span class="hero-legend__line hero-legend__line--target"></span>Target pace</li>
+        </ul>
+        <!-- Off: the chart and its pace leave out fixed expenses (stats.js initPaceFixedToggle). -->
+        <button type="button" class="switch" id="pace-fixed-toggle" role="switch" aria-checked="true" title="Include fixed expenses in the pace chart">
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+          <span class="switch__label">Fixed costs</span>
+        </button>
+      </div>
     </div>
     <div class="tile stat-tile">
       <div class="stat-tile__head">

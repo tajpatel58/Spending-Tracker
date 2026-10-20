@@ -516,10 +516,10 @@ function htmlTooltip(build) {
   };
 }
 
-/** A month's spending as a running total, one value per day. */
-function runningTotals(month) {
+/** A month's spending (the transactions `keep` accepts) as a running total, one value per day. */
+function runningTotals(month, keep = isExpense) {
   const byDay = new Array(daysIn(month)).fill(0);
-  getMonthTransactions(month).filter(isExpense).forEach((t) => {
+  getMonthTransactions(month).filter(keep).forEach((t) => {
     byDay[Number(t.date.slice(8, 10)) - 1] += Math.abs(t.amount);
   });
   let sum = 0;
@@ -531,16 +531,21 @@ function runningTotals(month) {
  * shaded beneath and ending in a dot on the last day with data; last
  * month's running total (dashed) for comparison; and a straight gold
  * line climbing to the month's spending target. `pace` comes from
- * monthPace (stats.js) and is null when there's no target.
+ * monthPace (stats.js) and is null when there's no target. With the
+ * tile's "Fixed costs" switch off, all three leave out fixed expenses.
  */
 function renderPaceChart(pace) {
   const month = state.month;
   const days = daysIn(month);
   const labels = Array.from({ length: days }, (_, i) => i + 1);
   const loaded = daysLoaded(month);
-  const thisMonth = runningTotals(month).map((value, i) => (i < loaded ? value : null));
+  // The tile's "Fixed costs" switch: off, every line here is everyday spending only.
+  const keep = state.paceWithoutFixed ? isVariableExpense : isExpense;
+  // (The tooltip says which target; the legend keeps one wording so the switch beside it never shifts.)
+  const targetLabel = state.paceWithoutFixed ? 'Everyday target' : 'Target pace';
+  const thisMonth = runningTotals(month, keep).map((value, i) => (i < loaded ? value : null));
   const prevKey = shiftMonth(month, -1);
-  const prev = TRANSACTIONS[prevKey]?.length ? runningTotals(prevKey) : null;
+  const prev = TRANSACTIONS[prevKey]?.length ? runningTotals(prevKey, keep) : null;
   // Day 31 against a 30-day month compares with its last day.
   const lastMonth = prev ? labels.map((d) => prev[Math.min(d, prev.length) - 1]) : [];
   const target = pace ? labels.map((d) => pace.target * (d / days)) : [];
@@ -616,7 +621,7 @@ function renderPaceChart(pace) {
           order: 2,
         },
         {
-          label: 'Target pace',
+          label: targetLabel,
           data: target,
           borderColor: gold,
           borderWidth: 1.25,
@@ -671,7 +676,7 @@ function renderPaceChart(pace) {
   document.getElementById('pace-legend-last').textContent = MONTH_LABEL(prevKey).split(' ')[0];
   document.getElementById('pace-legend-last-item').hidden = !prev;
   document.getElementById('pace-legend-target-item').hidden = !pace;
-  canvas.setAttribute('aria-label', `Running total for ${MONTH_LABEL(month)}: ${currency(thisMonth[loaded - 1] || 0)} by day ${loaded}`
+  canvas.setAttribute('aria-label', `Running total${state.paceWithoutFixed ? ' of everyday spending (excluding fixed expenses)' : ''} for ${MONTH_LABEL(month)}: ${currency(thisMonth[loaded - 1] || 0)} by day ${loaded}`
     + (prev ? `, against ${currency(lastMonth[Math.max(loaded, 1) - 1])} by the same day last month` : '')
     + (pace ? `, and a ${currency(pace.target)} target` : ''));
 }

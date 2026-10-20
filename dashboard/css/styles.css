@@ -1108,7 +1108,12 @@ button { font-family: inherit; }
    smaller tiles whose figures settle to the bottom edge. */
 .stats-grid--hero { grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); }
 .hero-tile { grid-row: span 2; gap: 6px; padding-bottom: 20px; }
-.stats-grid--hero > .stat-tile:not(.hero-tile) .stat-tile__head { margin-bottom: auto; padding-bottom: var(--space-3); }
+.stats-grid--hero > .stat-tile:not(.hero-tile) .stat-tile__head { margin-bottom: auto; padding-bottom: var(--space-1); }
+/* Desktop: kept compact so two rows of them come out the same height as
+   the large tile's own content, leaving it no empty space to stretch into. */
+@media (min-width: 901px) {
+  .stats-grid--hero > .stat-tile:not(.hero-tile) { padding-top: var(--space-5); padding-bottom: var(--space-5); }
+}
 
 /* Smaller tiles: the label with its change on last month beside it... */
 .stat-tile__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
@@ -1119,7 +1124,7 @@ button { font-family: inherit; }
 
 /* ...and the last six months as a sparkline along the foot, drawing in
    from the left and ending on a gold dot for the month shown. */
-.sparkline { position: relative; height: 28px; margin-top: var(--space-3); color: var(--text-muted); }
+.sparkline { position: relative; height: 24px; margin-top: var(--space-2); color: var(--text-muted); }
 .sparkline[hidden] { display: none; }
 .sparkline svg {
   display: block;
@@ -1147,7 +1152,53 @@ button { font-family: inherit; }
 .hero-tile__meta [hidden] { display: none; }
 #stat-pace { font-weight: 500; }
 .hero-tile__chart { position: relative; height: 150px; margin: var(--space-4) -6px 0; }
-.trend-legend.hero-tile__legend { padding: var(--space-3) 0 0; }
+.trend-legend.hero-tile__legend { padding: 0; }
+/* Under the chart: its legend, and the "Fixed costs" switch at the right. */
+/* The legend takes the left column (wrapping within it if it must); the
+   switch has its own column, pinned bottom-right, so it doesn't move when
+   the legend's wording changes as it's flipped. */
+.hero-tile__foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-4); padding-top: var(--space-3); }
+
+/* A small on/off switch: a pill track with a sliding thumb, green when on. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.switch:hover { color: var(--text); }
+.switch:focus-visible { outline: none; }
+.switch:focus-visible .switch__track { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+.switch__track {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 16px;
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+  transition: background-color 200ms ease, box-shadow 150ms ease;
+}
+.switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 220ms var(--ease-out);
+}
+.switch[aria-checked="true"] .switch__track { background: var(--accent); }
+.switch[aria-checked="true"] .switch__thumb { transform: translateX(12px); }
+.switch:active .switch__thumb { width: 14px; } /* a little give under the finger */
+.switch[aria-checked="true"]:active .switch__thumb { transform: translateX(10px); }
 .hero-tile__legend [hidden] { display: none; }
 .hero-legend__line { width: 14px; border-top: 2px solid var(--accent); }
 .hero-legend__line--last { border-top: 1.5px dashed var(--text-faint); }
@@ -3181,7 +3232,9 @@ button { font-family: inherit; }
   .sparkline { height: 22px; margin-top: var(--space-2); }
   .hero-tile { padding-bottom: 14px; }
   .hero-tile__chart { height: 120px; margin-top: var(--space-3); }
-  .trend-legend.hero-tile__legend { gap: 4px 12px; padding-top: var(--space-2); font-size: 11px; }
+  .trend-legend.hero-tile__legend { gap: 4px 12px; font-size: 11px; }
+  .hero-tile__foot { padding-top: var(--space-2); }
+  .switch { font-size: 11px; }
   /* Notes wrap to a second line on phones rather than cutting off mid-word. */
   .stat-tile__delta--truncate {
     display: -webkit-box;

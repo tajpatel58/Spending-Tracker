@@ -22,17 +22,35 @@ function daysLoaded(month) {
 }
 
 /**
+ * A month's fixed expenses, as the pace without them counts them: what
+ * was actually paid once the month is complete; before then, what's been
+ * paid so far or the usual amount (the forecast's 3-month average),
+ * whichever is more, since some bills may still be to come.
+ */
+function expectedFixed(month) {
+  const paid = sumAbs(getMonthTransactions(month).filter((t) => t.category === 'fixed_expense'));
+  if (daysLoaded(month) >= daysIn(month)) return paid;
+  return Math.max(paid, forecastSpend(month).fixed);
+}
+
+/**
  * Spend so far against the month's spending target (spendingAllowance),
  * pro rata for the days loaded — or against the whole target once the
- * month is complete. Null when there's no target (no salary last month).
+ * month is complete. With `withoutFixed`, both leave out fixed expenses:
+ * `spent` should be everyday spending, and the target drops the month's
+ * fixed costs (expectedFixed). Null when there's no target (no salary
+ * last month, or fixed costs that use all of it).
  */
-function monthPace(month, spent) {
-  const target = spendingAllowance(month);
-  if (target === null) return null;
+function monthPace(month, spent, { withoutFixed = false } = {}) {
+  const allowance = spendingAllowance(month);
+  if (allowance === null) return null;
+  const fixed = withoutFixed ? expectedFixed(month) : 0;
+  const target = allowance - fixed;
+  if (target <= 0) return null;
   const days = daysIn(month);
   const loaded = daysLoaded(month);
   const expected = target * (loaded / days);
-  return { target, expected, gap: expected - spent, complete: loaded >= days, loaded };
+  return { target, expected, gap: expected - spent, complete: loaded >= days, loaded, withoutFixed, fixed };
 }
 
 /**
@@ -59,17 +77,22 @@ function renderStats() {
     deltaEl.className = 'stat-tile__delta stat-tile__delta--pill';
   }
 
-  // "£180 under pace": spend so far against where the target says it should be by now.
+  // "£180 under pace": spend so far against where the target says it should be by now
+  // (or, with the chart's "Fixed costs" switch off, everyday spend against the target less fixed costs).
   const paceEl = document.getElementById('stat-pace');
-  const pace = monthPace(state.month, total);
+  const withoutFixed = state.paceWithoutFixed;
+  const paceSpend = withoutFixed ? sumAbs(txs.filter(isVariableExpense)) : total;
+  const pace = monthPace(state.month, paceSpend, { withoutFixed });
   paceEl.hidden = !pace;
   if (pace) {
     const under = pace.gap >= 0;
-    paceEl.textContent = `${currencyShort(Math.abs(pace.gap))} ${under ? 'under' : 'over'} ${pace.complete ? 'target' : 'pace'}`;
+    const what = `${withoutFixed ? 'everyday ' : ''}${pace.complete ? 'target' : 'pace'}`;
+    paceEl.textContent = `${currencyShort(Math.abs(pace.gap))} ${under ? 'under' : 'over'} ${what}`;
     paceEl.className = 'stat-tile__delta ' + (under ? 'is-positive' : 'is-negative');
-    paceEl.title = pace.complete
-      ? `Target ${currency(pace.target)} (last month's salary less ${currencyShort(MONTHLY_SAVINGS_TARGET)} savings)`
-      : `By day ${pace.loaded} the ${currency(pace.target)} target allows ${currency(pace.expected)}`;
+    const target = withoutFixed
+      ? `${currency(pace.target)} everyday target (last month's salary less ${currencyShort(MONTHLY_SAVINGS_TARGET)} savings and ${currency(pace.fixed)} fixed costs)`
+      : `${currency(pace.target)} target (last month's salary less ${currencyShort(MONTHLY_SAVINGS_TARGET)} savings)`;
+    paceEl.title = pace.complete ? `Against the ${target}` : `By day ${pace.loaded} the ${target} allows ${currency(pace.expected)}`;
   }
 
   const figures = monthFigures(state.month);
@@ -104,6 +127,23 @@ function renderStats() {
 
   document.getElementById('page-subtitle').textContent = `Spending overview — ${MONTH_LABEL(state.month)}`;
   renderPaceChart(pace);
+}
+
+/**
+ * The "Fixed costs" switch under the Total spend chart: off, the chart's
+ * lines, its target and the pace above it leave out fixed expenses, for
+ * the pace of everyday spending. Remembered on this device.
+ */
+function initPaceFixedToggle() {
+  const toggle = document.getElementById('pace-fixed-toggle');
+  const sync = () => toggle.setAttribute('aria-checked', String(!state.paceWithoutFixed));
+  sync();
+  toggle.addEventListener('click', () => {
+    state.paceWithoutFixed = !state.paceWithoutFixed;
+    try { localStorage.setItem('ledger-pace-without-fixed', state.paceWithoutFixed ? '1' : '0'); } catch { /* storage unavailable */ }
+    sync();
+    renderStats();
+  });
 }
 
 /** A month's figures for the four smaller tiles (and their sparklines). */
