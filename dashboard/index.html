@@ -217,7 +217,8 @@
 
   <!-- Stat tiles -->
   <!-- A large Total spend tile (with the month's running total charted
-       against last month and the target) beside four smaller tiles. -->
+       against last month and the target) beside four smaller tiles, each
+       with its change on last month and a six-month sparkline (stats.js). -->
   <section class="stats-grid stats-grid--hero" aria-label="Summary statistics">
     <div class="tile stat-tile hero-tile">
       <div class="hero-tile__head">
@@ -239,24 +240,40 @@
       </ul>
     </div>
     <div class="tile stat-tile">
-      <span class="stat-tile__label">Income</span>
+      <div class="stat-tile__head">
+        <span class="stat-tile__label">Income</span>
+        <span class="stat-tile__delta stat-tile__delta--pill" id="stat-income-change" hidden></span>
+      </div>
       <span class="stat-tile__value" id="stat-income">£0</span>
       <span class="stat-tile__delta" id="stat-income-note">Salary + Interest</span>
+      <div class="sparkline" id="spark-income" role="img" hidden></div>
     </div>
     <div class="tile stat-tile">
-      <span class="stat-tile__label">Total saved</span>
+      <div class="stat-tile__head">
+        <span class="stat-tile__label">Total saved</span>
+        <span class="stat-tile__delta stat-tile__delta--pill" id="stat-saved-change" hidden></span>
+      </div>
       <span class="stat-tile__value" id="stat-saved">£0</span>
       <span class="stat-tile__delta" id="stat-saved-note">Income − total spend</span>
+      <div class="sparkline" id="spark-saved" role="img" hidden></div>
     </div>
     <div class="tile stat-tile">
-      <span class="stat-tile__label">Daily average</span>
+      <div class="stat-tile__head">
+        <span class="stat-tile__label">Daily average</span>
+        <span class="stat-tile__delta stat-tile__delta--pill" id="stat-daily-change" hidden></span>
+      </div>
       <span class="stat-tile__value" id="stat-daily-avg">£0</span>
       <span class="stat-tile__delta" id="stat-daily-note">—</span>
+      <div class="sparkline" id="spark-daily" role="img" hidden></div>
     </div>
     <div class="tile stat-tile">
-      <span class="stat-tile__label">Categories outside budget</span>
+      <div class="stat-tile__head">
+        <span class="stat-tile__label">Categories outside budget</span>
+        <span class="stat-tile__delta stat-tile__delta--pill" id="stat-over-budget-change" hidden></span>
+      </div>
       <span class="stat-tile__value" id="stat-over-budget">0</span>
       <span class="stat-tile__delta" id="stat-over-budget-note">—</span>
+      <div class="sparkline" id="spark-over-budget" role="img" hidden></div>
     </div>
   </section>
 
