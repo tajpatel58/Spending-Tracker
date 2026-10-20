@@ -9,12 +9,29 @@
  * ---------------------------------------------------------------------
  */
 
+import { renderPaceChart } from './charts.js';
+import { MONTH_LABEL, MONTHS } from './data.js';
+import { daysIn, forecastSpend, lastLoadedDate, spendingAllowance, sumAbs } from './forecast.js';
+import { currency, currencyShort, escapeAttr, moneyMarkup, signedFixed } from './format.js';
+import { motion } from './motion.js';
+import {
+  BUDGET_GROUP_COLORS,
+  budgetGroupActuals,
+  BUDGETS,
+  getMonthTransactions,
+  isExpense,
+  isVariableExpense,
+  MONTHLY_SAVINGS_TARGET,
+  monthTotal,
+  state,
+} from './state.js';
+
 /**
  * How many days of a month have data loaded: up to the latest loaded
  * transaction in the month it falls in, every day of months before it.
  * Statements arrive in batches, so this can trail today.
  */
-function daysLoaded(month) {
+export function daysLoaded(month) {
   const loadedTo = lastLoadedDate();
   if (!loadedTo || loadedTo.slice(0, 7) < month) return 0;
   if (loadedTo.slice(0, 7) > month) return daysIn(month);
@@ -57,7 +74,7 @@ function monthPace(month, spent, { withoutFixed = false } = {}) {
  * Renders the stat tiles for the currently selected month.
  * API: replace with `fetch(`/api/analytics/summary?month=${month}`)`
  */
-function renderStats() {
+export function renderStats() {
   const txs = getMonthTransactions(state.month);
   const total = txs.filter(isExpense).reduce((s, t) => s + Math.abs(t.amount), 0);
 
@@ -196,7 +213,7 @@ function renderOverBudget(month) {
 }
 
 /** The over-budget tile's strip of bars scrolls to the budget chart. */
-function initBudgetStrip() {
+export function initBudgetStrip() {
   document.getElementById('budget-strip').addEventListener('click', () => {
     document.getElementById('budget-list').closest('.tile')
       .scrollIntoView({ block: 'center', behavior: motion.reduced() ? 'auto' : 'smooth' });
@@ -208,7 +225,7 @@ function initBudgetStrip() {
  * lines, its target and the pace above it leave out fixed expenses, for
  * the pace of everyday spending. Remembered on this device.
  */
-function initPaceFixedToggle() {
+export function initPaceFixedToggle() {
   const toggle = document.getElementById('pace-fixed-toggle');
   const sync = () => toggle.setAttribute('aria-checked', String(!state.paceWithoutFixed));
   sync();

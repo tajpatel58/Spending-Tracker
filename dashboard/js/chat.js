@@ -15,6 +15,10 @@
  * ---------------------------------------------------------------------
  */
 
+import { authReady, greeting, initPageHeading, initUserMenu, signOut } from './auth.js';
+import { initTheme, toggleTheme } from './theme.js';
+import './motion.js';
+
 const CHAT_STORAGE_KEY = 'ledger-chat';
 
 const chat = {

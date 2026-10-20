@@ -7,7 +7,7 @@
  */
 
 /** Applies the saved theme (or the OS preference, if nothing is saved) on page load. */
-function initTheme() {
+export function initTheme() {
   const saved = localStorage.getItem('ledger-theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const theme = saved || (prefersDark ? 'dark' : 'light');
@@ -23,7 +23,7 @@ function syncThemeColor() {
 }
 
 /** Switches between light and dark theme and redraws the charts to match. */
-function toggleTheme() {
+export function toggleTheme() {
   const root = document.documentElement;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!document.startViewTransition || reduced) { applyTheme(); return; }
@@ -52,10 +52,7 @@ function applyTheme() {
   localStorage.setItem('ledger-theme', next);
   syncThemeColor();
   // Charts read CSS custom properties into fixed colors at creation time,
-  // so redraw them on theme change to pick up the new palette. Not every
-  // page that uses this toggle (e.g. login.html) has charts to redraw.
-  if (typeof renderCategoryChart === 'function') renderCategoryChart();
-  if (typeof renderUserChart === 'function') renderUserChart();
-  if (typeof renderTrendChart === 'function') renderTrendChart();
-  if (typeof renderBudgetChart === 'function') renderBudgetChart();
+  // so pages with charts redraw them on this to pick up the new palette
+  // (main.js). It fires straight away, inside the theme's view transition.
+  document.dispatchEvent(new CustomEvent('ledger:theme-changed', { detail: { theme: next } }));
 }

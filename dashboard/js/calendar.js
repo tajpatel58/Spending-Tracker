@@ -16,6 +16,37 @@
  * ---------------------------------------------------------------------
  */
 
+import { initPageHeading, initUserMenu, signOut } from './auth.js';
+import { ACCOUNTS, accountsReady, MONTH_LABEL, MONTHS, pageSession, TRANSACTIONS } from './data.js';
+import { initAccountFilter, initMonthSelect, pageHooks, renderMonthOptions } from './filters.js';
+import {
+  daysIn,
+  EVENTS_BY_DATE,
+  forecastSpend,
+  indexEvents,
+  lastLoadedDate,
+  monthSalary,
+  pad2,
+  shiftMonth,
+  spendingAllowance,
+  sumAbs,
+  todayIso,
+} from './forecast.js';
+import { currency, currencyShort, escapeAttr, formatDate, MINUS, moneyMarkup } from './format.js';
+import {
+  accountById,
+  catById,
+  finishLoading,
+  getMonthTransactions,
+  isExpense,
+  isVariableExpense,
+  MONTHLY_SAVINGS_TARGET,
+  showLoadError,
+  state,
+} from './state.js';
+import { initSync } from './sync.js';
+import { initTheme, toggleTheme } from './theme.js';
+
 const calendarView = {
   selectedDate: null, // 'YYYY-MM-DD'; reset when the month changes — today in the current month, else the heaviest day
   month: null,
@@ -355,6 +386,7 @@ function renderAll() {
 
   renderDayDetail(days);
 }
+pageHooks.renderAll = renderAll; // the shared month/account filters redraw the calendar (filters.js)
 
 /** Up to three dots showing what a day's money went on, biggest category first. */
 function categoryDots(day) {

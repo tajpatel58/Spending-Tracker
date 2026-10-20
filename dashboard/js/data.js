@@ -17,8 +17,18 @@
  * ---------------------------------------------------------------------
  */
 
+import {
+  authReady,
+  LEDGER_DATA_CACHE_KEY,
+  localCache,
+  localDataCleared,
+  storedSession,
+  supabaseClient,
+} from './auth.js';
+import { fetchCalendarEvents, fetchTransactions } from './supabase-client.js';
+
 // ---- Categories (id, label, CSS var for color) -------------------------
-const CATEGORIES = [
+export const CATEGORIES = [
   { id: 'groceries',     label: 'Groceries',       color: 'var(--cat-groceries)' },
   { id: 'dining',        label: 'Dining Out',      color: 'var(--cat-dining)' },
   { id: 'transport',     label: 'Transport',       color: 'var(--cat-transport)' },
@@ -37,8 +47,8 @@ const CATEGORIES = [
 ];
 
 // ---- Accounts, grouped by owner --------------------------------------
-let ACCOUNT_GROUPS = [];
-let ACCOUNTS = [];
+export let ACCOUNT_GROUPS = [];
+export let ACCOUNTS = [];
 
 /** Builds ACCOUNT_GROUPS / ACCOUNTS from rows of the accounts table. */
 function applyAccounts(rows) {
@@ -70,9 +80,9 @@ async function fetchAccountRows() {
 }
 
 // Both are filled in by `accountsReady` below, in ascending month order.
-const MONTHS = [];             // [ { key: '2026-08' }, ... ]
-const TRANSACTIONS = {};       // { '2026-08': [ {id,date,merchant,category,amount}, ... ] }
-const CALENDAR_EVENTS = [];    // [ {id,date,title,budget,category}, ... ] — used by the Calendar page
+export const MONTHS = [];             // [ { key: '2026-08' }, ... ]
+export const TRANSACTIONS = {};       // { '2026-08': [ {id,date,merchant,category,amount}, ... ] }
+export const CALENDAR_EVENTS = [];    // [ {id,date,title,budget,category}, ... ] — used by the Calendar page
 
 /** Groups transactions by month into TRANSACTIONS and rebuilds MONTHS (in place, so references stay valid). */
 function applyTransactions(transactions) {
@@ -96,7 +106,7 @@ function applyEvents(events) {
 // background and only re-renders if something actually changed. The
 // copy is tied to the signed-in email and cleared on sign out (auth.js).
 
-const dataStatus = {
+export const dataStatus = {
   user: null,        // email the data belongs to
   syncedAt: null,    // when this device last pulled fresh data (ms)
   refreshing: null,  // the in-flight refresh promise, if any
@@ -118,23 +128,55 @@ function applyDataBundle(bundle) {
   applyEvents(bundle.events || []);
 }
 
-function readDataCache(email) {
+/**
+ * This user's saved copy, or null. Reads IndexedDB; a copy from before it
+ * moved there (in localStorage) is read once, moved across and removed.
+ */
+async function readDataCache(email) {
+  const valid = (cached) => (cached && cached.user === email && cached.version === 1 ? cached : null);
+  let stored = null;
+  try { stored = await localCache.get(LEDGER_DATA_CACHE_KEY); } catch { /* IndexedDB unavailable */ }
+  if (stored) return valid(stored);
   try {
-    const cached = JSON.parse(localStorage.getItem(LEDGER_DATA_CACHE_KEY));
-    return cached && cached.user === email && cached.version === 1 ? cached : null;
+    const legacy = valid(JSON.parse(localStorage.getItem(LEDGER_DATA_CACHE_KEY)));
+    if (legacy) localCache.set(LEDGER_DATA_CACHE_KEY, legacy).then(() => localStorage.removeItem(LEDGER_DATA_CACHE_KEY), () => {});
+    return legacy;
   } catch { return null; }
 }
 
-/** Saves what's on screen (also called after edits, so a reload shows them straight away). */
-function saveDataCache() {
+/** Writes the copy now: to IndexedDB, or localStorage if that's unavailable. */
+async function writeDataCache() {
+  saveDataCache.timer = null;
   if (!dataStatus.user || localDataCleared) return;
+  const copy = { version: 1, user: dataStatus.user, syncedAt: dataStatus.syncedAt, ...currentDataBundle() };
   try {
-    localStorage.setItem(LEDGER_DATA_CACHE_KEY, JSON.stringify({
-      version: 1, user: dataStatus.user, syncedAt: dataStatus.syncedAt, ...currentDataBundle(),
-    }));
-  } catch (error) {
-    console.warn('[Ledger data] Could not save the local copy:', error.message); // e.g. storage full/private mode
+    await localCache.set(LEDGER_DATA_CACHE_KEY, copy);
+  } catch {
+    try {
+      localStorage.setItem(LEDGER_DATA_CACHE_KEY, JSON.stringify(copy));
+    } catch (error) {
+      console.warn('[Ledger data] Could not save the local copy:', error.message); // e.g. storage full/private mode
+    }
   }
+}
+
+/**
+ * Saves what's on screen (also called after edits, so a reload shows them
+ * straight away). An edit, its save and an undo can each ask within a few
+ * moments; they share one write, made just after, or as the page is left.
+ */
+export function saveDataCache() {
+  if (!saveDataCache.timer) saveDataCache.timer = setTimeout(writeDataCache, 300);
+}
+// Leaving the page (or the app going to the background) writes a pending save straight away.
+const flushDataCache = () => { if (saveDataCache.timer) { clearTimeout(saveDataCache.timer); writeDataCache(); } };
+window.addEventListener('pagehide', flushDataCache);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushDataCache(); });
+
+/** Marks the saved copy as due a check, so the next page loaded fetches fresh data (e.g. after an upload). */
+export function markDataStale() {
+  dataStatus.syncedAt = null;
+  saveDataCache();
 }
 
 /** Pulls accounts, transactions and calendar events from Supabase in parallel. */
@@ -157,7 +199,7 @@ const notify = (name, detail) => document.dispatchEvent(new CustomEvent(name, { 
  * announced with `ledger:sync` events for the "Updated …" control.
  * Resolves to { changed, accountsChanged }.
  */
-function refreshData() {
+export function refreshData() {
   if (dataStatus.refreshing) return dataStatus.refreshing;
   notify('ledger:sync', { state: 'checking' });
   dataStatus.refreshing = (async () => {
@@ -165,7 +207,7 @@ function refreshData() {
       const fresh = await fetchDataBundle();
       const current = currentDataBundle();
       const changed = !sameData(fresh, current);
-      const accountsChanged = !sameData(fresh.accountRows, current.accountRows);
+      const accountsChanged = changed && !sameData(fresh.accountRows, current.accountRows);
       if (changed) applyDataBundle(fresh);
       dataStatus.syncedAt = Date.now();
       saveDataCache();
@@ -188,9 +230,9 @@ function refreshData() {
  * so showing it early reveals nothing new. If authReady then fails,
  * initializeAuth clears the copy and redirects to login.html.
  */
-const quickStart = (() => {
+const quickStart = (async () => {
   const session = storedSession();
-  const cached = session && readDataCache(session.user.email);
+  const cached = session && await readDataCache(session.user.email);
   return cached ? { session, cached } : null;
 })();
 
@@ -200,7 +242,7 @@ const quickStart = (() => {
  * of the full check in authReady. Pages that write on the user's behalf
  * (Upload) wait for authReady itself.
  */
-const pageSession = quickStart ? Promise.resolve(quickStart.session) : authReady;
+export const pageSession = quickStart.then((quick) => (quick ? quick.session : authReady));
 
 /**
  * Resolves once there's data to draw: immediately from the local copy
@@ -208,11 +250,12 @@ const pageSession = quickStart ? Promise.resolve(quickStart.session) : authReady
  * otherwise after the auth check and the first fetch — a signed-out
  * visitor is being redirected to login.html.
  */
-const accountsReady = pageSession.then(async (session) => {
+export const accountsReady = pageSession.then(async (session) => {
   if (!session) return;
   dataStatus.user = session.user.email;
 
-  const cached = quickStart ? quickStart.cached : readDataCache(dataStatus.user);
+  const quick = await quickStart;
+  const cached = quick ? quick.cached : await readDataCache(dataStatus.user);
   if (cached) {
     applyDataBundle(cached);
     dataStatus.syncedAt = cached.syncedAt;
@@ -233,7 +276,7 @@ accountsReady.catch(() => {});
  * month to MONTHS if it's the first transaction there. Used when a date
  * edit moves a transaction into a different month.
  */
-function refileTransaction(transaction, previousDate) {
+export function refileTransaction(transaction, previousDate) {
   const from = previousDate.slice(0, 7);
   const to = transaction.date.slice(0, 7);
   if (from === to) return;
@@ -247,7 +290,7 @@ function refileTransaction(transaction, previousDate) {
 }
 
 /** Formats a month key like '2026-08' as "August 2026". */
-const MONTH_LABEL = (key) => {
+export const MONTH_LABEL = (key) => {
   const [y, m] = key.split('-').map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 };

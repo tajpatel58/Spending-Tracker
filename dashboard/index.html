@@ -38,29 +38,15 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/styles.css">
+<!-- sw-register: the deployed build switches on the service worker here (scripts/dashboard/build.mjs). -->
 <!-- Scripts download in parallel while the page parses (defer keeps their order). -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <script defer src="js/config.js"></script>
-<script defer src="js/auth.js"></script>
-<script defer src="js/supabase-client.js"></script>
-<script defer src="js/transactions-api.js"></script>
-<script defer src="js/data.js"></script>
-<script defer src="js/format.js"></script>
-<script defer src="js/state.js"></script>
-<script defer src="js/forecast.js"></script>
-<script defer src="js/theme.js"></script>
-<script defer src="js/motion.js"></script>
-<script defer src="js/stats.js"></script>
-<script defer src="js/datepicker.js"></script>
-<!-- Chart.js waits until just before charts.js, so the session check and data
-     (above) start without waiting for it to download. -->
+<!-- The page's code, as ES modules: main.js imports what it needs (deferred, like the scripts above). -->
+<script type="module" src="js/main.js"></script>
+<!-- Chart.js comes after the modules, so the session check and data start
+     without waiting for it; it's in place before the page first draws. -->
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script defer src="js/charts.js"></script>
-<script defer src="js/toast.js"></script>
-<script defer src="js/sync.js"></script>
-<script defer src="js/table.js"></script>
-<script defer src="js/filters.js"></script>
-<script defer src="js/main.js"></script>
 </head>
 <!-- is-loading shows placeholder shapes until the data has loaded and
      rendered (see .is-loading in styles.css). No data is in the page
@@ -452,33 +438,34 @@
 
 
 <!--
-  Dashboard scripts, in the order they need to load.
+  Dashboard scripts.
 
   ⚙️  TO ENABLE: js/config.js holds the Supabase project URL and key —
       that file isn't checked into git, so if it's missing, copy it
       from js/config.example.js and fill in your own project's details.
 
-  The scripts are the <script defer> tags in <head>: they download in
-  parallel but run in the order listed. Each builds on the ones before
-  it (plain scripts, no bundler), so this order matters if you add or
-  move code:
-    1. config.js            — your Supabase project credentials
-    2. auth.js               — Google sign-in + the session guard
-    3. supabase-client.js     — connects to Supabase, reads transactions
-    4. transactions-api.js     — writes edits back to Supabase
-    5. data.js                  — loads categories, accounts, transactions
-    6. format.js                 — currency/date formatting helpers
-    7. state.js                    — current filters/sort + derived data
-    8. theme.js                     — light/dark mode
-    9. stats.js                      — the stat tiles
-    10. charts.js                     — the charts (incl. the Total spend tile's running total)
-    10b. datepicker.js                 — pop-over calendar for changing a date
-    11. table.js                       — the transactions table + editing
-        (toast.js, loaded just before it, shows the "… · Undo" confirmations)
-    12. filters.js                     — month/account/category/search/sort controls
-    14. main.js                          — wires it all up and renders the page
-  (The assistant and statement upload have their own pages — see
-  chat.html/chat.js and upload.html/upload.js.)
+  The code is ES modules: js/main.js is the entry point and each file
+  imports what it uses, so load order looks after itself. Only the
+  libraries (supabase-js, Chart.js) and config.js are plain scripts in
+  <head>, which the modules use as globals. The files, roughly from the
+  ground up:
+    auth.js               — the Supabase client, Google sign-in, the session guard
+    supabase-client.js    — reads transactions and events (every page of them)
+    transactions-api.js   — writes edits back to Supabase
+    data.js               — categories, accounts, transactions; the on-device copy
+    format.js             — currency/date formatting helpers
+    state.js              — current filters/sort, budgets, derived data
+    forecast.js           — month forecasts and the spending target
+    theme.js / motion.js  — light/dark mode; entrances, counting figures, page transitions
+    stats.js              — the stat tiles
+    charts.js             — the charts (incl. the Total spend tile's running total)
+    datepicker.js         — pop-over calendar for changing a date
+    table.js              — the transactions table + editing (toast.js shows "… · Undo")
+    filters.js            — month/account/category/search/sort controls
+    sync.js               — the "Updated…" control and background refresh
+    main.js               — wires it all up and renders the page
+  (The calendar, assistant, statement upload and sign-in have their own
+  entry points — calendar.js, chat.js, upload.js and login.js.)
 -->
 </body>
 </html>

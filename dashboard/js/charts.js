@@ -8,6 +8,36 @@
  * ---------------------------------------------------------------------
  */
 
+import { CATEGORIES, MONTH_LABEL, MONTHS, TRANSACTIONS } from './data.js';
+import { setMonth, syncTableFilters } from './filters.js';
+import {
+  daysIn,
+  forecastSpend,
+  shiftMonth,
+  spendingAllowance,
+  sumAbs,
+  todayIso,
+} from './forecast.js';
+import { cssVar, currency, currencyShort, escapeAttr, formatDate } from './format.js';
+import { motion } from './motion.js';
+import {
+  BUDGET_GROUP_COLORS,
+  BUDGET_GROUPS,
+  budgetGroupActuals,
+  BUDGETS,
+  catById,
+  categoryTotals,
+  FIXED_EXPENSES_LABEL,
+  getMonthTransactions,
+  isExpense,
+  isVariableExpense,
+  spendOwner,
+  spendOwnerColor,
+  state,
+} from './state.js';
+import { daysLoaded } from './stats.js';
+import { renderTable } from './table.js';
+
 let categoryChart, trendChart, userChart, paceChart;
 
 const LEGEND_LIMIT = 6;               // legend rows shown before "+N more"
@@ -206,7 +236,7 @@ let categoryDrill = null; // the category the doughnut is opened into, if any
  * It stays open across month changes while the category has spending.
  * `sweep` plays the sweep (when opening or closing).
  */
-function renderCategoryChart({ sweep = false } = {}) {
+export function renderCategoryChart({ sweep = false } = {}) {
   const variable = getMonthTransactions(state.month).filter(isVariableExpense);
   const totals = categoryTotals(variable);
   if (categoryDrill && !totals[categoryDrill]) categoryDrill = null;
@@ -276,7 +306,7 @@ function openCategory(categoryId, { keyboard = false } = {}) {
 }
 
 /** Wires up the category doughnut's back arrow, Escape and "Show transactions". */
-function initCategoryDrill() {
+export function initCategoryDrill() {
   initDrill({
     prefix: 'category',
     current: () => categoryDrill,
@@ -349,7 +379,7 @@ function shadeEntries(entries, color) {
  * user's biggest transactions (the rest share one "Other" slice), with a
  * back arrow (or Escape) and "Show transactions" to filter the table to them.
  */
-function renderUserChart({ sweep = false } = {}) {
+export function renderUserChart({ sweep = false } = {}) {
   const expenses = (TRANSACTIONS[state.month] || []).filter((transaction) => !transaction.hidden && isExpense(transaction));
   const totals = {};
   expenses.forEach((transaction) => {
@@ -419,7 +449,7 @@ function openUser(user, { keyboard = false } = {}) {
 }
 
 /** Wires up the user doughnut's back arrow, Escape and "Show transactions". */
-function initUserDrill() {
+export function initUserDrill() {
   initDrill({
     prefix: 'user',
     current: () => userDrill,
@@ -431,16 +461,6 @@ function initUserDrill() {
     },
   });
 }
-
-/** Each budget group's colour, shared by the budget bars and the Over budget tile's strip. */
-const BUDGET_GROUP_COLORS = {
-  'Fixed Expenses': 'var(--cat-fixed-expense)',
-  'Dining Out': 'var(--cat-dining)',
-  Groceries: 'var(--cat-groceries)',
-  Shopping: 'var(--cat-shopping)',
-  Transport: 'var(--cat-transport)',
-  Extras: 'var(--budget-extras)',
-};
 
 /** The date each budget group's running total first went over its budget, e.g. { Groceries: '2026-10-14' }. */
 function budgetCrossings(month) {
@@ -467,7 +487,7 @@ function budgetCrossings(month) {
  * of pace it is, or when it went over. Fixed Expenses skips the pace and
  * per-day figures, as bills land on set dates rather than evenly.
  */
-function renderBudgetChart() {
+export function renderBudgetChart() {
   const groupNames = Object.keys(BUDGETS); // chart order follows BUDGETS in state.js
   const actualByGroup = budgetGroupActuals(state.month);
 
@@ -633,7 +653,7 @@ function runningTotals(month, keep = isExpense) {
  * monthPace (stats.js) and is null when there's no target. With the
  * tile's "Fixed costs" switch off, all three leave out fixed expenses.
  */
-function renderPaceChart(pace) {
+export function renderPaceChart(pace) {
   const month = state.month;
   const days = daysIn(month);
   const labels = Array.from({ length: days }, (_, i) => i + 1);
@@ -837,7 +857,7 @@ function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMo
  * minus the savings target). The selected month is drawn in full colour;
  * clicking a bar jumps to that month.
  */
-function renderTrendChart() {
+export function renderTrendChart() {
   const months = MONTHS.slice(-6).map((m) => m.key);
   const currentMonth = todayIso().slice(0, 7);
   const sumOf = (key, keep) => sumAbs(getMonthTransactions(key).filter(keep));
@@ -890,7 +910,7 @@ function renderTrendChart() {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       onClick: (_event, elements) => {
-        if (!elements.length || typeof setMonth !== 'function') return;
+        if (!elements.length) return;
         // Switching month redraws this chart, so let Chart.js finish handling the click first.
         const month = months[elements[0].index];
         setTimeout(() => setMonth(month), 0);

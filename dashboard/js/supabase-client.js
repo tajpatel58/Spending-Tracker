@@ -7,18 +7,46 @@
  * ---------------------------------------------------------------------
  */
 
+import { supabaseClient } from './auth.js';
+import { CATEGORIES } from './data.js';
+
+// ============================================================
+// PAGING
+// ============================================================
+
+/**
+ * Supabase's API returns at most 1,000 rows per request (the project's
+ * "Max rows" setting), silently dropping the rest. This reads every row:
+ * the first page also asks for the exact total, then the remaining pages
+ * are requested together, each the size the server actually returned.
+ *
+ *   build(options) -> a fresh query (select + a stable order), e.g.
+ *     (o) => supabaseClient.from('t').select('id, x', o).order('id')
+ *   options is { count: 'exact' } for the first page, undefined after.
+ *
+ * Resolves to { data, error }, like a single Supabase query.
+ */
+const PAGE_SIZE = 1000;
+async function fetchAllRows(build) {
+  const first = await build({ count: 'exact' }).range(0, PAGE_SIZE - 1);
+  if (first.error) return first;
+  const rows = first.data || [];
+  const total = first.count ?? rows.length;
+  if (!rows.length || rows.length >= total) return { data: rows, error: null };
+
+  const step = rows.length; // the server's real page size, if it's below PAGE_SIZE
+  const pages = [];
+  for (let from = rows.length; from < total; from += step) pages.push(build().range(from, from + step - 1));
+  const results = await Promise.all(pages);
+  const failed = results.find((result) => result.error);
+  if (failed) return { data: null, error: failed.error };
+  return { data: rows.concat(...results.map((result) => result.data || [])), error: null };
+}
+
 // ============================================================
 // TRANSACTIONS
 // ============================================================
 
-/**
- * Fetches every transaction from Supabase and merges in any manual
- * edits (renamed merchant, recategorised, corrected amount, hidden
- * flag) stored in the transactions_metadata table.
- *
- * @returns {Promise<Array<Object>>} transactions shaped for the
- *   dashboard: { id, date, merchant, category, amount, account, user, hidden }
- */
 /**
  * Returns the dashboard category id for a stored category, or null when
  * it's missing or not one of CATEGORIES (e.g. an LLM answer of 'unknown').
@@ -29,16 +57,27 @@ function normalizeCategory(value) {
   return CATEGORIES.some((c) => c.id === id) ? id : null;
 }
 
-async function fetchTransactions() {
+/**
+ * Fetches every transaction from Supabase and merges in any manual
+ * edits (renamed merchant, recategorised, corrected amount, hidden
+ * flag) stored in the transactions_metadata table.
+ *
+ * @returns {Promise<Array<Object>>} transactions shaped for the
+ *   dashboard: { id, date, merchant, category, amount, account, user, hidden }
+ */
+export async function fetchTransactions() {
+  // event_id breaks ties between same-day rows, so pages never overlap or skip.
   const [transactionsResult, metadataResult] = await Promise.all([
-    supabaseClient
+    fetchAllRows((options) => supabaseClient
       .from('transactions')
-      .select('event_id, date, merchant, amount, account_id, user')
-      .order('date', { ascending: true }),
+      .select('event_id, date, merchant, amount, account_id, user', options)
+      .order('date', { ascending: true })
+      .order('event_id', { ascending: true })),
 
-    supabaseClient
+    fetchAllRows((options) => supabaseClient
       .from('transactions_metadata')
-      .select('event_id, llm_merchant, llm_category, manual_merchant, manual_category, manual_amount, manual_date, hidden'),
+      .select('event_id, llm_merchant, llm_category, manual_merchant, manual_category, manual_amount, manual_date, hidden', options)
+      .order('event_id', { ascending: true })),
   ]);
 
   if (transactionsResult.error) {
@@ -92,11 +131,12 @@ async function fetchTransactions() {
  *
  * @returns {Promise<Array<Object>>} { id, date, title, budget, category }
  */
-async function fetchCalendarEvents() {
-  const { data, error } = await supabaseClient
+export async function fetchCalendarEvents() {
+  const { data, error } = await fetchAllRows((options) => supabaseClient
     .from('calendar_events')
-    .select('event_id, title, event_date, budget, category')
-    .order('event_date', { ascending: true });
+    .select('event_id, title, event_date, budget, category', options)
+    .order('event_date', { ascending: true })
+    .order('event_id', { ascending: true }));
 
   if (error) {
     console.error('[Ledger data] Calendar events request failed:', error);

@@ -7,18 +7,47 @@
  * ---------------------------------------------------------------------
  */
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { toggleTheme } from './theme.js';
+
+export const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const IS_LOGIN_PAGE = /login\.html$/.test(window.location.pathname);
 
 // The dashboard keeps a copy of your data on this device so pages open
-// instantly (see data.js). It's wiped whenever the session ends.
-const LEDGER_DATA_CACHE_KEY = 'ledger-data';
-function clearLocalData() {
-  localDataCleared = true; // stops a refresh already in flight saving it again (data.js saveDataCache)
+// instantly (see data.js). It lives in IndexedDB, which has no 5 MB cap
+// and saves without holding up the page (localStorage only stands in if
+// IndexedDB is unavailable), and it's wiped whenever the session ends.
+export const LEDGER_DATA_CACHE_KEY = 'ledger-data';
+
+/** A tiny promise wrapper over one IndexedDB store: get / set / delete by key. */
+export const localCache = (() => {
+  let opening;
+  const open = () => opening || (opening = new Promise((resolve, reject) => {
+    const request = indexedDB.open('ledger', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('cache');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  }));
+  const run = (mode, act) => open().then((db) => new Promise((resolve, reject) => {
+    const transaction = db.transaction('cache', mode);
+    const request = act(transaction.objectStore('cache'));
+    transaction.oncomplete = () => resolve(request.result);
+    transaction.onerror = transaction.onabort = () => reject(transaction.error);
+  }));
+  return {
+    get: (key) => run('readonly', (store) => store.get(key)),
+    set: (key, value) => run('readwrite', (store) => store.put(value, key)),
+    delete: (key) => run('readwrite', (store) => store.delete(key)),
+  };
+})();
+
+/** Wipes the local copy of the data. Resolves once it's gone, so callers can wait before leaving the page. */
+async function clearLocalData() {
+  localDataCleared = true; // stops a refresh or save already in flight writing it again (data.js saveDataCache)
   try { localStorage.removeItem(LEDGER_DATA_CACHE_KEY); } catch { /* storage unavailable */ }
+  await localCache.delete(LEDGER_DATA_CACHE_KEY).catch(() => { /* IndexedDB unavailable: nothing stored there */ });
 }
-let localDataCleared = false;
+export let localDataCleared = false;
 
 /**
  * Checks whether the signed-in user's email is in the `users` allow-list
@@ -31,11 +60,19 @@ let localDataCleared = false;
  * @returns {Promise<boolean>}
  */
 async function hasDataAccess(session) {
-  const { data, error } = await supabaseClient
+  const { data, error, status } = await supabaseClient
     .from('users')
     .select('email')
     .eq('email', session.user.email)
     .maybeSingle();
+
+  // Couldn't reach Supabase (offline, or a dropped connection): that's not a
+  // "no". Carry on with what's on this device; the server's own access rules
+  // still guard the data, and the check runs again on the next page load.
+  if (error && (status === 0 || !navigator.onLine)) {
+    console.warn('[Ledger auth] Access check skipped — Supabase unreachable:', error.message);
+    return true;
+  }
 
   if (error) {
     console.error('[Ledger auth] Access check failed:', error);
@@ -65,13 +102,13 @@ async function initializeAuth() {
   const session = data.session;
 
   if (!session) {
-    clearLocalData(); // signed out (or the session expired) — don't leave data on the device
+    await clearLocalData(); // signed out (or the session expired) — don't leave data on the device
     if (!IS_LOGIN_PAGE) window.location.replace('login.html');
     return null;
   }
 
   if (!(await hasDataAccess(session))) {
-    clearLocalData();
+    await clearLocalData();
     await supabaseClient.auth.signOut();
     window.location.replace('login.html?error=permission_denied');
     return null;
@@ -87,7 +124,7 @@ async function initializeAuth() {
 
 // Checks the existing session once when the page loads.
 // Other scripts can `await authReady` if they need to know it has run.
-const authReady = initializeAuth();
+export const authReady = initializeAuth();
 
 /**
  * The session Supabase saved on this device at the last sign-in, read
@@ -96,7 +133,7 @@ const authReady = initializeAuth();
  * to draw the local copy of the data early; authReady still runs the
  * real check and clears that copy and redirects if it fails.
  */
-function storedSession() {
+export function storedSession() {
   try {
     const key = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`; // supabase-js's default storage key
     const stored = JSON.parse(localStorage.getItem(key));
@@ -117,7 +154,7 @@ supabaseClient.auth.onAuthStateChange((event) => {
  *
  * @returns {Promise<{error: Error|null}>}
  */
-async function signInWithGoogle() {
+export async function signInWithGoogle() {
   const redirectTo = `${window.location.origin}${window.location.pathname.replace(/login\.html$/, 'index.html')}`;
   return supabaseClient.auth.signInWithOAuth({
     provider: 'google',
@@ -126,14 +163,14 @@ async function signInWithGoogle() {
 }
 
 /** Signs out and returns to the login page. */
-async function signOut() {
-  clearLocalData();
+export async function signOut() {
+  await clearLocalData();
   await supabaseClient.auth.signOut();
   window.location.replace('login.html');
 }
 
 /** "Good evening, Taj" for the signed-in user, by time of day; null when there's no name. */
-function greeting(session) {
+export function greeting(session) {
   const firstName = (session.user?.user_metadata?.full_name || session.user?.user_metadata?.name || '').split(' ')[0];
   const hour = new Date().getHours();
   const partOfDay = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -145,7 +182,7 @@ function greeting(session) {
  * opt in with data-greet on the <h1>, a personal greeting in place of
  * the page name.
  */
-function initPageHeading(session) {
+export function initPageHeading(session) {
   const eyebrow = document.getElementById('page-eyebrow');
   if (eyebrow) eyebrow.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const title = document.querySelector('.page-heading h1[data-greet]');
@@ -194,7 +231,7 @@ function buildAccountCard(panel, initials) {
 }
 
 /** Fills and wires the signed-in user's account menu in the dashboard header. */
-function initUserMenu(session) {
+export function initUserMenu(session) {
   const user = session.user;
   const email = user.email || '';
   const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0] || 'Account';

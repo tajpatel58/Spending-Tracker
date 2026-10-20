@@ -14,6 +14,10 @@
  * ---------------------------------------------------------------------
  */
 
+import { MONTH_LABEL } from './data.js';
+import { shiftMonth } from './forecast.js';
+import { formatDate } from './format.js';
+
 const datePicker = {
   el: null,
   options: null,
@@ -92,7 +96,7 @@ function closeDatePicker() {
   datePicker.options = null;
 }
 
-function openDatePicker(options) {
+export function openDatePicker(options) {
   if (!datePicker.el) initDatePicker();
   if (datePicker.options?.anchor === options.anchor) { closeDatePicker(); return; } // second click toggles shut
   closeDatePicker();

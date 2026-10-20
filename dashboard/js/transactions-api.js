@@ -8,8 +8,10 @@
  * ---------------------------------------------------------------------
  */
 
+import { supabaseClient } from './auth.js';
+
 /** Sets a transaction's category. */
-async function updateTransactionCategory(transactionId, categoryId) {
+export async function updateTransactionCategory(transactionId, categoryId) {
   const { error } = await supabaseClient
     .from('transactions_metadata')
     .update({ manual_category: categoryId })
@@ -19,7 +21,7 @@ async function updateTransactionCategory(transactionId, categoryId) {
 }
 
 /** Renames a transaction's merchant. */
-async function updateTransactionMerchant(transactionId, merchant) {
+export async function updateTransactionMerchant(transactionId, merchant) {
   const { data, error } = await supabaseClient
     .from('transactions_metadata')
     .update({ manual_merchant: merchant })
@@ -31,7 +33,7 @@ async function updateTransactionMerchant(transactionId, merchant) {
 }
 
 /** Overrides a transaction's amount. */
-async function updateTransactionAmount(transactionId, amount) {
+export async function updateTransactionAmount(transactionId, amount) {
   const { data, error } = await supabaseClient
     .from('transactions_metadata')
     .update({ manual_amount: amount })
@@ -46,7 +48,7 @@ async function updateTransactionAmount(transactionId, amount) {
  * Overrides a transaction's date ('YYYY-MM-DD'). Passing null clears the
  * override so the bank's original date is used again.
  */
-async function updateTransactionDate(transactionId, date) {
+export async function updateTransactionDate(transactionId, date) {
   const { data, error } = await supabaseClient
     .from('transactions_metadata')
     .update({ manual_date: date })
@@ -58,7 +60,7 @@ async function updateTransactionDate(transactionId, date) {
 }
 
 /** Marks one or more transactions as hidden so they drop out of the dashboard. */
-async function hideTransactions(transactionIds) {
+export async function hideTransactions(transactionIds) {
   const { error } = await supabaseClient
     .from('transactions_metadata')
     .update({ hidden: true })
@@ -68,7 +70,7 @@ async function hideTransactions(transactionIds) {
 }
 
 /** Brings hidden transactions back (used by Undo after hiding). */
-async function unhideTransactions(transactionIds) {
+export async function unhideTransactions(transactionIds) {
   const { error } = await supabaseClient
     .from('transactions_metadata')
     .update({ hidden: false })

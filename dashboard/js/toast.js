@@ -45,7 +45,7 @@ function dismissToast(toast) {
  * Shows a toast. `tone` is 'success' (default), 'error' or 'info'.
  * `action` adds a button (e.g. Undo); clicking it runs `onClick` and closes the toast.
  */
-function showToast({ message, action, tone = 'success', duration = TOAST_DURATION }) {
+export function showToast({ message, action, tone = 'success', duration = TOAST_DURATION }) {
   const region = toastRegion();
   region.querySelectorAll('.toast').forEach(dismissToast);
 

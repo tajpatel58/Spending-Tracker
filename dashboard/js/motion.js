@@ -22,7 +22,9 @@
  * ---------------------------------------------------------------------
  */
 
-const motion = (() => {
+import { moneyMarkup } from './format.js';
+
+export const motion = (() => {
   const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---------- Counting figures ----------

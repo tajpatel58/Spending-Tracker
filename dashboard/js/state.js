@@ -8,12 +8,15 @@
  * ---------------------------------------------------------------------
  */
 
+import { CATEGORIES, TRANSACTIONS } from './data.js';
+import { motion } from './motion.js';
+
 /** The month last picked on either page, so Overview and Calendar stay in step. */
 function savedMonth() {
   try { return sessionStorage.getItem('ledger-month'); } catch { return null; }
 }
 
-const state = {
+export const state = {
   month: savedMonth(), // falls back to the most recent month once transactions load
   categories: new Set(), // table category filter; empty = every category
   users: new Set(),      // table user filter (see spendOwner); empty = everyone
@@ -26,36 +29,36 @@ const state = {
 };
 
 // Lookup tables used throughout the rendering code.
-const accountById = {}; // filled in once accounts.csv has loaded
-const catById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
+export const accountById = {}; // filled in once accounts.csv has loaded
+export const catById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
 // Fixed expenses are grouped as their own "user" in the Spending by user
 // chart and the table's user filter, rather than counting towards a person.
-const FIXED_EXPENSES_LABEL = 'Fixed Expenses';
+export const FIXED_EXPENSES_LABEL = 'Fixed Expenses';
 
 /** Who a transaction's spend belongs to: 'Fixed Expenses', or its user. */
-function spendOwner(t) {
+export function spendOwner(t) {
   return t.category === 'fixed_expense' ? FIXED_EXPENSES_LABEL : (t.user || 'Unknown');
 }
 
 /** Every spend owner across all loaded transactions: Fixed Expenses, then users A–Z. */
-function spendOwners() {
+export function spendOwners() {
   const users = new Set(Object.values(TRANSACTIONS).flat().map((t) => t.user || 'Unknown'));
   return [FIXED_EXPENSES_LABEL, ...[...users].sort()];
 }
 
 /** A spend owner's colour as a CSS var() — fixed by name, so it never changes month to month. */
-function spendOwnerColor(owner) {
+export function spendOwnerColor(owner) {
   if (owner === FIXED_EXPENSES_LABEL) return 'var(--cat-fixed-expense)';
   const index = spendOwners().indexOf(owner) - 1; // -1 skips Fixed Expenses
   return `var(--user-${(Math.max(index, 0) % 3) + 1})`;
 }
 
 /** Clears the loading placeholders once the page has rendered real data. */
-function finishLoading() {
+export function finishLoading() {
   document.body.classList.remove('is-loading');
   document.body.removeAttribute('aria-busy');
-  const reveal = () => { if (typeof motion !== 'undefined') motion.reveal(); };
+  const reveal = () => motion.reveal();
   const root = document.documentElement;
   if (!root.classList.contains('is-launching')) { reveal(); return; }
   // Launch mark showing (first page of a visit): let it finish drawing, then
@@ -71,7 +74,7 @@ function finishLoading() {
 const LAUNCH_MS = 1500;
 
 /** Swaps the loading placeholders for a short message with a Retry button. */
-function showLoadError(error) {
+export function showLoadError(error) {
   console.error('[Ledger] Failed to load the dashboard:', error);
   finishLoading();
   // Blank the figures so the page doesn't show placeholder "£0"s as if they were real.
@@ -88,22 +91,22 @@ function showLoadError(error) {
 }
 
 /** True for anything that counts as spending rather than income. */
-function isExpense(t) {
+export function isExpense(t) {
   return !['salary', 'interest', 'refund'].includes(t.category);
 }
 
 /** Expenses minus fixed costs (rent, bills) — used for daily averages and the category/user donuts. */
-function isVariableExpense(t) {
+export function isVariableExpense(t) {
   return isExpense(t) && t.category !== 'fixed_expense';
 }
 
 // Monthly targets. Spending covers everything, fixed expenses included.
 // Monthly savings target. Drives the Calendar's "Forecast savings", and
 // "Max spend per day" (last month's salary minus this is what can be spent).
-const MONTHLY_SAVINGS_TARGET = 4400;
+export const MONTHLY_SAVINGS_TARGET = 4400;
 
 // Edit these monthly budget values as the household budget evolves.
-const BUDGETS = {
+export const BUDGETS = {
   'Fixed Expenses': 800,
   'Dining Out': 250,
   Groceries: 250,
@@ -113,7 +116,7 @@ const BUDGETS = {
 };
 
 // Maps raw category IDs into the budget groups shown on the dashboard.
-const BUDGET_GROUPS = {
+export const BUDGET_GROUPS = {
   dining: 'Dining Out',
   groceries: 'Groceries',
   housing: 'Fixed Expenses',
@@ -128,15 +131,25 @@ const BUDGET_GROUPS = {
   other: 'Extras',
 };
 
+/** Each budget group's colour, shared by the budget bars and the Over budget tile's strip. */
+export const BUDGET_GROUP_COLORS = {
+  'Fixed Expenses': 'var(--cat-fixed-expense)',
+  'Dining Out': 'var(--cat-dining)',
+  Groceries: 'var(--cat-groceries)',
+  Shopping: 'var(--cat-shopping)',
+  Transport: 'var(--cat-transport)',
+  Extras: 'var(--budget-extras)',
+};
+
 /** Sums the (absolute) amount of a list of transactions, grouped by category. */
-function categoryTotals(txs) {
+export function categoryTotals(txs) {
   const totals = {};
   txs.forEach((t) => { totals[t.category] = (totals[t.category] || 0) + Math.abs(t.amount); });
   return totals;
 }
 
 /** Expense totals for a month, grouped into the budget groups above, e.g. { Groceries: 212.40, ... }. */
-function budgetGroupActuals(month) {
+export function budgetGroupActuals(month) {
   const actual = {};
   Object.entries(categoryTotals(getMonthTransactions(month).filter(isExpense))).forEach(([categoryId, amount]) => {
     const group = BUDGET_GROUPS[categoryId] || 'Extras';
@@ -150,7 +163,7 @@ function budgetGroupActuals(month) {
  * unselected accounts already filtered out.
  * API: replace with `fetch(`/api/transactions?month=${month}&accounts=${[...state.activeAccounts]}`)`
  */
-function getMonthTransactions(month) {
+export function getMonthTransactions(month) {
   const all = TRANSACTIONS[month] || [];
   return all.filter((t) => {
     if (t.hidden === true) return false;
@@ -159,14 +172,14 @@ function getMonthTransactions(month) {
 }
 
 /** Total spend (expenses only) for a given month. */
-function monthTotal(month) {
+export function monthTotal(month) {
   return getMonthTransactions(month)
     .filter(isExpense)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 }
 
 /** Transactions for the current month, after category filters and search are applied. */
-function getFilteredTransactions() {
+export function getFilteredTransactions() {
   return getMonthTransactions(state.month)
     .filter((t) => !state.categories.size || state.categories.has(t.category))
     .filter((t) => !state.users.size || state.users.has(spendOwner(t)))

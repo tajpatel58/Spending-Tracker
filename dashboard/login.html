@@ -43,11 +43,12 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/styles.css">
+<!-- sw-register: the deployed build switches on the service worker here (scripts/dashboard/build.mjs). -->
 <!-- Scripts download in parallel while the page parses (defer keeps their order). -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <script defer src="js/config.js"></script>
-<script defer src="js/auth.js"></script>
-<script defer src="js/theme.js"></script>
+<!-- The page's code, as ES modules: login.js imports what it needs (deferred, like the scripts above). -->
+<script type="module" src="js/login.js"></script>
 </head>
 <body class="login-page">
 
@@ -138,34 +139,6 @@
   </section>
 </main>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
-    const button = document.getElementById('google-signin');
-    const errorEl = document.getElementById('login-error');
-
-    if (new URLSearchParams(window.location.search).get('error') === 'permission_denied') {
-      errorEl.textContent = 'Permission not granted.';
-      window.history.replaceState({}, '', 'login.html');
-    }
-
-    button.addEventListener('click', async () => {
-      button.disabled = true;
-      errorEl.textContent = '';
-
-      const { error } = await signInWithGoogle();
-
-      if (error) {
-        console.error('[Ledger auth] Google sign-in failed:', error);
-        errorEl.textContent = 'Sign-in failed. Please try again.';
-        button.disabled = false;
-      }
-      // On success the browser is redirected to Google, then back to
-      // index.html, so there's nothing further to do here.
-    });
-  });
-</script>
 </body>
 </html>

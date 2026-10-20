@@ -28,6 +28,12 @@
  * ---------------------------------------------------------------------
  */
 
+import { authReady, initUserMenu, signOut, supabaseClient } from './auth.js';
+import { ACCOUNTS, accountsReady, markDataStale, MONTH_LABEL } from './data.js';
+import { motion } from './motion.js';
+import { initTheme, toggleTheme } from './theme.js';
+import { showToast } from './toast.js';
+
 const STATEMENTS_BUCKET = 'spending-tracker';
 const STATEMENTS_PREFIX = 'data/transactions/raw';
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
@@ -536,6 +542,7 @@ function initUploadPage(session) {
       setFile(null);
       renderChoices();
       renderStatements();
+      markDataStale(); // its transactions may land soon, so the next page checks rather than trusting the copy
       showToast({ message: `${account.bank} statement for ${MONTH_LABEL(month)} uploaded` });
     } catch (error) {
       console.error('[Ledger upload] Statement upload failed:', error);

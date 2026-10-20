@@ -38,21 +38,12 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/styles.css">
+<!-- sw-register: the deployed build switches on the service worker here (scripts/dashboard/build.mjs). -->
 <!-- Scripts download in parallel while the page parses (defer keeps their order). -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <script defer src="js/config.js"></script>
-<script defer src="js/auth.js"></script>
-<script defer src="js/supabase-client.js"></script>
-<script defer src="js/data.js"></script>
-<script defer src="js/format.js"></script>
-<script defer src="js/state.js"></script>
-<script defer src="js/forecast.js"></script>
-<script defer src="js/theme.js"></script>
-<script defer src="js/motion.js"></script>
-<script defer src="js/filters.js"></script>
-<script defer src="js/toast.js"></script>
-<script defer src="js/sync.js"></script>
-<script defer src="js/calendar.js"></script>
+<!-- The page's code, as ES modules: calendar.js imports what it needs (deferred, like the scripts above). -->
+<script type="module" src="js/calendar.js"></script>
 </head>
 <!-- is-loading shows placeholder shapes until the data has loaded and
      rendered (see .is-loading in styles.css). No data is in the page
@@ -319,9 +310,8 @@
 
 
 <!--
-  Scripts are the <script defer> tags in <head>: the same order as
-  index.html (see the notes there), minus the scripts this page doesn't
-  use. calendar.js replaces main.js.
+  The page's code is ES modules with calendar.js as the entry point (see
+  the notes in index.html): it imports the shared files it uses.
 -->
 </body>
 </html>

@@ -7,11 +7,26 @@
  * ---------------------------------------------------------------------
  */
 
+import { ACCOUNT_GROUPS, ACCOUNTS, CATEGORIES, MONTH_LABEL, MONTHS } from './data.js';
+import { escapeAttr } from './format.js';
+import { motion } from './motion.js';
+import { spendOwnerColor, spendOwners, state } from './state.js';
+
+/**
+ * What the page redraws when a filter changes. The same filters drive the
+ * Overview and the Calendar, so each page's entry script (main.js,
+ * calendar.js) plugs its own render functions in here.
+ */
+export const pageHooks = {
+  renderAll() {},   // the whole page (month or account change)
+  renderTable() {}, // just the transactions table (its filters, search and sort)
+};
+
 /**
  * Fills the month list from MONTHS (newest first) and updates the
  * ‹ Month › stepper's label and arrows. Re-run if MONTHS changes.
  */
-function renderMonthOptions() {
+export function renderMonthOptions() {
   const select = document.getElementById('month-select');
   select.innerHTML = MONTHS.slice().reverse().map((m) =>
     `<option value="${m.key}">${MONTH_LABEL(m.key)}</option>`
@@ -28,24 +43,23 @@ function renderMonthOptions() {
  * Switches the dashboard to a month ('YYYY-MM'), remembering it for the
  * other page. The page slides the way you moved (motion.js).
  */
-function setMonth(key) {
+export function setMonth(key) {
   if (!key || key === state.month) return;
   const direction = key > state.month ? 1 : -1;
   const update = () => {
     state.month = key;
     try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
     renderMonthOptions();
-    renderAll();
+    pageHooks.renderAll();
   };
-  if (typeof motion !== 'undefined') motion.monthTransition(direction, update);
-  else update();
+  motion.monthTransition(direction, update);
 }
 
 /**
  * Wires up the ‹ Month › stepper: arrows step one month, clicking the
  * month name opens the full list, and ←/→ step months when you're not typing.
  */
-function initMonthSelect() {
+export function initMonthSelect() {
   const select = document.getElementById('month-select');
   const step = (delta) => {
     const index = MONTHS.findIndex((m) => m.key === state.month);
@@ -136,7 +150,7 @@ function initMonthSwipe(step) {
  * card, the bank and its number, and a gold check when it's included.
  * Keeps `state.activeAccounts` in sync and redraws the page on each change.
  */
-function initAccountFilter() {
+export function initAccountFilter() {
   const wrap = document.getElementById('account-filter');
   const button = document.getElementById('account-filter-button');
   const label = document.getElementById('account-filter-label');
@@ -194,7 +208,7 @@ function initAccountFilter() {
       <div class="account-picker__foot">${shown} of ${ACCOUNTS.length} account${ACCOUNTS.length === 1 ? '' : 's'} shown</div>`;
   };
 
-  const apply = () => { render(); updateLabel(); renderAll(); };
+  const apply = () => { render(); updateLabel(); pageHooks.renderAll(); };
   const close = () => { panel.hidden = true; wrap.classList.remove('is-open'); button.setAttribute('aria-expanded', 'false'); };
 
   button.addEventListener('click', (event) => {
@@ -250,7 +264,7 @@ const TABLE_FILTERS = [
   },
 ];
 
-function initTableFilters() {
+export function initTableFilters() {
   TABLE_FILTERS.forEach(initTableFilter);
 
   document.addEventListener('click', () => closeTableFilters());
@@ -261,7 +275,7 @@ function initTableFilters() {
     TABLE_FILTERS.forEach((filter) => state[filter.key].clear());
     clearSearch();
     syncTableFilters();
-    renderTable();
+    pageHooks.renderTable();
   });
 
   // Active-filter chips: × removes one item, "Clear all" resets every filter and the search.
@@ -273,7 +287,7 @@ function initTableFilters() {
       clearSearch();
     } else return;
     syncTableFilters();
-    renderTable();
+    pageHooks.renderTable();
   });
 
   syncTableFilters();
@@ -314,12 +328,12 @@ function initTableFilter(filter) {
     const { value, checked } = event.target;
     checked ? state[filter.key].add(value) : state[filter.key].delete(value);
     syncTableFilters();
-    renderTable();
+    pageHooks.renderTable();
   });
   panel.querySelector('[data-clear]').addEventListener('click', () => {
     state[filter.key].clear();
     syncTableFilters();
-    renderTable();
+    pageHooks.renderTable();
   });
 }
 
@@ -334,7 +348,7 @@ function closeTableFilters() {
 }
 
 /** Wires up the merchant search box (debounced), its × button and Escape to clear. */
-function initSearch() {
+export function initSearch() {
   const input = document.getElementById('search-input');
   let t;
   input.addEventListener('input', () => {
@@ -343,7 +357,7 @@ function initSearch() {
     t = setTimeout(() => {
       state.search = input.value.trim().toLowerCase();
       syncTableFilters();
-      renderTable();
+      pageHooks.renderTable();
     }, 150);
   });
   input.addEventListener('keydown', (event) => {
@@ -351,13 +365,13 @@ function initSearch() {
     event.stopPropagation();
     clearSearch();
     syncTableFilters();
-    renderTable();
+    pageHooks.renderTable();
   });
   document.getElementById('search-clear').addEventListener('click', (event) => {
     event.preventDefault(); // it sits inside the search <label>
     clearSearch();
     syncTableFilters();
-    renderTable();
+    pageHooks.renderTable();
     input.focus();
   });
 }
@@ -371,7 +385,7 @@ function clearSearch() {
 }
 
 /** Updates each filter dropdown (ticks, label, count) and the active-filter chips to match `state`. */
-function syncTableFilters() {
+export function syncTableFilters() {
   const chips = [];
   TABLE_FILTERS.forEach((filter) => {
     const wrap = document.getElementById(filter.id);
@@ -402,7 +416,7 @@ function syncTableFilters() {
 }
 
 /** Wires up clicking a table column header to sort by that column. */
-function initSorting() {
+export function initSorting() {
   document.querySelectorAll('.tx-table thead th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const key = th.dataset.sort;
@@ -414,7 +428,7 @@ function initSorting() {
       document.querySelectorAll('.tx-table thead th').forEach((h) => h.classList.remove('is-sorted', 'is-sorted--asc'));
       th.classList.add('is-sorted');
       if (state.sort.dir === 'asc') th.classList.add('is-sorted--asc');
-      renderTable();
+      pageHooks.renderTable();
     });
   });
 }

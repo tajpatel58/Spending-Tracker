@@ -14,6 +14,29 @@
  * ---------------------------------------------------------------------
  */
 
+import {
+  CATEGORIES,
+  MONTH_LABEL,
+  MONTHS,
+  refileTransaction,
+  saveDataCache,
+  TRANSACTIONS,
+} from './data.js';
+import { openDatePicker } from './datepicker.js';
+import { renderMonthOptions } from './filters.js';
+import { currency, escapeAttr, formatDate } from './format.js';
+import { scheduleRender } from './main.js';
+import { accountById, catById, getFilteredTransactions, isExpense, state } from './state.js';
+import { showToast } from './toast.js';
+import {
+  hideTransactions,
+  unhideTransactions,
+  updateTransactionAmount,
+  updateTransactionCategory,
+  updateTransactionDate,
+  updateTransactionMerchant,
+} from './transactions-api.js';
+
 /** Sorts transactions according to `state.sort`. */
 function sortTransactions(txs) {
   const { key, dir } = state.sort;
@@ -99,12 +122,41 @@ function transactionRow(t) {
       `;
 }
 
+// The table's focusable controls, each tagged with its transaction's data-tx-id.
+const ROW_CONTROLS = ['merchant-input', 'amount-input', 'category-select', 'hide-checkbox', 'date-button--column', 'date-button--meta'];
+
+/**
+ * Notes which row control has focus (and the caret in a text field), so
+ * the table can be rebuilt without dropping it: after an edit, Tab lands
+ * on the next field and a click on another field stays there, as if
+ * nothing was redrawn (see the deferred edit in initTableEditing).
+ */
+function captureTableFocus(body) {
+  const el = document.activeElement;
+  if (!el || !body.contains(el) || !el.dataset.txId) return null;
+  const control = ROW_CONTROLS.find((name) => el.classList.contains(name));
+  if (!control) return null;
+  let caret = null;
+  try { caret = el.selectionStart === null ? null : [el.selectionStart, el.selectionEnd]; } catch { /* not a text field */ }
+  return { id: el.dataset.txId, control, caret };
+}
+
+/** Puts focus (and the caret) back on a control noted by captureTableFocus, if its row is still shown. */
+function restoreTableFocus(body, saved) {
+  if (!saved) return;
+  const el = body.querySelector(`.${saved.control}[data-tx-id="${CSS.escape(saved.id)}"]`);
+  if (!el) return; // the row was filtered out or hidden
+  el.focus({ preventScroll: true });
+  if (saved.caret) try { el.setSelectionRange(...saved.caret); } catch { /* e.g. number inputs */ }
+}
+
 /** Renders the transactions table body and footer count for the current filters. */
-function renderTable() {
+export function renderTable() {
   const txs = sortTransactions(getFilteredTransactions());
   const body = document.getElementById('tx-table-body');
   const empty = document.getElementById('empty-state');
   const grouped = state.sort.key === 'date';
+  const focus = captureTableFocus(body);
   document.querySelector('.tx-table').classList.toggle('is-grouped', grouped);
   document.querySelector('.tx-table').classList.toggle('has-selection', state.selectedTransactionIds.size > 0);
 
@@ -120,11 +172,14 @@ function renderTable() {
     document.getElementById('empty-clear-filters').hidden = !filtered;
   } else {
     empty.hidden = true;
+    // Each day's spend, worked out in one pass for the day headings.
+    const spendByDay = new Map();
+    if (grouped) txs.filter(isExpense).forEach((x) => spendByDay.set(x.date, (spendByDay.get(x.date) || 0) + Math.abs(x.amount)));
     const rows = [];
     txs.forEach((t, i) => {
       // Sorted by date: start a day heading (with that day's spend) whenever the date changes.
       if (grouped && t.date !== txs[i - 1]?.date) {
-        const daySpend = txs.filter((x) => x.date === t.date && isExpense(x)).reduce((s, x) => s + Math.abs(x.amount), 0);
+        const daySpend = spendByDay.get(t.date) || 0;
         rows.push(`
         <tr class="tx-group">
           <td colspan="6">
@@ -136,6 +191,7 @@ function renderTable() {
       rows.push(transactionRow(t));
     });
     body.innerHTML = rows.join('');
+    restoreTableFocus(body, focus);
   }
 
   const total = txs
@@ -159,7 +215,7 @@ function updateHideButton() {
  * Wires up editing within the transactions table: selecting a category,
  * renaming a merchant, correcting an amount, and the hide-selected flow.
  */
-function initTableEditing() {
+export function initTableEditing() {
   const body = document.getElementById('tx-table-body');
 
   body.addEventListener('change', async (e) => {
@@ -176,6 +232,12 @@ function initTableEditing() {
       return;
     }
 
+    // Applied a tick later: `change` fires as focus leaves the field, once the browser has
+    // picked where Tab or a click is sending it. Rebuilding the table now would destroy that
+    // element and drop focus to the page; a tick later focus has landed, and renderTable
+    // puts it back on the rebuilt copy (captureTableFocus).
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     const monthTxs = TRANSACTIONS[state.month] || [];
     const tx = monthTxs.find((t) => t.id === txId);
     if (!tx) return;
@@ -184,7 +246,7 @@ function initTableEditing() {
       const previous = tx.category;
       const next = target.value;
       if (previous === next) return;
-      const rerender = () => { renderStats(); renderCategoryChart(); renderUserChart(); renderBudgetChart(); renderTable(); };
+      const rerender = () => scheduleRender('stats', 'category', 'user', 'budget', 'table');
       editWithUndo({
         apply: () => { tx.category = next; rerender(); },
         revert: () => { tx.category = previous; rerender(); },
@@ -198,8 +260,8 @@ function initTableEditing() {
       const next = target.value.trim();
       if (!next || previous === next) { target.value = previous; return; }
       editWithUndo({
-        apply: () => { tx.merchant = next; renderTable(); },
-        revert: () => { tx.merchant = previous; renderTable(); },
+        apply: () => { tx.merchant = next; scheduleRender('table'); },
+        revert: () => { tx.merchant = previous; scheduleRender('table'); },
         save: () => updateTransactionMerchant(txId, next),
         unsave: () => updateTransactionMerchant(txId, previous),
         message: `Renamed ${previous} to ${next}`,
@@ -211,8 +273,8 @@ function initTableEditing() {
       const previous = tx.amount;
       if (previous === next) return;
       editWithUndo({
-        apply: () => { tx.amount = next; renderAll(); },
-        revert: () => { tx.amount = previous; renderAll(); },
+        apply: () => { tx.amount = next; scheduleRender(); },
+        revert: () => { tx.amount = previous; scheduleRender(); },
         save: () => updateTransactionAmount(txId, next),
         unsave: () => updateTransactionAmount(txId, previous),
         message: `${tx.merchant} changed to ${currency(Math.abs(next))}`,
@@ -236,16 +298,15 @@ function initTableEditing() {
   document.getElementById('hide-selected-button').addEventListener('click', (e) => {
     const selectedIds = [...state.selectedTransactionIds];
     if (!selectedIds.length) return;
-    const setHidden = (hidden) => selectedIds.forEach((transactionId) => {
-      Object.values(TRANSACTIONS).forEach((transactions) => {
-        const transaction = transactions.find((item) => item.id === transactionId);
-        if (transaction) transaction.hidden = hidden;
-      });
+    // Looked up on each call (one pass over the data), so an undo after a sync still finds them.
+    const selected = new Set(selectedIds);
+    const setHidden = (hidden) => Object.values(TRANSACTIONS).forEach((transactions) => {
+      transactions.forEach((transaction) => { if (selected.has(transaction.id)) transaction.hidden = hidden; });
     });
 
     editWithUndo({
-      apply: () => { setHidden(true); state.selectedTransactionIds.clear(); renderAll(); },
-      revert: () => { setHidden(false); renderAll(); },
+      apply: () => { setHidden(true); state.selectedTransactionIds.clear(); scheduleRender(); },
+      revert: () => { setHidden(false); scheduleRender(); },
       save: () => hideTransactions(selectedIds),
       unsave: () => unhideTransactions(selectedIds),
       message: `${selectedIds.length} transaction${selectedIds.length === 1 ? '' : 's'} hidden`,
@@ -271,7 +332,7 @@ function changeTransactionDate(tx, manualDate) {
     tx.date = date;
     refileTransaction(tx, from);
     if (MONTHS.length !== hadMonths) renderMonthOptions();
-    renderAll();
+    scheduleRender();
   };
   const otherMonth = nextDate.slice(0, 7) !== previousDate.slice(0, 7);
   editWithUndo({
@@ -346,6 +407,6 @@ function exportTableCsv() {
 }
 
 /** Wires up the table's export button. */
-function initTableExport() {
+export function initTableExport() {
   document.getElementById('export-table').addEventListener('click', exportTableCsv);
 }

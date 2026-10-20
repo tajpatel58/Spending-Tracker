@@ -7,15 +7,76 @@
  * ---------------------------------------------------------------------
  */
 
-/** Re-renders every part of the dashboard from the current state. */
+import { initPageHeading, initUserMenu, signOut } from './auth.js';
+import {
+  initCategoryDrill,
+  initUserDrill,
+  renderBudgetChart,
+  renderCategoryChart,
+  renderTrendChart,
+  renderUserChart,
+} from './charts.js';
+import { ACCOUNTS, accountsReady, MONTHS, pageSession, TRANSACTIONS } from './data.js';
+import {
+  initAccountFilter,
+  initMonthSelect,
+  initSearch,
+  initSorting,
+  initTableFilters,
+  pageHooks,
+  renderMonthOptions,
+} from './filters.js';
+import { indexEvents } from './forecast.js';
+import { accountById, finishLoading, showLoadError, state } from './state.js';
+import { initBudgetStrip, initPaceFixedToggle, renderStats } from './stats.js';
+import { initSync } from './sync.js';
+import { initTableEditing, initTableExport, renderTable } from './table.js';
+import { initTheme, toggleTheme } from './theme.js';
+
+// Each part of the dashboard, in the order a full render draws them.
+const RENDERERS = {
+  stats: () => renderStats(),
+  category: () => renderCategoryChart(),
+  user: () => renderUserChart(),
+  trend: () => renderTrendChart(),
+  budget: () => renderBudgetChart(),
+  table: () => renderTable(),
+};
+const pendingRender = new Set();
+let renderFrame = 0;
+
+/**
+ * Re-renders every part of the dashboard from the current state, straight
+ * away (month changes need that, to animate between the two months).
+ * Anything already waiting in scheduleRender is drawn by this too.
+ */
 function renderAll() {
-  renderStats();
-  renderCategoryChart();
-  renderUserChart();
-  renderTrendChart();
-  renderBudgetChart();
-  renderTable();
+  cancelAnimationFrame(renderFrame);
+  renderFrame = 0;
+  pendingRender.clear();
+  Object.values(RENDERERS).forEach((render) => render());
 }
+
+/**
+ * Re-renders just the named parts (all of them when none are named) on the
+ * next frame. Edits, undos and saves can each ask for a redraw several
+ * times in quick succession; they share one, and only what changed is drawn.
+ *   scheduleRender('table')   — a merchant renamed
+ */
+export function scheduleRender(...parts) {
+  (parts.length ? parts : Object.keys(RENDERERS)).forEach((part) => pendingRender.add(part));
+  if (renderFrame) return;
+  renderFrame = requestAnimationFrame(() => {
+    renderFrame = 0;
+    const due = new Set(pendingRender);
+    pendingRender.clear();
+    Object.entries(RENDERERS).forEach(([part, render]) => { if (due.has(part)) render(); });
+  });
+}
+
+// The shared month/account/table filters redraw through these (filters.js).
+pageHooks.renderAll = renderAll;
+pageHooks.renderTable = () => renderTable();
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Applied before the auth check resolves so the loading placeholders
@@ -55,6 +116,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderAll();
     finishLoading();
+    // The charts hold theme colours, so they redraw when light/dark changes (theme.js).
+    document.addEventListener('ledger:theme-changed', () => {
+      renderCategoryChart();
+      renderUserChart();
+      renderTrendChart();
+      renderBudgetChart();
+    });
     initSync({
       onChange: () => {
         indexEvents();

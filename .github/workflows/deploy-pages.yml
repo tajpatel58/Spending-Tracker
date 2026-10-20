@@ -42,13 +42,25 @@ jobs:
           sed -i "s#<!-- supabase-preconnect -->#<link rel=\"preconnect\" href=\"${origin}\" crossorigin>#" dashboard/*.html
           grep -c 'rel="preconnect" href="https://[^"]*supabase' dashboard/*.html
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Bundles and minifies each page's modules, fingerprints the files, and
+      # writes the service worker that lets the installed app open offline.
+      - name: Build the dashboard
+        run: |
+          npm install --no-save --no-package-lock esbuild@0.24.0
+          node scripts/dashboard/build.mjs dashboard build/dashboard
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dashboard
+          path: build/dashboard
 
       - name: Deploy to GitHub Pages
         id: deployment

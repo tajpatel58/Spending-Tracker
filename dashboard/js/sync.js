@@ -8,6 +8,9 @@
  * ---------------------------------------------------------------------
  */
 
+import { dataStatus, refreshData } from './data.js';
+import { showToast } from './toast.js';
+
 /** "just now", "5 min ago", "9:14 am", "yesterday 6:02 pm", "12 Oct". */
 function updatedAgo(time) {
   if (!time) return 'not yet';
@@ -23,11 +26,16 @@ function updatedAgo(time) {
   return then.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+// A page drawn from a copy checked this recently doesn't check again on
+// load, so moving between Overview and Calendar doesn't re-download
+// everything each time. Clicking "Updated…" or pulling down always checks.
+const FRESH_FOR_MS = 5 * 60000;
+
 /**
  * Wires up the control and starts a quiet background check. Call once the
  * page has rendered. `onChange` re-renders the page when new data arrives.
  */
-function initSync({ onChange }) {
+export function initSync({ onChange }) {
   const button = document.getElementById('sync-status');
   const label = document.getElementById('sync-label');
   let checking = false;
@@ -69,8 +77,8 @@ function initSync({ onChange }) {
 
   button.hidden = false;
   render();
-  // Drawn from the saved copy? Quietly check for anything newer.
-  if (dataStatus.fromCache) refreshData().catch((error) => console.error('[Ledger data] Background refresh failed:', error));
+  // Drawn from a saved copy that isn't recent? Quietly check for anything newer.
+  if (dataStatus.fromCache && Date.now() - (dataStatus.syncedAt || 0) > FRESH_FOR_MS) refreshData().catch((error) => console.error('[Ledger data] Background refresh failed:', error));
 }
 
 /** Pulls fresh data on request and says how it went (Refresh button and pull-to-refresh). */

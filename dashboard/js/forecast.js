@@ -8,30 +8,33 @@
  * ---------------------------------------------------------------------
  */
 
+import { CALENDAR_EVENTS, TRANSACTIONS } from './data.js';
+import { getMonthTransactions, isVariableExpense, MONTHLY_SAVINGS_TARGET } from './state.js';
+
 /** Zero-pads a day/month number, e.g. 7 -> '07'. */
-const pad2 = (n) => String(n).padStart(2, '0');
+export const pad2 = (n) => String(n).padStart(2, '0');
 
 /** Number of days in a month key, e.g. '2026-02' -> 28. */
-function daysIn(month) {
+export function daysIn(month) {
   const [y, m] = month.split('-').map(Number);
   return new Date(y, m, 0).getDate();
 }
 
 /** Shifts a month key by n months, e.g. ('2026-01', -1) -> '2025-12'. */
-function shiftMonth(month, n) {
+export function shiftMonth(month, n) {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(y, m - 1 + n, 1);
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 }
 
-const sumAbs = (txs) => txs.reduce((s, t) => s + Math.abs(t.amount), 0);
+export const sumAbs = (txs) => txs.reduce((s, t) => s + Math.abs(t.amount), 0);
 
 /**
  * Latest transaction date loaded so far, across every account. Statements
  * arrive in batches (usually Sundays), so only days up to this date have
  * real data — later days are still forecast even if they're in the past.
  */
-function lastLoadedDate() {
+export function lastLoadedDate() {
   return Object.values(TRANSACTIONS).flat().reduce((max, t) => (t.date > max ? t.date : max), '');
 }
 
@@ -43,7 +46,7 @@ function lastLoadedDate() {
  *   + event budgets on days not loaded yet.
  * Both averages cover the previous three months that have data.
  */
-function forecastSpend(month) {
+export function forecastSpend(month) {
   const spent = sumAbs(getMonthTransactions(month).filter(isVariableExpense));
 
   const history = [1, 2, 3].map((n) => shiftMonth(month, -n)).filter((key) => TRANSACTIONS[key]?.length);
@@ -75,22 +78,22 @@ function forecastSpend(month) {
 }
 
 /** Today's date as 'YYYY-MM-DD' in local time. */
-function todayIso() {
+export function todayIso() {
   const today = new Date();
   return `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
 }
 
 /** Calendar events grouped by date: { '2026-09-14': [ {id,title,budget,category}, ... ] }. */
-const EVENTS_BY_DATE = {};
+export const EVENTS_BY_DATE = {};
 
 /** Groups the loaded calendar events (CALENDAR_EVENTS, from data.js) by date into EVENTS_BY_DATE. */
-function indexEvents() {
+export function indexEvents() {
   Object.keys(EVENTS_BY_DATE).forEach((date) => delete EVENTS_BY_DATE[date]);
   CALENDAR_EVENTS.forEach((e) => (EVENTS_BY_DATE[e.date] || (EVENTS_BY_DATE[e.date] = [])).push(e));
 }
 
 /** Salary received in a month (after the account filter). */
-function monthSalary(month) {
+export function monthSalary(month) {
   return getMonthTransactions(month)
     .filter((t) => t.category === 'salary')
     .reduce((s, t) => s + t.amount, 0);
@@ -101,7 +104,7 @@ function monthSalary(month) {
  * the previous month's salary minus the target. Null when there was no
  * salary that month to base it on.
  */
-function spendingAllowance(month) {
+export function spendingAllowance(month) {
   const salary = monthSalary(shiftMonth(month, -1));
   return salary > 0 ? salary - MONTHLY_SAVINGS_TARGET : null;
 }

@@ -1,8 +1,9 @@
 # Ledger — Household Spending Dashboard
 
-A static, no-build-step frontend: plain HTML, CSS, and JS — no bundler, no
-`npm install`. Open `index.html` in a browser (or serve the folder) and it
-reads live data from Supabase.
+A static frontend: plain HTML, CSS, and JS (ES modules). The source runs
+as-is in a browser — serve the folder and it reads live data from Supabase,
+no `npm install` needed to develop. Only the deploy adds a build step
+(bundling, minifying, and the offline service worker — see Deploying).
 
 ```
 household-ledger/
@@ -26,13 +27,16 @@ household-ledger/
     filters.js              # month/account/category/search/sort controls
     upload.js               # the "Upload statement" dialog (→ Supabase Storage)
     chat.js                 # the chat widget (UI only for now, see below)
+    login.js                # the sign-in page
     main.js                 # entry point — wires it all up and renders
+  sw.js                     # service worker (offline launch; switched on by the build)
 ```
 
-The scripts are plain (non-module) files loaded in that order from
-`index.html`, so later files can use functions/variables defined in earlier
-ones — see the comment above the `<script>` tags in `index.html` if you move
-code between files.
+The scripts are ES modules: each page loads one entry module (`main.js`,
+`calendar.js`, `chat.js`, `upload.js`, `login.js`) and every file imports
+what it uses, so there's no load order to keep in step. Only the libraries
+(supabase-js, Chart.js) and `config.js` are plain `<script>` tags, used as
+globals. See the comment at the end of `index.html` for what each file does.
 
 ## Enabling it
 
@@ -67,10 +71,13 @@ dashboard's top bar ends the session.
 
 ## Deploying to GitHub Pages
 
-`.github/workflows/deploy-pages.yml` deploys the `dashboard/` folder on
-every push to `main`. It generates `dashboard/js/config.js` from repo
-secrets at build time, so the real Supabase key is never committed to
-the repo:
+`.github/workflows/deploy-pages.yml` builds and deploys the dashboard on
+every push to `main`. `scripts/dashboard/build.mjs` bundles and minifies each
+page's modules, puts a content hash in every file name, and writes the service
+worker that lets the installed app open instantly and offline (a new deploy
+takes over from the next launch). The workflow generates
+`dashboard/js/config.js` from repo secrets at build time, so the real Supabase
+key is never committed to the repo:
 
 1. In the repo → Settings → Secrets and variables → Actions, add
    `SUPABASE_URL` and `SUPABASE_ANON_KEY` (same values as your local
@@ -89,11 +96,14 @@ keeping the anon key secret.
 
 ## Running it
 
-No build step. Either:
-- Open `index.html` directly in a browser, or
-- Serve the project root so the dashboard can read its sibling `data/`
-  directory: `python3 -m http.server 8000` from the project root, then visit
-  `http://localhost:8000/dashboard/`.
+No build step — but serve it rather than opening the file directly
+(browsers don't load ES modules from `file://`): `python3 -m http.server 8000`
+from the project root, then visit `http://localhost:8000/dashboard/`.
+
+To try the deployed build locally (bundled, minified, with the service
+worker): `npm install --no-save esbuild@0.24.0`, then
+`node scripts/dashboard/build.mjs dashboard build/dashboard` and serve
+`build/dashboard`.
 
 ## What's live vs. UI-only right now
 
