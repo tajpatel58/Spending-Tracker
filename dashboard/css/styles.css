@@ -985,6 +985,24 @@ button { font-family: inherit; }
 }
 .page-heading__eyebrow::before { content: ''; width: 24px; border-top: 1px solid currentColor; }
 .page-heading__eyebrow:empty::before { display: none; }
+/* "— AT A GLANCE ———": quieter cousins of the page eyebrow above each band
+   of the overview — a short gold rule, tracked small caps, then a hairline
+   running out to the edge, as in a printed report. */
+.section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-5) 0 var(--space-4);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.section-eyebrow::before { content: ''; flex: none; width: 24px; border-top: 1px solid var(--gold); }
+.section-eyebrow::after { content: ''; flex: 1; border-top: var(--hairline) solid var(--border); }
+.page-heading + .section-eyebrow { margin-top: 0; }
 .page-heading__subtitle { max-width: 62ch; margin: var(--space-3) 0 0; color: var(--text-muted); font-size: 15px; line-height: 1.5; }
 
 /* ==========================================================================
@@ -3255,6 +3273,8 @@ button { font-family: inherit; }
   .page-heading > div { display: contents; }
   .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 2px; font-size: 9px; letter-spacing: 0.18em; }
   .page-heading__eyebrow::before { width: 16px; }
+  .section-eyebrow { margin: var(--space-4) 0 10px; font-size: 9px; letter-spacing: 0.18em; gap: var(--space-2); }
+  .section-eyebrow::before { width: 16px; }
   .page-heading h1 { grid-column: 1; grid-row: 2; }
   .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; }
   .page-heading .sync-status { grid-column: 2; grid-row: 2; }

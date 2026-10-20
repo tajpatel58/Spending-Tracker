@@ -122,7 +122,7 @@ const motion = (() => {
    */
   function reveal() {
     if (reduced()) return;
-    const items = [...document.querySelectorAll('main .page-heading, main .tile')]
+    const items = [...document.querySelectorAll('main .page-heading, main .section-eyebrow, main .tile')]
       .filter((el) => !el.closest('[hidden]') && !el.hidden);
     const inView = (el) => el.getBoundingClientRect().top < window.innerHeight - 40;
 
