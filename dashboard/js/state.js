@@ -26,6 +26,8 @@ export const state = {
   sort: { key: 'date', dir: 'desc' },
   // The Total spend tile's pace chart without fixed expenses (remembered on this device).
   paceWithoutFixed: (() => { try { return localStorage.getItem('ledger-pace-without-fixed') === '1'; } catch { return false; } })(),
+  // The By User doughnut: 'spending' or 'savings' (remembered on this device).
+  userMode: (() => { try { return localStorage.getItem('ledger-user-mode') === 'savings' ? 'savings' : 'spending'; } catch { return 'spending'; } })(),
 };
 
 // Lookup tables used throughout the rendering code.
@@ -45,6 +47,39 @@ export function spendOwner(t) {
 export function spendOwners() {
   const users = new Set(Object.values(TRANSACTIONS).flat().map((t) => t.user || 'Unknown'));
   return [FIXED_EXPENSES_LABEL, ...[...users].sort()];
+}
+
+/** True for the shared (joint) account, as opposed to one person's. */
+const isJointOwner = (owner) => /^joint$/i.test(owner || '');
+
+/** The people the household's money belongs to: every account owner except the joint account (e.g. Radhika, Taj). */
+export function people() {
+  return spendOwners().filter((owner) => owner !== FIXED_EXPENSES_LABEL && owner !== 'Unknown' && !isJointOwner(owner));
+}
+
+/**
+ * Each person's income, spending and savings for a month (biggest saver
+ * first). A transaction on someone's own account counts to them, fixed
+ * expenses included; anything on the joint account is split evenly
+ * between them. Income and spending are as the Total saved tile counts
+ * them (salary + interest in; every expense out), so the savings add up
+ * to that tile.
+ *   [{ person: 'Taj', income: 5200, spent: 2900, saved: 2300 }, ...]
+ */
+export function savingsByPerson(month) {
+  const everyone = people();
+  const totals = Object.fromEntries(everyone.map((person) => [person, { income: 0, spent: 0 }]));
+  getMonthTransactions(month).forEach((t) => {
+    const owner = t.user || 'Unknown';
+    const shares = isJointOwner(owner) ? everyone : totals[owner] ? [owner] : [];
+    const income = t.category === 'salary' || t.category === 'interest';
+    if (!shares.length || (!income && !isExpense(t))) return;
+    const amount = income ? t.amount : Math.abs(t.amount);
+    shares.forEach((person) => { totals[person][income ? 'income' : 'spent'] += amount / shares.length; });
+  });
+  return everyone
+    .map((person) => ({ person, ...totals[person], saved: totals[person].income - totals[person].spent }))
+    .sort((a, b) => b.saved - a.saved);
 }
 
 /** A spend owner's colour as a CSS var() — fixed by name, so it never changes month to month. */

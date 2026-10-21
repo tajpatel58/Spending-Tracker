@@ -18,7 +18,7 @@ import {
   sumAbs,
   todayIso,
 } from './forecast.js';
-import { cssVar, currency, currencyShort, escapeAttr, formatDate } from './format.js';
+import { cssVar, currency, currencyShort, escapeAttr, formatDate, signedFixed } from './format.js';
 import { motion } from './motion.js';
 import {
   BUDGET_GROUP_COLORS,
@@ -27,10 +27,10 @@ import {
   BUDGETS,
   catById,
   categoryTotals,
-  FIXED_EXPENSES_LABEL,
   getMonthTransactions,
   isExpense,
   isVariableExpense,
+  savingsByPerson,
   spendOwner,
   spendOwnerColor,
   state,
@@ -88,13 +88,19 @@ function mixHex(a, b, t) {
  *   entries: [{ id, label, total, color: 'var(--token)' or '#RRGGBB' }]
  *   noun: ['category', 'categories'] — for the centre's "10 categories"
  *   count: the number the centre counts, when it isn't entries.length
+ *   centerMeta(entry): the centre's small line for a highlighted entry
+ *     (default "42% of total")
+ *
+ * An entry can be negative (e.g. a person who spent more than they
+ * earned): it gets no slice, and its legend amount is shown in rose.
  */
-function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onSelect, sweep = false, count = entries.length }) {
+function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onSelect, sweep = false, count = entries.length, centerMeta }) {
   const canvas = document.getElementById(canvasId);
   const wrap = canvas.parentElement;
   const legend = document.getElementById(legendId);
   const colors = entries.map((e) => (e.color.startsWith('var(') ? cssVar(e.color.slice(4, -1)) : e.color));
   const total = entries.reduce((s, e) => s + e.total, 0);
+  const drawn = entries.some((e) => e.total > 0); // anything to draw a slice for
   let active = null;
   let activatedAt = 0;
   let pointer = 'mouse'; // how the last press came in: a touch tap highlights, a second one selects
@@ -114,7 +120,9 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
     center.classList.toggle('is-focused', Boolean(e));
     labelEl.textContent = e ? e.label : totalLabel;
     valueEl.textContent = currencyShort(e ? e.total : total);
-    metaEl.textContent = e ? `${shareOf(e.total, total)} of total` : `${count} ${noun[count === 1 ? 0 : 1]}`;
+    metaEl.textContent = e
+      ? (centerMeta ? centerMeta(e) : `${shareOf(e.total, total)} of total`)
+      : `${count} ${noun[count === 1 ? 0 : 1]}`;
     if (e) center.style.setProperty('--focus-color', colors[index]);
   };
 
@@ -126,8 +134,8 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
     data: {
       labels: entries.map((e) => e.label),
       datasets: [{
-        data: entries.length ? entries.map((e) => e.total) : [1],
-        backgroundColor: entries.length
+        data: drawn ? entries.map((e) => Math.max(0, e.total)) : [1],
+        backgroundColor: drawn
           ? (c) => (active === null || c.dataIndex === active ? colors[c.dataIndex] : fade(colors[c.dataIndex], 0.28))
           : [cssVar('--border')],
         // A slim ring of rounded slices with real gaps between them.
@@ -143,11 +151,11 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       // First load (and switching contents): the ring sweeps round; other changes are quick.
       animation: firstDraw || sweep ? { duration: firstDraw ? 1100 : 750, easing: 'easeOutQuart' } : { duration: 350 },
-      onHover: (_event, elements) => setActive(elements.length ? elements[0].index : null),
+      onHover: (_event, elements) => setActive(drawn && elements.length ? elements[0].index : null),
       // Touch screens: a tap highlights a slice; tapping it again selects it (or,
       // without onSelect, clears it), as does tapping the middle.
       onClick: (_event, elements) => {
-        const index = elements.length ? elements[0].index : null;
+        const index = drawn && elements.length ? elements[0].index : null; // the grey placeholder ring isn't an entry
         // A tap fires touchstart (which already highlighted it) then click — don't let the click act on it too.
         if (pointer !== 'mouse' && index === active && Date.now() - activatedAt < 500) return;
         if (index !== null && index === active && onSelect) {
@@ -186,7 +194,7 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
     <li data-index="${i}" data-id="${escapeAttr(e.id)}" tabindex="0" style="--i:${Math.min(i, LEGEND_LIMIT)}"${i >= LEGEND_LIMIT ? ' class="legend__extra"' : ''}>
       <span class="legend__swatch" style="background:${e.color}"></span>
       <span class="legend__name">${escapeAttr(e.label)}</span>
-      <span class="legend__amount">${currencyShort(e.total)}</span>
+      <span class="legend__amount${e.total < 0 ? ' is-negative' : ''}">${currencyShort(e.total)}</span>
     </li>
   `).join('')
     + (extra ? `<li class="legend__toggle"><button type="button">${expanded ? 'Show less' : `+${extra} more`}</button></li>` : '')
@@ -283,7 +291,11 @@ function setDrillHeader(prefix, drilledLabel, title, sweep) {
   document.getElementById(`${prefix}-chart-title`).textContent = drilled ? drilledLabel : title;
   document.getElementById(`${prefix}-back`).hidden = !drilled;
   document.getElementById(`${prefix}-show-table`).hidden = !drilled;
-  document.getElementById(`${prefix}-chart-meta`).hidden = drilled;
+  // The header's right-hand side (its meta, or the By User Spending/Savings switch) makes way for "Show transactions".
+  const meta = document.getElementById(`${prefix}-chart-meta`);
+  if (meta) meta.hidden = drilled;
+  const mode = document.getElementById(`${prefix}-mode`);
+  if (mode) mode.hidden = drilled;
   if (sweep && !motion.reduced()) {
     tile.classList.remove('is-switching');
     void tile.offsetWidth;
@@ -370,16 +382,26 @@ function shadeEntries(entries, color) {
 }
 
 /**
- * Renders the "spending by user" doughnut. Fixed expenses get their own
- * slice rather than counting towards a user, so spend splits into Fixed
- * Expenses plus each user (e.g. Joint, Taj). Colours follow the user (see
- * spendOwnerColor), not their rank, so they don't swap month to month.
+ * Renders the "By User" doughnut, in one of two modes (the Spending /
+ * Savings switch in its header, state.userMode):
  *
- * Choosing a user opens it, as the category doughnut does: into that
- * user's biggest transactions (the rest share one "Other" slice), with a
- * back arrow (or Escape) and "Show transactions" to filter the table to them.
+ * Spending — fixed expenses get their own slice rather than counting
+ * towards a user, so spend splits into Fixed Expenses plus each account
+ * owner (e.g. Joint, Taj). Choosing one opens it, as the category doughnut
+ * does: into its biggest transactions (the rest share one "Other" slice),
+ * with a back arrow (or Escape) and "Show transactions" to filter the table.
+ *
+ * Savings — what each person saved: their income less their spending,
+ * with the joint account split evenly between them (savingsByPerson).
+ *
+ * Colours follow the user (see spendOwnerColor), not their rank, so they
+ * don't swap month to month.
  */
 export function renderUserChart({ sweep = false } = {}) {
+  if (state.userMode === 'savings') {
+    renderUserSavings(sweep);
+    return;
+  }
   const expenses = (TRANSACTIONS[state.month] || []).filter((transaction) => !transaction.hidden && isExpense(transaction));
   const totals = {};
   expenses.forEach((transaction) => {
@@ -429,13 +451,57 @@ export function renderUserChart({ sweep = false } = {}) {
     onSelect: userDrill ? null : (entry, how) => openUser(entry.id, how),
     sweep,
   });
-  if (!userDrill) {
-    const userCount = entries.filter((entry) => entry.id !== FIXED_EXPENSES_LABEL).length;
-    document.getElementById('user-chart-meta').textContent = `${userCount} user${userCount === 1 ? '' : 's'}`;
-  }
-  setDrillHeader('user', userDrill, 'Spending by user', sweep);
+  setDrillHeader('user', userDrill, 'By User', sweep);
 }
 renderDonut.rerender['user-legend'] = () => renderUserChart();
+
+/** The By User doughnut's Savings mode: each person's savings this month (see renderUserChart). */
+function renderUserSavings(sweep) {
+  userDrill = null; // opening a user is a Spending view
+  const people = savingsByPerson(state.month);
+  const byPerson = Object.fromEntries(people.map((p) => [p.person, p]));
+  const entries = people
+    .filter((p) => p.income || p.spent)
+    .map((p) => ({ id: p.person, label: p.person, total: p.saved, color: spendOwnerColor(p.person) }));
+
+  userChart = renderDonut({
+    chart: userChart,
+    canvasId: 'user-chart',
+    legendId: 'user-legend',
+    entries,
+    totalLabel: 'Total saved',
+    noun: ['person', 'people'],
+    emptyText: 'No income or spending this month',
+    // A highlighted person: the share of their income they kept, e.g. "44% of income".
+    centerMeta: (e) => {
+      const { income } = byPerson[e.id];
+      return income > 0 ? `${signedFixed((e.total / income) * 100, 0)}% of income` : 'No income';
+    },
+    sweep,
+  });
+  setDrillHeader('user', null, 'By User', sweep);
+}
+
+/**
+ * Wires up the By User Spending / Savings switch: clicking the pill flips
+ * it, clicking a word picks that side. It remembers the choice on this
+ * device and sweeps the doughnut round into the other view.
+ */
+export function initUserMode() {
+  const toggle = document.getElementById('user-mode');
+  const sync = () => toggle.setAttribute('aria-checked', String(state.userMode === 'savings'));
+  sync();
+  toggle.addEventListener('click', (event) => {
+    const picked = event.target.closest('[data-mode]')?.dataset.mode;
+    const next = picked || (state.userMode === 'savings' ? 'spending' : 'savings');
+    if (next === state.userMode) return;
+    state.userMode = next;
+    try { localStorage.setItem('ledger-user-mode', state.userMode); } catch { /* storage unavailable */ }
+    sync();
+    expandedLegends.delete('user-legend');
+    renderUserChart({ sweep: true });
+  });
+}
 
 /**
  * Opens the user doughnut into a user's spending (or, with null, back to

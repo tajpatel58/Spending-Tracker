@@ -1072,6 +1072,46 @@ button { font-family: inherit; }
 .tile__action:hover svg { transform: translateX(2px); }
 .chart-tile.is-drilled .tile__header { align-items: center; }
 
+/* "SPENDING ( ●) SAVINGS" (By User): the pill switch with a word either
+   side, dressed like the page's eyebrows — tracked small capitals, a
+   hairline track, and a gold bead that glides between the two words.
+   Both sides are a real choice rather than on/off, so the track never
+   fills; the chosen word is the one that's lit, and either word can be
+   clicked to pick it. (".switch.switch--between" outranks the plain
+   switch's on/off styles further down.) */
+.tile__header:has(.switch--between) { align-items: center; }
+.switch[hidden] { display: none; }
+.switch.switch--between { gap: 10px; }
+.switch.switch--between .switch__label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  transition: color 240ms ease;
+}
+.switch.switch--between .switch__label:hover { color: var(--text-muted); }
+.switch.switch--between[aria-checked="false"] [data-mode="spending"],
+.switch.switch--between[aria-checked="true"] [data-mode="savings"] { color: var(--text); }
+.switch.switch--between .switch__track,
+.switch.switch--between[aria-checked="true"] .switch__track {
+  width: 32px;
+  height: 18px;
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+  box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--gold) 55%, var(--border-strong));
+}
+.switch.switch--between .switch__thumb {
+  top: 3px;
+  left: 3px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--gold) 55%, #fff), var(--gold) 70%);
+  box-shadow: 0 1px 2px rgba(40, 32, 18, 0.25), 0 0 0 3px color-mix(in srgb, var(--gold) 12%, transparent);
+  transition: transform 340ms var(--ease-out), width 160ms ease;
+}
+.switch.switch--between[aria-checked="true"] .switch__thumb { transform: translateX(14px); }
+.switch.switch--between:active .switch__thumb { width: 14px; }
+.switch.switch--between[aria-checked="true"]:active .switch__thumb { transform: translateX(12px); }
+.switch.switch--between:focus-visible .switch__track { box-shadow: inset 0 0 0 var(--hairline) var(--gold), 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+
 /* Opening or closing a category: the title and legend rows settle in
    with the ring's sweep. */
 .chart-tile.is-switching .tile__title { animation: fade-in 320ms ease both; }
@@ -1580,6 +1620,7 @@ button { font-family: inherit; }
   color: var(--text);
   font-weight: 500;
 }
+.legend__amount.is-negative { color: var(--rose); } /* e.g. a person who spent more than they earned */
 
 /* ==========================================================================
    Table tile

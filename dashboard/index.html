@@ -304,14 +304,20 @@
 
     <div class="tile chart-tile chart-tile--user">
       <div class="tile__header">
-        <!-- Choosing a user opens it into their biggest transactions (charts.js renderUserChart). -->
+        <!-- Spending: choosing a user opens it into their biggest transactions. Savings: what
+             each person saved, the joint account split between them (charts.js renderUserChart). -->
         <div class="tile__title">
           <button type="button" class="tile__back" id="user-back" aria-label="Back to all users" title="All users (Esc)" hidden>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor"/></svg>
           </button>
-          <h2 id="user-chart-title">Spending by user</h2>
+          <h2 id="user-chart-title">By User</h2>
         </div>
-        <span class="tile__meta" id="user-chart-meta"></span>
+        <!-- A pill switch between the two views: on = Savings (charts.js initUserMode). -->
+        <button type="button" class="switch switch--between" id="user-mode" role="switch" aria-checked="false" aria-label="Show savings">
+          <span class="switch__label" data-mode="spending">Spending</span>
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+          <span class="switch__label" data-mode="savings">Savings</span>
+        </button>
         <button type="button" class="tile__action" id="user-show-table" hidden>
           Show transactions
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor"/></svg>
@@ -319,7 +325,7 @@
       </div>
       <div class="chart-tile__body">
         <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--donut">
-          <canvas id="user-chart" role="img" aria-label="Doughnut chart of spending by user"></canvas>
+          <canvas id="user-chart" role="img" aria-label="Doughnut chart of spending or savings by user"></canvas>
         </div>
         <ul class="legend" id="user-legend"></ul>
       </div>

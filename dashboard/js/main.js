@@ -11,6 +11,7 @@ import { initPageHeading, initUserMenu, signOut } from './auth.js';
 import {
   initCategoryDrill,
   initUserDrill,
+  initUserMode,
   renderBudgetChart,
   renderCategoryChart,
   renderTrendChart,
@@ -111,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTableExport();
     initCategoryDrill();
     initUserDrill();
+    initUserMode();
     initBudgetStrip();
     initPaceFixedToggle();
 
