@@ -232,6 +232,23 @@ function renderOverBudget(month) {
     tone = 'is-positive';
   }
   note.className = `stat-tile__delta stat-tile__delta--truncate ${tone}`;
+
+  // Which groups are over and by how much — "Dining Out (↑£78)" — biggest overspend first, in a
+  // two-column grid (six groups fill three rows). The amount always shows; a long name is cut short.
+  const UP = '<svg class="over-list__arrow" width="8" height="8" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor"/></svg>';
+  // It takes the note's place, so the total overspend moves to its tooltip.
+  const list = document.getElementById('over-budget-list');
+  list.hidden = !over.length;
+  note.hidden = over.length > 0;
+  list.title = over.length ? `${currencyShort(overBy)} over in total` : '';
+  list.innerHTML = over
+    .slice()
+    .sort((a, b) => (b.actual - b.budget) - (a.actual - a.budget))
+    .map((g) => `<li title="${escapeAttr(describe(g))}">`
+      + `<span class="over-list__dot" style="background:${BUDGET_GROUP_COLORS[g.group] || 'var(--text-faint)'}"></span>`
+      + `<span class="over-list__name">${escapeAttr(g.group)}</span>`
+      + `<span class="over-list__amount">(${UP}${currencyShort(g.actual - g.budget)}<span class="visually-hidden"> over</span>)</span></li>`)
+    .join('');
 }
 
 /** The over-budget tile's strip of bars scrolls to the budget chart. */
@@ -316,7 +333,9 @@ function renderTileTrends(idx) {
       pill.className = `stat-tile__delta stat-tile__delta--pill${flat ? '' : good ? ' is-good' : ' is-bad'}`;
       pill.title = `vs ${MONTH_LABEL(prev.month)}: ${tile.show(tile.value(prev))}`;
     }
-    renderSparkline(document.getElementById(`spark-${tile.key}`), series.map((f) => ({ month: f.month, value: tile.value(f) })), tile.show);
+    // Over budget lists its groups instead of a sparkline.
+    const spark = document.getElementById(`spark-${tile.key}`);
+    if (spark) renderSparkline(spark, series.map((f) => ({ month: f.month, value: tile.value(f) })), tile.show);
   });
 }
 

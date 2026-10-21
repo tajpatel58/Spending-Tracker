@@ -1325,6 +1325,38 @@ button { font-family: inherit; }
 .budget-strip:hover .budget-strip__fill { filter: brightness(1.08); }
 .budget-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 .is-loading .budget-strip { visibility: hidden; }
+/* The groups over budget, in place of the note and sparkline: two
+   columns by three rows (there are six groups). The grid is always three
+   rows tall — exactly the room the note and sparkline take in the tile
+   beside it — and names are cut short rather than wrapping, so the tile
+   keeps its size however many groups are over. */
+.over-list {
+  --over-row: 17px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: var(--over-row);
+  gap: 4px var(--space-3);
+  height: calc(var(--over-row) * 3 + 4px * 2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.over-list[hidden] { display: none; }
+.over-list li { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; line-height: var(--over-row); color: var(--text-muted); }
+.over-list__dot { flex: none; width: 6px; height: 6px; border-radius: 2px; }
+.over-list__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* "(↑£78)": how far over, never cut short (the name gives way first). */
+.over-list__amount { flex: none; margin-left: -2px; font-family: var(--font-num); font-variant-numeric: tabular-nums; color: var(--rose); white-space: nowrap; }
+.over-list__arrow { margin: 0 1px 0 1px; vertical-align: -0.5px; }
+/* A narrow tile (phones) has no room for two columns of names and
+   amounts, so it lists the three biggest overspends in one column; the
+   count and the bars above still cover every group. */
+.stat-tile:has(.over-list) { container-type: inline-size; }
+@container (max-width: 220px) {
+  .over-list { grid-template-columns: minmax(0, 1fr); }
+  .over-list li:nth-child(n + 4) { display: none; }
+}
+.is-loading .over-list { visibility: hidden; }
 @media (max-width: 560px) {
   .budget-strip { flex-basis: 56px; gap: 2px; margin-bottom: 3px; }
   .budget-strip__bar { height: 2.5px; }
@@ -3369,6 +3401,8 @@ button { font-family: inherit; }
   .breakdown-card__value { font-size: 24px; }
   .breakdown-row { font-size: 12.5px; column-gap: 6px; }
   .stat-tile__label { font-size: 9.5px; letter-spacing: 0.05em; }
+  .over-list { --over-row: 14px; gap: 3px var(--space-2); height: calc(var(--over-row) * 3 + 3px * 2); }
+  .over-list li { font-size: 10.5px; gap: 5px; }
   .stat-tile__value { font-size: 19px; }
   .stat-tile__delta { font-size: 10.5px; line-height: 1.35; }
   .stat-tile__value--hero { margin-top: 2px; font-size: 32px; }

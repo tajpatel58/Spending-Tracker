@@ -279,7 +279,8 @@
         <button type="button" class="budget-strip" id="budget-strip" aria-label="Go to budget vs actual"></button>
       </div>
       <span class="stat-tile__delta stat-tile__delta--truncate" id="stat-over-budget-note">—</span>
-      <div class="sparkline" id="spark-over-budget" role="img" hidden></div>
+      <!-- The groups over budget, biggest overspend first, two to a row (stats.js renderOverBudget). -->
+      <ul class="over-list" id="over-budget-list" aria-label="Budget groups over budget" hidden></ul>
     </div>
   </section>
 
