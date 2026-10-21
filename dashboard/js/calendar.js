@@ -22,6 +22,7 @@ import { initAccountFilter, initMonthSelect, pageHooks, renderMonthOptions } fro
 import {
   daysIn,
   EVENTS_BY_DATE,
+  expectedSalaries,
   forecastSpend,
   indexEvents,
   lastLoadedDate,
@@ -187,15 +188,13 @@ function monthIncome(month) {
 
 /**
  * "Forecast savings": income minus forecast spend, against
- * MONTHLY_SAVINGS_TARGET. Uses this month's income once salary has
- * landed, otherwise the average of the previous three months with data.
+ * MONTHLY_SAVINGS_TARGET. Income is this month's salary + interest, plus
+ * last month's salary for anyone whose pay hasn't landed yet
+ * (expectedSalaries) — the same assumption the Savings chart makes.
  */
 function renderForecastSavings(month, forecast) {
-  const salaryIn = getMonthTransactions(month).some((t) => t.category === 'salary');
-  const history = [1, 2, 3].map((n) => shiftMonth(month, -n)).filter((key) => TRANSACTIONS[key]?.length);
-  const income = salaryIn || !history.length
-    ? monthIncome(month)
-    : history.reduce((s, key) => s + monthIncome(key), 0) / history.length;
+  const expected = expectedSalaries(month);
+  const income = monthIncome(month) + expected.reduce((s, e) => s + e.amount, 0);
   const savings = income - forecast.total;
   const gap = savings - MONTHLY_SAVINGS_TARGET;
 
@@ -206,8 +205,11 @@ function renderForecastSavings(month, forecast) {
   note.textContent = gap >= 0
     ? `${currencyShort(gap)} above ${currencyShort(MONTHLY_SAVINGS_TARGET)} target`
     : `${currencyShort(-gap)} short of ${currencyShort(MONTHLY_SAVINGS_TARGET)} target`;
+  const assumed = expected.length
+    ? ` — assumes last month's salary for ${expected.map((e) => `${e.person} (${currency(e.amount)})`).join(', ')}`
+    : '';
   document.getElementById('cal-savings-tile').title =
-    `Income ${currency(income)} (${salaryIn ? 'this month' : '3-month average — salary not in yet'}) − forecast spend ${currency(forecast.total)}`;
+    `Income ${currency(income)}${assumed} − forecast spend ${currency(forecast.total)}`;
 }
 
 /**
