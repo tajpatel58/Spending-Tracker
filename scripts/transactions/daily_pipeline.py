@@ -18,7 +18,6 @@ force_llm = False
 upsert_cols = ["event_id"]
 lunchflow_account_ids = []
 
-
 """
 For each mapped lunchflow account, fetch transactions from the start of `month` (e.g. "October-26",
 defaults to the current month) onwards, clean them and save them to
@@ -31,6 +30,10 @@ transaction_metadata_data_root = data_home / "transactions_metadata"
 account_mapping_df = lunchflow.load_lunchflow_account_mapping(lunchflow_account_ids)
 upsert_transactions_df_list =  []
 upsert_transactions_metadata_df_list = []
+
+# fetch labelled data from supabase
+labelled_examples = transactions_db.fetch_manually_categorised_transactions_as_dict(examples_for_categorisation_date
+                                                                                    )
 
 for row in account_mapping_df.itertuples(index=False):
     transactions_response = lunchflow.get_transactions(row.lunchflow_account_id, 
@@ -52,10 +55,6 @@ for row in account_mapping_df.itertuples(index=False):
                                                 export_columns=table_schema._TRANSACTIONS_DB_COLUMNS,
                                                 filename="transactions.csv",
                                                 upsert_cols=upsert_cols)
-
-        # fetch labelled data from supabase
-        labelled_examples = transactions_db.fetch_manually_categorised_transactions_as_dict(examples_for_categorisation_date
-                                                                                            )
         
         transactions_metadata_df = statements.create_transactions_metadata_df(cleaned_transactions_df, 
                                                                                 labelled_examples,
