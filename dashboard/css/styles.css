@@ -1622,6 +1622,30 @@ button { font-family: inherit; }
 }
 .legend__amount.is-negative { color: var(--rose); } /* e.g. a person who spent more than they earned */
 
+/* "EST." — a small gold tag marking a figure that includes an assumed
+   salary (one not paid in yet, taken as last month's): after a person's
+   name in the By User legend, and beside the Income and Total saved figures. */
+.est-badge {
+  flex: none;
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border: var(--hairline) solid color-mix(in srgb, var(--gold) 50%, transparent);
+  border-radius: var(--radius-full);
+  cursor: help;
+}
+.est-badge[hidden] { display: none; }
+.legend li:has(.est-badge) .legend__name { flex: 0 1 auto; }
+.legend .est-badge { margin-right: auto; }
+/* A stat figure with its "EST." tag beside it, sitting on the figure's baseline. */
+.stat-tile__figure { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; }
+.stat-tile__figure .est-badge { position: relative; top: -0.15em; }
+.is-loading .stat-tile__figure .est-badge { visibility: hidden; }
+
 /* ==========================================================================
    Table tile
    ========================================================================== */

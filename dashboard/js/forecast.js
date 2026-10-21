@@ -9,7 +9,14 @@
  */
 
 import { CALENDAR_EVENTS, TRANSACTIONS } from './data.js';
-import { getMonthTransactions, isVariableExpense, MONTHLY_SAVINGS_TARGET } from './state.js';
+import {
+  getMonthTransactions,
+  isExpense,
+  isVariableExpense,
+  MONTHLY_SAVINGS_TARGET,
+  people,
+  sharesOf,
+} from './state.js';
 
 /** Zero-pads a day/month number, e.g. 7 -> '07'. */
 export const pad2 = (n) => String(n).padStart(2, '0');
@@ -107,4 +114,66 @@ export function monthSalary(month) {
 export function spendingAllowance(month) {
   const salary = monthSalary(shiftMonth(month, -1));
   return salary > 0 ? salary - MONTHLY_SAVINGS_TARGET : null;
+}
+
+// ---- Salaries and savings per person ----
+
+/** Each person's salary paid in a month (the joint account's split evenly): { Taj: 5200, Radhika: 0 }. */
+function salaryPaid(month, everyone) {
+  const paid = Object.fromEntries(everyone.map((person) => [person, 0]));
+  getMonthTransactions(month).filter((t) => t.category === 'salary').forEach((t) => {
+    const shares = sharesOf(t, everyone);
+    shares.forEach((person) => { paid[person] += t.amount / shares.length; });
+  });
+  return paid;
+}
+
+/**
+ * The salary each person can count on in a month. Everyone is paid once
+ * a month, so while a month's statements are still coming in, someone
+ * whose salary hasn't landed yet is taken to be paid what they were last
+ * month (`expected`). A complete month shows only what was actually paid.
+ *   { Taj: { paid: 0, expected: 5200 }, Radhika: { paid: 3900, expected: 0 } }
+ */
+export function salaries(month) {
+  const everyone = people();
+  const paid = salaryPaid(month, everyone);
+  const stillComingIn = lastLoadedDate().slice(0, 7) <= month;
+  const lastMonth = stillComingIn ? salaryPaid(shiftMonth(month, -1), everyone) : {};
+  return Object.fromEntries(everyone.map((person) => [person, {
+    paid: paid[person],
+    expected: stillComingIn && paid[person] <= 0 && lastMonth[person] > 0 ? lastMonth[person] : 0,
+  }]));
+}
+
+/** Salaries a month is still expecting (see salaries): [{ person: 'Taj', amount: 5200 }]. */
+export function expectedSalaries(month) {
+  return Object.entries(salaries(month))
+    .filter(([, pay]) => pay.expected > 0)
+    .map(([person, pay]) => ({ person, amount: pay.expected }));
+}
+
+/**
+ * Each person's income, spending and savings for a month (biggest saver
+ * first). A transaction on someone's own account counts to them, fixed
+ * expenses included; anything on the joint account is split evenly
+ * between them (sharesOf). Income and spending are as the Total saved
+ * tile counts them (salary + interest in, including a salary still
+ * expected; every expense out), so the savings add up to that tile.
+ *   [{ person: 'Taj', income: 5200, expected: 5200, spent: 2900, saved: 2300 }, ...]
+ */
+export function savingsByPerson(month) {
+  const everyone = people();
+  const pay = salaries(month);
+  const totals = Object.fromEntries(everyone.map((person) => [person, { income: pay[person].expected, expected: pay[person].expected, spent: 0 }]));
+  getMonthTransactions(month).forEach((t) => {
+    const income = t.category === 'salary' || t.category === 'interest';
+    if (!income && !isExpense(t)) return;
+    const shares = sharesOf(t, everyone);
+    const amount = income ? t.amount : Math.abs(t.amount);
+    shares.forEach((person) => { totals[person][income ? 'income' : 'spent'] += amount / shares.length; });
+  });
+  return everyone
+    .map((person) => ({ person, ...totals[person], saved: totals[person].income - totals[person].spent }))
+    .sort((a, b) => b.saved - a.saved);
 }

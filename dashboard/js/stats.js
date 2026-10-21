@@ -11,7 +11,14 @@
 
 import { renderPaceChart } from './charts.js';
 import { MONTH_LABEL, MONTHS } from './data.js';
-import { daysIn, forecastSpend, lastLoadedDate, spendingAllowance, sumAbs } from './forecast.js';
+import {
+  daysIn,
+  expectedSalaries,
+  forecastSpend,
+  lastLoadedDate,
+  spendingAllowance,
+  sumAbs,
+} from './forecast.js';
 import { currency, currencyShort, escapeAttr, moneyMarkup, signedFixed } from './format.js';
 import { motion } from './motion.js';
 import {
@@ -115,6 +122,21 @@ export function renderStats() {
   const figures = monthFigures(state.month);
   const { income, saved } = figures;
   document.getElementById('stat-income').innerHTML = moneyMarkup(currency(income));
+  // A salary not paid in yet is counted at last month's amount (monthFigures); the note says whose.
+  const incomeNote = document.getElementById('stat-income-note');
+  const { expected } = figures;
+  incomeNote.textContent = !expected.length ? 'Salary + Interest'
+    : expected.length === 1 ? `Incl. ${expected[0].person}'s expected salary` : `Incl. ${expected.length} expected salaries`;
+  incomeNote.title = expected.length
+    ? `Not paid in yet, so counted at last month's amount: ${expected.map((salary) => `${salary.person} ${currency(salary.amount)}`).join(', ')}`
+    : '';
+  // "EST." beside the Income and Total saved figures while either counts an assumed salary.
+  const assumed = expected.map((salary) => `${salary.person}'s salary (last month's ${currency(salary.amount)})`).join(' and ');
+  [['stat-income-est', 'Includes'], ['stat-saved-est', 'Counts']].forEach(([id, verb]) => {
+    const badge = document.getElementById(id);
+    badge.hidden = !expected.length;
+    badge.title = expected.length ? `${verb} ${assumed}, not paid in yet` : '';
+  });
   document.getElementById('stat-saved').innerHTML = moneyMarkup(currency(saved));
   const savedNote = document.getElementById('stat-saved-note');
   if (income > 0) {
@@ -237,15 +259,22 @@ export function initPaceFixedToggle() {
   });
 }
 
-/** A month's figures for the four smaller tiles (and their sparklines). */
+/**
+ * A month's figures for the four smaller tiles (and their sparklines).
+ * Income counts any salary still expected this month (expectedSalaries),
+ * so Income and Total saved don't dip while a payday is still to come.
+ */
 function monthFigures(month) {
   const txs = getMonthTransactions(month);
+  const expected = expectedSalaries(month);
   const income = txs
     .filter((t) => t.category === 'salary' || t.category === 'interest')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + t.amount, 0)
+    + expected.reduce((sum, salary) => sum + salary.amount, 0);
   const actualByGroup = budgetGroupActuals(month);
   return {
     income,
+    expected,
     saved: income - sumAbs(txs.filter(isExpense)),
     dailyAvg: sumAbs(txs.filter(isVariableExpense)) / daysIn(month),
     overBudget: Object.keys(BUDGETS).filter((group) => (actualByGroup[group] || 0) > BUDGETS[group]),

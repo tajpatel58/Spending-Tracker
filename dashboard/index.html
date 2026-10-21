@@ -239,8 +239,12 @@
         <span class="stat-tile__label">Income</span>
         <span class="stat-tile__delta stat-tile__delta--pill" id="stat-income-change" hidden></span>
       </div>
-      <span class="stat-tile__value" id="stat-income">£0</span>
-      <span class="stat-tile__delta" id="stat-income-note">Salary + Interest</span>
+      <!-- "EST." beside the figure while it counts a salary not paid in yet (stats.js). -->
+      <div class="stat-tile__figure">
+        <span class="stat-tile__value" id="stat-income">£0</span>
+        <span class="est-badge" id="stat-income-est" hidden>Est.</span>
+      </div>
+      <span class="stat-tile__delta stat-tile__delta--truncate" id="stat-income-note">Salary + Interest</span>
       <div class="sparkline" id="spark-income" role="img" hidden></div>
     </div>
     <div class="tile stat-tile">
@@ -248,7 +252,10 @@
         <span class="stat-tile__label">Total saved</span>
         <span class="stat-tile__delta stat-tile__delta--pill" id="stat-saved-change" hidden></span>
       </div>
-      <span class="stat-tile__value" id="stat-saved">£0</span>
+      <div class="stat-tile__figure">
+        <span class="stat-tile__value" id="stat-saved">£0</span>
+        <span class="est-badge" id="stat-saved-est" hidden>Est.</span>
+      </div>
       <span class="stat-tile__delta" id="stat-saved-note">Income − total spend</span>
       <div class="sparkline" id="spark-saved" role="img" hidden></div>
     </div>

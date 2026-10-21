@@ -58,28 +58,14 @@ export function people() {
 }
 
 /**
- * Each person's income, spending and savings for a month (biggest saver
- * first). A transaction on someone's own account counts to them, fixed
- * expenses included; anything on the joint account is split evenly
- * between them. Income and spending are as the Total saved tile counts
- * them (salary + interest in; every expense out), so the savings add up
- * to that tile.
- *   [{ person: 'Taj', income: 5200, spent: 2900, saved: 2300 }, ...]
+ * Who a transaction's money belongs to: its account's owner, or, for the
+ * joint account, every person, shared evenly. (Fixed expenses count to
+ * whoever's account paid them, like everything else.)
  */
-export function savingsByPerson(month) {
-  const everyone = people();
-  const totals = Object.fromEntries(everyone.map((person) => [person, { income: 0, spent: 0 }]));
-  getMonthTransactions(month).forEach((t) => {
-    const owner = t.user || 'Unknown';
-    const shares = isJointOwner(owner) ? everyone : totals[owner] ? [owner] : [];
-    const income = t.category === 'salary' || t.category === 'interest';
-    if (!shares.length || (!income && !isExpense(t))) return;
-    const amount = income ? t.amount : Math.abs(t.amount);
-    shares.forEach((person) => { totals[person][income ? 'income' : 'spent'] += amount / shares.length; });
-  });
-  return everyone
-    .map((person) => ({ person, ...totals[person], saved: totals[person].income - totals[person].spent }))
-    .sort((a, b) => b.saved - a.saved);
+export function sharesOf(t, everyone = people()) {
+  const owner = t.user || 'Unknown';
+  if (isJointOwner(owner)) return everyone;
+  return everyone.includes(owner) ? [owner] : [];
 }
 
 /** A spend owner's colour as a CSS var() — fixed by name, so it never changes month to month. */

@@ -13,6 +13,7 @@ import { setMonth, syncTableFilters } from './filters.js';
 import {
   daysIn,
   forecastSpend,
+  savingsByPerson,
   shiftMonth,
   spendingAllowance,
   sumAbs,
@@ -30,7 +31,6 @@ import {
   getMonthTransactions,
   isExpense,
   isVariableExpense,
-  savingsByPerson,
   spendOwner,
   spendOwnerColor,
   state,
@@ -93,6 +93,8 @@ function mixHex(a, b, t) {
  *
  * An entry can be negative (e.g. a person who spent more than they
  * earned): it gets no slice, and its legend amount is shown in rose.
+ * An entry's `badge` ({ text, title, spoken }) adds a small tag after its
+ * legend name, e.g. "Est." on a person whose salary is assumed.
  */
 function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emptyText, onSelect, sweep = false, count = entries.length, centerMeta }) {
   const canvas = document.getElementById(canvasId);
@@ -194,6 +196,7 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
     <li data-index="${i}" data-id="${escapeAttr(e.id)}" tabindex="0" style="--i:${Math.min(i, LEGEND_LIMIT)}"${i >= LEGEND_LIMIT ? ' class="legend__extra"' : ''}>
       <span class="legend__swatch" style="background:${e.color}"></span>
       <span class="legend__name">${escapeAttr(e.label)}</span>
+      ${e.badge ? `<span class="est-badge" title="${escapeAttr(e.badge.title)}"><span aria-hidden="true">${escapeAttr(e.badge.text)}</span><span class="visually-hidden">${escapeAttr(e.badge.spoken)}</span></span>` : ''}
       <span class="legend__amount${e.total < 0 ? ' is-negative' : ''}">${currencyShort(e.total)}</span>
     </li>
   `).join('')
@@ -462,7 +465,18 @@ function renderUserSavings(sweep) {
   const byPerson = Object.fromEntries(people.map((p) => [p.person, p]));
   const entries = people
     .filter((p) => p.income || p.spent)
-    .map((p) => ({ id: p.person, label: p.person, total: p.saved, color: spendOwnerColor(p.person) }));
+    .map((p) => ({
+      id: p.person,
+      label: p.person,
+      total: p.saved,
+      color: spendOwnerColor(p.person),
+      // Salary not in yet, so last month's is assumed (salaries in forecast.js); the tag goes once it's paid.
+      badge: p.expected > 0 ? {
+        text: 'Est.',
+        title: `Salary not paid in yet — assumed to be last month's ${currency(p.expected)}`,
+        spoken: ', includes an assumed salary',
+      } : null,
+    }));
 
   userChart = renderDonut({
     chart: userChart,
