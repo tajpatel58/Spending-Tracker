@@ -2878,6 +2878,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: color 200ms ease, background 200ms ease, box-shadow 200ms ease, transform 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
+.view-nav__link[hidden] { display: none; }
 .view-nav__link:hover { color: var(--text); }
 .view-nav__link:active { transform: scale(0.97); }
 .view-nav__link:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
@@ -3185,8 +3186,298 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .calendar-tooltip__meta { font-size: 12px; color: var(--text-faint); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 /* ==========================================================================
+   Summary page (summary.html) — months side by side, and what was saved
+   ========================================================================== */
+
+/* "6 months | 12 months | All" in the top bar, in place of the month
+   stepper: the chosen span sits on a lifted surface with a gold rule. */
+.period-picker {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.period-picker button {
+  position: relative;
+  height: 100%;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+.period-picker button:hover { color: var(--text); }
+.period-picker button[aria-checked="true"] {
+  color: var(--text);
+  background: var(--surface-alt);
+  box-shadow: inset 0 0 0 var(--hairline) var(--border-strong);
+}
+.period-picker button[aria-checked="true"]::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 14px;
+  margin-left: -7px;
+  border-top: 1.5px solid var(--gold);
+  border-radius: 1px;
+}
+.period-picker button:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
+
+/* On target: one bead per full month, gold where the target was met. */
+.target-beads { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 60%; margin-top: 2px; }
+.target-beads i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.target-beads i.is-hit {
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--gold) 55%, #fff), var(--gold) 70%);
+  box-shadow: none;
+}
+
+/* Month by month: the flow chart and the ledger, each the full width. */
+.summary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); margin-bottom: var(--space-6); }
+.summary-flow .summary-flow__chart { height: 300px; }
+.trend-legend__swatch--income { background: color-mix(in srgb, var(--accent) 85%, transparent); }
+.trend-legend__line--saved { border-top: 2px solid var(--gold); }
+.trend-legend [hidden] { display: none; }
+.trend-summary--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* The ledger: a quiet statement of each month. Figures in tabular
+   numerals, the month's name in the display serif, and a bar against
+   the target with the target as a fine gold tick. */
+.ledger-tile .table-tile__header { align-items: baseline; }
+.ledger-table, .category-matrix { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ledger-table thead th, .category-matrix thead th {
+  padding: 12px 20px 10px;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: var(--text-faint);
+  border-bottom: var(--hairline) solid var(--border);
+}
+.ledger-table th:first-child, .ledger-table td:first-child,
+.category-matrix th:first-child { padding-left: var(--tile-gutter); }
+.ledger-table th:last-child, .ledger-table td:last-child,
+.category-matrix th:last-child, .category-matrix td:last-child { padding-right: var(--tile-gutter); }
+.ledger-table tbody td, .ledger-table tbody th {
+  padding: 13px 20px;
+  border-bottom: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.ledger-table thead .ledger-table__num, .ledger-table__num { text-align: right; }
+.ledger-table__num { font-family: var(--font-num); width: 1%; }
+.ledger-table tbody tr { cursor: pointer; transition: background var(--transition); }
+.ledger-table tbody tr:hover { background: var(--surface-alt); }
+.ledger-table__month { font-weight: 400; text-align: left; }
+.ledger-table__month a {
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+}
+.ledger-table tbody tr:hover .ledger-table__month a { color: var(--gold-strong, var(--gold)); }
+.ledger-table__year { margin-left: 2px; font-family: var(--font-body); font-size: 11.5px; color: var(--text-faint); letter-spacing: 0; }
+.ledger-table__flag {
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border: var(--hairline) solid color-mix(in srgb, var(--gold) 50%, transparent);
+  border-radius: var(--radius-full);
+  vertical-align: 2px;
+}
+.ledger-table__figure { display: inline-flex; align-items: center; gap: 6px; }
+.ledger-table__saved { font-weight: 500; color: var(--text); }
+.ledger-table__saved.is-negative { color: var(--rose); }
+.ledger-table__rate { color: var(--text-muted); }
+.ledger-table tr.is-forecast td { color: var(--text-muted); font-style: italic; }
+.ledger-table tr.is-forecast .ledger-table__saved { color: var(--text-muted); }
+.ledger-table__target { width: 30%; min-width: 200px; }
+.ledger-table__empty { padding: var(--space-6) var(--tile-gutter) !important; color: var(--text-faint); text-align: center; }
+.ledger-bar { display: flex; align-items: center; gap: var(--space-3); font-style: normal; }
+.ledger-bar__track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.ledger-bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--text-muted) 55%, transparent);
+  transform-origin: left center;
+  animation: grow-x 700ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 35ms + 150ms);
+}
+.ledger-bar.is-hit .ledger-bar__fill { background: var(--accent); }
+.ledger-table tr.is-forecast .ledger-bar__fill { background: repeating-linear-gradient(-45deg, var(--text-faint) 0 2px, transparent 2px 4px); }
+/* The target: a gold tick standing just proud of the bar, cut out by the card colour. */
+.ledger-bar__tick {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--gold);
+  border-radius: 1px;
+  box-shadow: 0 0 0 1.5px var(--surface);
+}
+.ledger-bar__gap { min-width: 6ch; font-family: var(--font-num); font-size: 12px; text-align: right; color: var(--rose); }
+.ledger-bar.is-hit .ledger-bar__gap { color: var(--accent); }
+.ledger-table tfoot th, .ledger-table tfoot td {
+  padding: 14px 20px 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-align: left;
+  border-top: var(--hairline) solid var(--border-strong);
+}
+.ledger-table tfoot .ledger-table__num { text-align: right; }
+.ledger-table tfoot th { font-family: var(--font-display); font-size: 15.5px; font-weight: 450; }
+.ledger-table__hits { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+
+/* Highlights: numbered like footnotes in a printed report — a gold
+   serif numeral, then the observation with its key figure set in the
+   display face. */
+.highlights { list-style: none; margin: 0; padding: var(--space-5) var(--tile-gutter) 0; display: flex; flex-direction: column; }
+.highlights__item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-3) 0;
+  border-top: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent);
+  animation: legend-in 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 50ms + 120ms);
+}
+.highlights__item:first-child { border-top: none; padding-top: 0; }
+.highlights__marker { font-family: var(--font-display); font-size: 13px; font-weight: 450; color: var(--gold); font-variant-numeric: lining-nums tabular-nums; }
+.highlights__item p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
+.highlights__item b { font-weight: 500; color: var(--text); }
+.highlights__item em { font-family: var(--font-display); font-style: normal; font-size: 15px; font-weight: 450; letter-spacing: -0.01em; color: var(--text); }
+.highlights__item.is-positive em { color: var(--accent); }
+.highlights__item.is-negative em { color: var(--rose); }
+.highlights__empty { color: var(--text-faint); font-size: 13px; }
+
+.people-chart { margin-top: auto; padding: var(--space-6) var(--tile-gutter) 0; }
+.people-chart[hidden] { display: none; }
+.people-chart__label { margin: 0 0 var(--space-3); padding-top: var(--space-4); font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); border-top: var(--hairline) solid var(--border); }
+.people-chart__canvas { position: relative; height: 150px; }
+.people-list__dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 2px; vertical-align: 0; }
+
+/* Where it went: months across, categories down; each cell tinted in its
+   category's colour by how it compares with that category's busiest month. */
+/* minmax(0, …) columns, so the wide category table scrolls inside its card instead of widening the page. */
+.charts-grid.summary-analysis { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+.summary-analysis .category-tile { grid-column: 1 / -1; }
+/* The total's two notes stack, rather than wrapping with a stray "·" between them. */
+.summary-page .hero-tile__meta { flex-direction: column; gap: 2px; }
+.summary-page .hero-tile__meta > :not([hidden]) ~ :not([hidden])::before { content: none; }
+.category-matrix thead th { padding: 12px 8px 10px; text-align: right; }
+.category-matrix thead th.category-matrix__name { padding-left: var(--tile-gutter); text-align: left; }
+.category-matrix__month span { display: block; margin-top: 2px; font-size: 9.5px; letter-spacing: 0.08em; color: var(--text-faint); opacity: 0.8; }
+.category-matrix__month.is-forecast { color: var(--gold); }
+.category-matrix tbody th, .category-matrix tbody td {
+  padding: 9px 8px;
+  border-bottom: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent);
+  white-space: nowrap;
+}
+.category-matrix tbody tr:last-child th, .category-matrix tbody tr:last-child td { border-bottom: none; }
+.category-matrix__name { position: sticky; left: 0; z-index: 1; padding-left: var(--tile-gutter) !important; text-align: left; font-weight: 500; color: var(--text); background: var(--surface); }
+.category-matrix__name i { display: inline-block; width: 8px; height: 8px; margin-right: 10px; border-radius: 2px; }
+.category-matrix__cell {
+  min-width: 64px;
+  font-family: var(--font-num);
+  font-size: 12.5px;
+  text-align: right;
+  color: var(--text);
+  background: var(--tint, transparent);
+  background-clip: padding-box;
+  border-left: 2px solid var(--surface);
+}
+.category-matrix__cell.is-forecast { font-style: italic; color: var(--text-muted); }
+.category-matrix__none { color: var(--border-strong); }
+.category-matrix__stat { font-family: var(--font-num); font-size: 12.5px; text-align: right; color: var(--text-muted); padding-left: 16px !important; }
+.category-matrix thead th.category-matrix__stat { text-align: right; }
+.category-matrix tbody td.category-matrix__stat:nth-last-child(2) { border-left: var(--hairline) solid var(--border); }
+.category-matrix .is-positive { color: var(--accent); }
+.category-matrix .is-negative { color: var(--rose); }
+.category-matrix__steady { color: var(--text-faint); }
+.category-tile { padding-bottom: var(--space-2); }
+
+@media (max-width: 900px) {
+  .charts-grid.summary-analysis { grid-template-columns: minmax(0, 1fr); }
+  .trend-summary--four { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--space-4); }
+  .trend-summary--four .trend-summary__item:nth-child(3) { padding-left: 0; border-left: none; }
+}
+@media (max-width: 560px) {
+  /* The transactions table stops scrolling sideways on phones; these tables keep scrolling inside their cards. */
+  .summary-page .table-scroll { overflow-x: auto; }
+  .ledger-table tbody th, .ledger-table tfoot th { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+  .ledger-table tbody tr:hover th { background: var(--surface-alt); }
+  .period-picker { width: 100%; height: 40px; }
+  .period-picker button { flex: 1; padding: 0 6px; font-size: 14px; }
+  .summary-flow .summary-flow__chart { height: 240px; padding-left: 8px; padding-right: 8px; }
+  .ledger-table tbody td, .ledger-table tbody th, .ledger-table tfoot th, .ledger-table tfoot td { padding: 12px 10px; }
+  .ledger-table__rate, .ledger-table thead th:nth-child(5), .ledger-table tfoot td:nth-child(5) { display: none; }
+  .ledger-table__target { min-width: 150px; }
+  .ledger-table__month a { font-size: 14.5px; }
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
+
+/* Narrower desktops: the top bar holds five views, the filters and the
+   account menu, so it sheds detail in steps rather than overflowing —
+   first the account name (the avatar stays), then the labels of the
+   views you're not on (icons with tooltips), then the wordmark. */
+@media (min-width: 561px) and (max-width: 1400px) {
+  .user-menu__name { display: none; }
+}
+@media (min-width: 561px) and (max-width: 1200px) {
+  .topbar__inner { gap: 20px; }
+  .view-nav__link:not(.is-active) { padding: 7px 10px; }
+  .view-nav__link:not(.is-active) span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+@media (min-width: 561px) and (max-width: 1000px) {
+  .brand__name { display: none; }
+}
+@media (min-width: 561px) and (max-width: 900px) {
+  .view-nav__link.is-active { padding: 7px 10px; }
+  .view-nav__link.is-active span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
 
 @media (max-width: 900px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -3206,7 +3497,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   /* Bottom padding clears the floating tab bar. */
   .container { padding: 20px 16px calc(var(--tabbar-clearance) + 24px); }
 
-  /* Overview / Calendar / Assistant / Upload float in a frosted tab bar at
+  /* Overview / Calendar / Summary / Assistant float in a frosted tab bar at
      the bottom of the screen, within thumb reach (like a native app). */
   .view-nav {
     --nav-pad: 5px;
@@ -3216,8 +3507,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
     right: calc(12px + env(safe-area-inset-right));
     bottom: max(10px, env(safe-area-inset-bottom));
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+    /* One equal column per visible tab, however many there are. */
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 2px;
     margin: 0;
     background: color-mix(in srgb, var(--surface) 90%, transparent);
     -webkit-backdrop-filter: blur(20px) saturate(170%);

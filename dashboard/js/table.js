@@ -168,7 +168,7 @@ export function renderTable() {
     document.getElementById('empty-state-title').textContent = filtered ? 'No transactions found' : 'No transactions this month';
     document.getElementById('empty-state-hint').textContent = filtered
       ? 'Try a different search or clear your filters.'
-      : 'Upload a statement to see this month\'s spending.';
+      : 'Nothing has come through for this month yet.';
     document.getElementById('empty-clear-filters').hidden = !filtered;
   } else {
     empty.hidden = true;

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Ledger — Summary</title>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- Add to Home Screen opens it as a full-screen app (no Safari bars). -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="application-name" content="Ledger">
+<!-- Browser/status bar colour; theme.js keeps it in step with light/dark mode. -->
+<meta name="theme-color" content="#F6F4EF">
+<meta name="color-scheme" content="light dark">
+<!-- The deploy workflow replaces the next line with a preconnect to the
+     Supabase project (its URL lives only in the deploy secrets). -->
+<!-- supabase-preconnect -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..650&family=Geist:wght@400..650&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Before first paint: apply the saved theme (so nothing flashes light,
+     then dark) and, on the first page of a visit, show the launch mark
+     (state.js finishLoading lifts it). Skipped with reduced motion. -->
+<script>
+  try {
+    var t = localStorage.getItem('ledger-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+    if (!sessionStorage.getItem('ledger-launched') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('is-launching');
+      sessionStorage.setItem('ledger-launched', '1');
+    }
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+<!-- sw-register: the deployed build switches on the service worker here (scripts/dashboard/build.mjs). -->
+<!-- Scripts download in parallel while the page parses (defer keeps their order). -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
+<script defer src="js/config.js"></script>
+<!-- The page's code, as ES modules: summary.js imports what it needs (deferred, like the scripts above). -->
+<script type="module" src="js/summary.js"></script>
+<!-- Chart.js after the modules, as on the Overview, so the data starts loading first. -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<!-- is-loading shows placeholder shapes until the data has loaded and
+     rendered (see .is-loading in styles.css). No data is in the page
+     until the access check passes, so nothing leaks to signed-out visitors. -->
+<body class="is-loading" aria-busy="true">
+
+<!-- Launch mark: the gold ring draws itself, the monogram and wordmark
+     settle in, then the dashboard rises in beneath it (first page of a visit). -->
+<div class="launch" aria-hidden="true">
+  <svg class="launch__mark" viewBox="0 0 64 64" fill="none">
+    <circle class="launch__ring" cx="32" cy="32" r="30.5" stroke="var(--gold)" stroke-width="1.4" pathLength="1"/>
+    <g class="launch__letter"><path transform="translate(20.527 46.412) scale(0.021008 -0.021008)" fill="var(--text)" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/></g>
+  </svg>
+  <span class="launch__word">Ledger</span>
+</div>
+
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar__inner">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg class="brand__svg" width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="30.5" stroke="var(--gold)" stroke-width="2"/>
+          <path transform="translate(20.527 46.412) scale(0.021008 -0.021008)" fill="var(--text)" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/>
+        </svg>
+      </span>
+      <span class="brand__name">Ledger</span>
+    </div>
+
+    <nav class="view-nav" aria-label="Views">
+      <a href="index.html" title="Overview" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="4" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <span>Overview</span>
+      </a>
+      <a href="calendar.html" title="Calendar" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="5.5" width="16" height="14.5" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Calendar</span>
+      </a>
+      <a href="summary.html" title="Summary" class="view-nav__link is-active" aria-current="page">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4.5 19.5h15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <path d="M7.5 16v-3.5M12 16V8.5M16.5 16V5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Summary</span>
+      </a>
+      <a href="chat.html" title="Assistant" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.5l1.6 4.3a3 3 0 0 0 1.8 1.8l4.1 1.4-4.1 1.4a3 3 0 0 0-1.8 1.8L12 18.5l-1.6-4.3a3 3 0 0 0-1.8-1.8L4.5 11l4.1-1.4a3 3 0 0 0 1.8-1.8L12 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M18.5 16.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4Z" fill="currentColor"/>
+        </svg>
+        <span>Assistant</span>
+      </a>
+      <!-- Upload is hidden for now (data arrives through the bank API); remove `hidden` to bring it back. -->
+      <a href="upload.html" title="Upload" class="view-nav__link" hidden>
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 15V4.5M12 4.5l-4 4M12 4.5l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4.5 14v3.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Upload</span>
+      </a>
+    </nav>
+
+    <div class="topbar__controls">
+      <div class="topbar__filters">
+        <div class="multiselect" id="account-filter">
+          <button type="button" class="multiselect__button" id="account-filter-button" aria-haspopup="listbox" aria-expanded="false">
+            <span id="account-filter-label">All accounts</span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="multiselect__panel" id="account-filter-panel" role="listbox" aria-label="Filter by account" hidden></div>
+        </div>
+
+        <!-- How far back the page looks (summary.js initPeriod); remembered on this device. -->
+        <div class="period-picker" role="radiogroup" aria-label="Period">
+          <button type="button" role="radio" data-period="6" aria-checked="false">6 months</button>
+          <button type="button" role="radio" data-period="12" aria-checked="true">12 months</button>
+          <button type="button" role="radio" data-period="all" aria-checked="false">All</button>
+        </div>
+      </div>
+
+      <div class="topbar__actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+          <svg class="icon icon--sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <svg class="icon icon--moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="user-menu" id="user-menu">
+          <button class="user-menu__button" id="user-menu-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu-panel">
+            <span class="user-menu__avatar" id="user-menu-avatar" aria-hidden="true"></span>
+            <span class="user-menu__name" id="user-menu-name"></span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="user-menu__panel" id="user-menu-panel" role="menu" hidden>
+            <div class="user-menu__identity">
+              <span class="user-menu__panel-name" id="user-menu-panel-name"></span>
+              <span class="user-menu__email" id="user-menu-email"></span>
+            </div>
+            <div class="user-menu__divider"></div>
+            <button id="signout-button" class="user-menu__signout" type="button" role="menuitem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 12H10.5M20 12l-3.5-3.5M20 12l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Sign out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MAIN ============ -->
+<main class="container summary-page">
+
+  <div class="page-heading">
+    <div>
+      <p class="page-heading__eyebrow" id="page-eyebrow"></p>
+      <h1>Summary</h1>
+      <p id="page-subtitle" class="page-heading__subtitle">Month by month, and everything saved</p>
+    </div>
+    <button type="button" class="sync-status" id="sync-status" hidden>
+      <!-- The Ledger monogram; while syncing, a gold arc chases round its ring. -->
+      <svg class="sync-status__icon" width="16" height="16" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <circle class="sync-ring" cx="32" cy="32" r="29.5" stroke="var(--gold)" stroke-width="3.2" pathLength="1"/>
+        <path transform="translate(20.527 46.412) scale(0.021008 -0.021008)" fill="currentColor" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/>
+      </svg>
+      <svg class="sync-status__done" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path class="draw-tick" pathLength="1" d="M5.5 12.5l4.5 4.5L19 7.5" stroke="currentColor"/>
+      </svg>
+      <span id="sync-label"></span>
+    </button>
+  </div>
+
+  <!-- Savings: the period's total saved (with its running total against the
+       target) beside four smaller tiles. Full months only count; the month
+       still in progress is shown as a forecast (summary.js). -->
+  <p class="section-eyebrow" aria-hidden="true">What you kept</p>
+  <section class="stats-grid stats-grid--hero" aria-label="Savings summary">
+    <div class="tile stat-tile hero-tile">
+      <div class="hero-tile__head">
+        <span class="stat-tile__label">Total saved</span>
+      </div>
+      <span class="stat-tile__value stat-tile__value--hero" id="sum-saved">£0</span>
+      <p class="hero-tile__meta">
+        <span class="stat-tile__delta" id="sum-saved-note">—</span>
+        <span class="stat-tile__delta" id="sum-forecast-note" hidden></span>
+      </p>
+      <div class="hero-tile__chart">
+        <canvas id="sum-cumulative-chart" role="img" aria-label="Running total of money saved, month by month, against the savings target"></canvas>
+      </div>
+      <div class="hero-tile__foot">
+        <ul class="trend-legend hero-tile__legend" aria-hidden="true">
+          <li><span class="hero-legend__line hero-legend__line--this"></span>Saved</li>
+          <li><span class="hero-legend__line hero-legend__line--target"></span>Savings target</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tile stat-tile">
+      <div class="stat-tile__head"><span class="stat-tile__label">Average saved</span></div>
+      <span class="stat-tile__value" id="sum-avg-saved">£0</span>
+      <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-avg-saved-note">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <div class="stat-tile__head"><span class="stat-tile__label">Savings rate</span></div>
+      <span class="stat-tile__value" id="sum-rate">—</span>
+      <span class="target-bar" aria-hidden="true"><span class="target-bar__fill" id="sum-rate-bar"></span></span>
+      <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-rate-note">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <div class="stat-tile__head"><span class="stat-tile__label">Best month</span></div>
+      <span class="stat-tile__value" id="sum-best">—</span>
+      <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-best-note">—</span>
+    </div>
+    <div class="tile stat-tile">
+      <div class="stat-tile__head">
+        <span class="stat-tile__label">On target</span>
+        <!-- One bead per full month: gold where the savings target was met. -->
+        <span class="target-beads" id="sum-beads" aria-hidden="true"></span>
+      </div>
+      <span class="stat-tile__value" id="sum-on-target">—</span>
+      <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-on-target-note">—</span>
+    </div>
+  </section>
+
+  <!-- Month by month: income against spending (fixed + everyday) with what
+       was saved as a gold line, then the same months as a ledger. -->
+  <p class="section-eyebrow" aria-hidden="true">Month by month</p>
+  <section class="summary-grid" aria-label="Month by month">
+    <div class="tile chart-tile summary-flow">
+      <div class="tile__header">
+        <h2>Income, spending &amp; savings</h2>
+        <span class="tile__meta" id="sum-flow-meta"></span>
+      </div>
+      <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--line summary-flow__chart">
+        <canvas id="sum-flow-chart" role="img" aria-label="Bar chart of income and spending each month, with the amount saved as a line"></canvas>
+      </div>
+      <ul class="trend-legend" aria-hidden="true">
+        <li><span class="trend-legend__swatch trend-legend__swatch--income"></span>Income</li>
+        <li><span class="trend-legend__swatch" style="background:var(--forecast-fixed)"></span>Fixed</li>
+        <li><span class="trend-legend__swatch" style="background:var(--forecast-spent)"></span>Everyday</li>
+        <li id="sum-flow-legend-forecast" hidden><span class="trend-legend__swatch trend-legend__swatch--forecast"></span>Still to come</li>
+        <li><span class="trend-legend__line trend-legend__line--saved"></span>Saved</li>
+      </ul>
+      <dl class="trend-summary trend-summary--four" id="sum-flow-summary"></dl>
+    </div>
+
+    <div class="tile table-tile ledger-tile">
+      <div class="table-tile__header">
+        <h2>The ledger</h2>
+        <span class="tile__meta">Choose a month to open it on the Overview</span>
+      </div>
+      <div class="table-scroll">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              <th scope="col" class="ledger-table__num">Income</th>
+              <th scope="col" class="ledger-table__num">Spent</th>
+              <th scope="col" class="ledger-table__num">Saved</th>
+              <th scope="col" class="ledger-table__num">Rate</th>
+              <th scope="col" class="ledger-table__target">Against target</th>
+            </tr>
+          </thead>
+          <tbody id="sum-ledger-body"></tbody>
+          <tfoot id="sum-ledger-foot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Analysis: plain-English highlights, each person's savings, and every
+       category month by month, shaded against its own average. -->
+  <p class="section-eyebrow" aria-hidden="true">Analysis</p>
+  <section class="charts-grid summary-analysis" aria-label="Analysis">
+    <div class="tile chart-tile">
+      <div class="tile__header">
+        <h2>Highlights</h2>
+        <span class="tile__meta" id="sum-highlights-meta"></span>
+      </div>
+      <ol class="highlights" id="sum-highlights"></ol>
+    </div>
+
+    <div class="tile chart-tile">
+      <div class="tile__header">
+        <h2>Who saved</h2>
+        <span class="tile__meta" id="sum-people-meta"></span>
+      </div>
+      <ul class="budget-list people-list" id="sum-people" aria-label="Savings by person"></ul>
+      <div class="people-chart" id="sum-people-chart-wrap" hidden>
+        <p class="people-chart__label">Saved each month</p>
+        <div class="people-chart__canvas">
+          <canvas id="sum-people-chart" role="img" aria-label="Bar chart of what each person saved, month by month"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="tile table-tile category-tile">
+      <div class="table-tile__header">
+        <h2>Where it went</h2>
+        <span class="tile__meta">Deeper shading marks months above that category's average</span>
+      </div>
+      <div class="table-scroll">
+        <table class="category-matrix" id="sum-categories"></table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+
+<!--
+  The page's code is ES modules with summary.js as the entry point (see
+  the notes in index.html): it imports the shared files it uses.
+-->
+</body>
+</html>

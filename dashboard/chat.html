@@ -49,7 +49,7 @@
     </div>
 
     <nav class="view-nav" aria-label="Views">
-      <a href="index.html" class="view-nav__link">
+      <a href="index.html" title="Overview" class="view-nav__link">
         <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <rect x="4" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
           <rect x="13" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
@@ -58,21 +58,29 @@
         </svg>
         <span>Overview</span>
       </a>
-      <a href="calendar.html" class="view-nav__link">
+      <a href="calendar.html" title="Calendar" class="view-nav__link">
         <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <rect x="4" y="5.5" width="16" height="14.5" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
           <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
         <span>Calendar</span>
       </a>
-      <a href="chat.html" class="view-nav__link is-active" aria-current="page">
+      <a href="summary.html" title="Summary" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4.5 19.5h15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <path d="M7.5 16v-3.5M12 16V8.5M16.5 16V5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Summary</span>
+      </a>
+      <a href="chat.html" title="Assistant" class="view-nav__link is-active" aria-current="page">
         <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 3.5l1.6 4.3a3 3 0 0 0 1.8 1.8l4.1 1.4-4.1 1.4a3 3 0 0 0-1.8 1.8L12 18.5l-1.6-4.3a3 3 0 0 0-1.8-1.8L4.5 11l4.1-1.4a3 3 0 0 0 1.8-1.8L12 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
           <path d="M18.5 16.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4Z" fill="currentColor"/>
         </svg>
         <span>Assistant</span>
       </a>
-      <a href="upload.html" class="view-nav__link">
+      <!-- Upload is hidden for now (data arrives through the bank API); remove `hidden` to bring it back. -->
+      <a href="upload.html" title="Upload" class="view-nav__link" hidden>
         <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 15V4.5M12 4.5l-4 4M12 4.5l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M4.5 14v3.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
