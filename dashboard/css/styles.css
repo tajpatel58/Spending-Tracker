@@ -3866,6 +3866,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .stat-tile__delta--pill { padding: 2px 8px; }
   .stat-tile__head .stat-tile__delta--pill { margin-top: -2px; padding: 1px 6px; font-size: var(--fs-micro); }
   .sparkline { height: 22px; margin-top: var(--space-2); }
+  /* Side-by-side tiles line up from the top: the figure sits a fixed step under
+     the label and only the sparkline settles to the bottom, so a note that wraps
+     to two lines in one tile doesn't push its neighbour's figure out of line. */
+  .stats-grid--hero > .stat-tile:not(.hero-tile) .stat-tile__head { min-height: 20px; margin-bottom: 0; padding-bottom: var(--space-1); }
+  .stats-grid--hero > .stat-tile:not(.hero-tile) .sparkline { margin-top: auto; padding-top: var(--space-2); box-sizing: content-box; }
   .hero-tile { padding-bottom: 14px; }
   .hero-tile__chart { height: 120px; margin-top: var(--space-3); }
   .trend-legend { font-size: var(--fs-caption); }
