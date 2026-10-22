@@ -1528,6 +1528,31 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .chart-tooltip__row--total b { font-weight: 600; }
 .chart-tooltip__swatch { flex: none; width: 8px; height: 8px; border-radius: 2px; }
 .chart-tooltip__swatch--line { width: 12px; height: 0; border-radius: 0; border-top: 1.5px dashed var(--text-muted); }
+/* Touch screens (chart-kit.js htmlTooltip): a small × in the corner closes
+   the tooltip, as there's no hovering off the chart. The tooltip itself
+   lets taps through to the chart; only the button takes them. */
+.chart-tooltip__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: none;
+}
+.chart-tooltip.is-visible .chart-tooltip__close { pointer-events: auto; }
+.chart-tooltip__close::after { content: ''; position: absolute; inset: -10px; } /* a finger-sized target around the small mark */
+.chart-tooltip__close:active { color: var(--text); background: color-mix(in srgb, var(--text) 12%, transparent); }
+.chart-tooltip__close svg [stroke] { stroke-width: 1.8px; }
+.chart-tooltip:has(.chart-tooltip__close) .chart-tooltip__title { padding-right: 26px; }
 
 .trend-legend {
   display: flex;

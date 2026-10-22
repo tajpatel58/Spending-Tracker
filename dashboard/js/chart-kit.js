@@ -35,9 +35,22 @@ export function stripePattern(color) {
   return g.createPattern(tile, 'repeat');
 }
 
+/** Touch screens can't hover away from a chart, so its tooltip carries a close button there. */
+const canHover = () => window.matchMedia('(hover: hover)').matches;
+
+/** Closes a chart's tooltip and clears the highlighted bar or point with it. */
+function dismissTooltip(chart) {
+  if (!chart?.canvas) return; // the chart was redrawn and this one destroyed
+  chart.setActiveElements([]);
+  chart.tooltip?.setActiveElements([], { x: 0, y: 0 });
+  chart.update('none');
+}
+
 /**
  * Chart.js `external` tooltip drawn as HTML, so it matches the app's menus
  * (frosted surface, serif title, tabular figures) and glides between bars.
+ * On touch screens it has a small × in its corner, since there's no
+ * hovering off the chart to close it.
  *
  *   build(dataPoints) -> { title, rows: [{ label, value, swatch }], footer: [label, value] }
  *   swatch is a CSS background, or 'line' for the dashed target line.
@@ -50,8 +63,14 @@ export function htmlTooltip(build) {
       el = document.createElement('div');
       el.className = 'chart-tooltip';
       el.setAttribute('aria-hidden', 'true');
+      // The element outlives redraws (charts are rebuilt on each change), so
+      // the button closes whichever chart last filled it.
+      el.addEventListener('click', (event) => {
+        if (event.target.closest('.chart-tooltip__close')) dismissTooltip(el.chart);
+      });
       wrap.appendChild(el);
     }
+    el.chart = chart;
     if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) {
       el.classList.remove('is-visible');
       return;
@@ -59,6 +78,9 @@ export function htmlTooltip(build) {
 
     const { title, rows, footer } = build(tooltip.dataPoints);
     el.innerHTML = `
+      ${canHover() ? '' : `<button type="button" class="chart-tooltip__close" aria-label="Close" tabindex="-1">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor"/></svg>
+      </button>`}
       <p class="chart-tooltip__title">${escapeAttr(title)}</p>
       ${rows.map((row) => `
         <p class="chart-tooltip__row">
