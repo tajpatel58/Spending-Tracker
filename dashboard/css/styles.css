@@ -178,7 +178,38 @@
   --cat-refund: #FBBF24;
 }
 
-@media (max-width: 560px) { :root { --tile-gutter: 16px; } }
+/* Phone type scale. Every text size on a phone comes from one of these
+   steps, so a label, a note or a figure is the same size on every page.
+   Tuned for a 390pt-wide iPhone (13, 14, 15, 16); wider phones step up
+   the large serif figures just below. */
+@media (max-width: 560px) {
+  :root {
+    --tile-gutter: 16px;
+    --fs-micro: 10.5px;    /* tracked capitals: eyebrows, labels, table heads, tab bar */
+    --fs-caption: 11.5px;  /* notes, meta lines, legends, footers */
+    --fs-small: 12.5px;    /* secondary text: chips, categories, subtitles */
+    --fs-body: 14px;       /* primary content: merchants, row amounts, controls */
+    --fs-lead: 15px;       /* reading text: chat, day headings, buttons */
+    --fs-title: 17px;      /* card titles (serif) */
+    --fs-figure-sm: 18px;  /* secondary figures: trend summary, doughnut centre */
+    --fs-figure: 22px;     /* stat tile figures */
+    --fs-heading: 24px;    /* page headings */
+    --fs-hero: 34px;       /* the headline figure */
+    --fs-cell: 10px;       /* calendar cell amounts — "£1,234" just fits a 390pt-wide day */
+  }
+}
+/* iPhone 17 Pro (402pt) and wider phones (Plus / Pro Max, 428–440pt):
+   the extra width goes to the serif figures and headings, and the
+   calendar amounts, which are the tightest fit on a 390pt screen. */
+@media (min-width: 400px) and (max-width: 560px) {
+  :root {
+    --fs-title: 18px;
+    --fs-figure: 23px;
+    --fs-heading: 26px;
+    --fs-hero: 36px;
+    --fs-cell: 10.5px;
+  }
+}
 
 /* Retina screens get true hairlines: borders at half a pixel, darkened a
    touch so they keep the same presence. */
@@ -214,6 +245,8 @@ svg [stroke="currentColor"] {
    scroll bounce, and taps don't flash a grey highlight or wait for a
    double-tap-to-zoom. */
 html { background: var(--bg); -webkit-tap-highlight-color: transparent; }
+/* iOS Safari enlarges text when the phone turns sideways; keep the type scale as set. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 button, a, label, select, summary { touch-action: manipulation; }
 .topbar, .view-nav, .month-stepper, .calendar__day, button { -webkit-user-select: none; user-select: none; }
 
@@ -2341,6 +2374,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .login__title { font-size: 34px; }
   .login__footnote { justify-content: center; text-align: center; }
 }
+/* Phones: the sign-in uses the same scale as the app it leads into. */
+@media (max-width: 560px) {
+  .login__panel .brand__name { font-size: 13px; }
+  .login__eyebrow { font-size: var(--fs-micro); }
+  .login__title { font-size: var(--fs-hero); }
+  .login__subtitle { font-size: var(--fs-lead); }
+  .google-btn { font-size: var(--fs-lead); }
+  .login-card__error { font-size: var(--fs-small); }
+  .login__footnote { font-size: var(--fs-caption); }
+}
 
 /* ==========================================================================
    Upload page (upload.html)
@@ -2651,7 +2694,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .account-choice { padding: 12px; }
   .dropzone { padding: 28px var(--space-4); }
   .upload-card__footer { flex-direction: column; align-items: stretch; gap: var(--space-3); padding: var(--space-4); }
-  .upload-submit { width: 100%; padding: 13px 20px; font-size: 15px; }
+  .upload-submit { width: 100%; padding: 13px 20px; font-size: var(--fs-lead); }
+  .upload-step__title { font-size: var(--fs-lead); }
+  .upload-field__label, .upload-dest__label { font-size: var(--fs-micro); }
+  .choice-group .choice, .choice__main { font-size: var(--fs-body); }
+  .choice__sub { font-size: var(--fs-caption); }
+  .account-choice__owner, .statement-row__bank, .file-card__name, .dropzone__title { font-size: var(--fs-body); }
+  .account-choice__id, .account-choice__status, .file-card__meta,
+  .statement-row__meta, .statement-row__status { font-size: var(--fs-caption); }
+  .dropzone__hint, .upload-dest__path, .upload-dest__note, .statements-card__note { font-size: var(--fs-caption); }
+  .upload-check { font-size: var(--fs-small); }
 }
 
 .btn {
@@ -3439,12 +3491,21 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .ledger-table tbody th, .ledger-table tfoot th { position: sticky; left: 0; z-index: 1; background: var(--surface); }
   .ledger-table tbody tr:hover th { background: var(--surface-alt); }
   .period-picker { width: 100%; height: 40px; }
-  .period-picker button { flex: 1; padding: 0 6px; font-size: 14px; }
+  .period-picker button { flex: 1; padding: 0 6px; font-size: var(--fs-body); }
   .summary-flow .summary-flow__chart { height: 240px; padding-left: 8px; padding-right: 8px; }
   .ledger-table tbody td, .ledger-table tbody th, .ledger-table tfoot th, .ledger-table tfoot td { padding: 12px 10px; }
   .ledger-table__rate, .ledger-table thead th:nth-child(5), .ledger-table tfoot td:nth-child(5) { display: none; }
   .ledger-table__target { min-width: 150px; }
-  .ledger-table__month a { font-size: 14.5px; }
+  .ledger-table, .category-matrix { font-size: var(--fs-small); }
+  .ledger-table thead th, .category-matrix thead th { font-size: var(--fs-micro); }
+  .ledger-table__month a, .ledger-table tfoot th { font-size: var(--fs-lead); }
+  .ledger-table__year, .ledger-table__hits, .ledger-bar__gap { font-size: var(--fs-caption); }
+  .category-matrix__cell, .category-matrix__stat { font-size: var(--fs-small); }
+  .highlights__item p { font-size: var(--fs-body); }
+  .highlights__item em { font-size: var(--fs-lead); }
+  .highlights__marker { font-size: var(--fs-small); }
+  .highlights__empty { font-size: var(--fs-small); }
+  .people-chart__label { font-size: var(--fs-micro); }
 }
 
 /* ==========================================================================
@@ -3519,7 +3580,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
     box-shadow: var(--shadow-3);
     view-transition-name: tabbar; /* held still while the page cross-fades */
   }
-  .view-nav__link { flex-direction: column; justify-content: center; gap: 3px; padding: 7px 0 6px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.01em; border-radius: 19px; }
+  .view-nav__link { flex-direction: column; justify-content: center; gap: 3px; padding: 7px 0 6px; font-size: var(--fs-micro); font-weight: 500; letter-spacing: 0.01em; border-radius: 19px; }
   .view-nav__icon { width: 20px; height: 20px; }
   /* The keyboard is up on the Assistant: the bar steps aside. */
   .keyboard-open .view-nav { display: none; }
@@ -3529,21 +3590,23 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .calendar__dots { gap: 2px; justify-content: center; }
   .calendar__dots i { width: 4px; height: 4px; box-shadow: none; }
   .day-budget { padding: var(--space-3) var(--space-4); }
-  .calendar__weekdays span { padding-left: 0; text-align: center; font-size: 10px; }
+  .calendar__weekdays span { padding-left: 0; text-align: center; font-size: var(--fs-micro); letter-spacing: 0.1em; }
   .calendar__day { aspect-ratio: 1 / 1.1; padding: 4px; border-radius: var(--radius-xs); align-items: center; text-align: center; }
-  .calendar__date { font-size: 10px; }
-  .calendar__day.is-today .calendar__date { margin: 0; width: 17px; height: 17px; }
-  .calendar__amount { font-size: 10px; max-width: 100%; }
+  .calendar__date { font-size: var(--fs-caption); }
+  .calendar__day.is-today .calendar__date { margin: 0; width: 20px; height: 20px; }
+  .calendar__amount { font-size: var(--fs-cell); max-width: 100%; }
   .calendar__event-dot { top: 4px; right: 4px; width: 5px; height: 5px; }
   .calendar-tile .tile__header { flex-direction: column; gap: 8px; padding: 16px 16px 0; }
   .calendar-grid { gap: 12px; }
-  .day-list__item { padding: 8px 16px; }
-  .day-list__merchant { font-size: 13px; }
-  .day-list__meta { font-size: 11.5px; }
-  .day-list__amount { font-size: 12px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-tile { padding: var(--space-4) var(--tile-gutter); }
-  .stat-tile__value { font-size: 23px; }
+  .day-list__item { padding: 10px 16px; }
+  .day-list__merchant { font-size: var(--fs-body); }
+  .day-list__meta { font-size: var(--fs-caption); }
+  .day-list__amount { font-size: var(--fs-body); }
+  .heat-legend { font-size: var(--fs-micro); letter-spacing: 0.12em; }
+  .day-budget__row { font-size: var(--fs-small); }
+  .day-budget__meta { font-size: var(--fs-caption); }
+  .day-budget__note { font-size: var(--fs-caption); }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
 
   /* Top bar: brand + borderless icon actions on the first row, the two
      filters side by side below, and "Hide selected" full width when shown.
@@ -3568,9 +3631,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .topbar__filters .multiselect,
   .topbar__filters .month-stepper,
   .multiselect__button { width: 100%; min-width: 0; }
-  .month-stepper { height: 40px; }
   .month-stepper__label { flex: 1; min-width: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; }
-  .multiselect__button { justify-content: space-between; font-size: 16px; }
+  .multiselect__button { justify-content: space-between; }
   #account-filter-label { overflow: hidden; text-overflow: ellipsis; }
   .multiselect__panel { width: calc(100vw - 28px); max-height: 65vh; overflow-y: auto; }
   .account-picker.multiselect__panel { left: 0; right: auto; width: calc(100vw - 32px); }
@@ -3580,12 +3642,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .user-menu__button,
   .user-menu__button:hover,
   .user-menu.is-open .user-menu__button { padding: 4px; border-color: transparent; background: transparent; }
-  .user-menu__avatar { width: 30px; height: 30px; flex-basis: 30px; }
   .user-menu__button svg, .user-menu__name { display: none; }
 
   /* Transactions: search fills the header row, chips scroll sideways in one line. */
   /* Title on its own line, then search + filters + export across the full width. */
-  .table-tile__header { padding: var(--space-4) var(--tile-gutter) 10px; flex-wrap: wrap; row-gap: 10px; }
+  .table-tile__header { flex-wrap: wrap; row-gap: 10px; }
   .table-controls { flex: 1 1 100%; min-width: 0; }
   .field--search { flex: 1; min-width: 0; max-width: none; }
   .chip-row { flex-wrap: nowrap; overflow-x: auto; padding: 0 var(--tile-gutter) var(--space-3); scrollbar-width: none; }
@@ -3626,16 +3687,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .tx-table tbody tr.tx-group { display: block; padding: 0; }
   .tx-table tbody tr.tx-group td { padding: var(--space-4) var(--tile-gutter) 6px; }
   /* Day headings sized to sit just above the rows, not shout over them. */
-  .tx-group__day { font-size: 13.5px; }
-  .tx-group__total { margin-top: 2px; font-size: 11px; }
+  .tx-group__day { font-size: var(--fs-lead); }
+  .tx-group__total { margin-top: 2px; font-size: var(--fs-caption); }
   .tx-table tbody .tx-table__select { grid-area: hide; width: auto; }
   .tx-table tbody .tx-table__merchant { grid-area: merchant; }
   .tx-table tbody .tx-table__amount { grid-area: amount; justify-self: end; }
   .tx-table tbody .tx-table__date { display: none; }
   .tx-table tbody .tx-table__account {
     grid-area: meta;
-    padding-left: 8px; /* lines up with the merchant input's text */
-    font-size: 12px;
+    padding-left: 6px; /* lines up with the merchant input's text */
+    font-size: var(--fs-caption);
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -3650,7 +3711,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .category-badge__label {
     display: inline;
     padding-right: 16px;
-    font-size: 12.5px;
+    font-size: var(--fs-caption);
     font-weight: 500;
     white-space: nowrap;
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2396A0AD' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right center;
@@ -3660,63 +3721,70 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .chart-tile__canvas-wrap--donut { width: 180px; height: 180px; align-self: center; }
   .chart-tile__canvas-wrap--line { height: 250px; }
 
-  /* Compact type scale for phones. iOS Safari normally zooms in when an
+  /* Phone type: every size below is a step of the phone type scale
+     (--fs-*, top of the file). iOS Safari normally zooms in when an
      input under 16px is focused; maximum-scale=1 in the viewport meta tag
-     turns that off (pinch-zoom still works), so text can go smaller here. */
+     turns that off (pinch-zoom still works), so fields can go smaller here. */
   /* Rows are spaced by margins (below), not gaps, so rows that are empty
      on a page (no filters, "Hide selected" not shown) add no space. */
+  body { font-size: var(--fs-body); }
   .topbar__inner { gap: 0 8px; padding-top: 6px; padding-bottom: 8px; }
   .topbar__filters, .topbar__controls .hide-button { margin-top: 8px; }
   .brand { gap: 8px; }
   .brand__svg { width: 24px; height: 24px; }
-  .brand__name { font-size: 13px; }
+  .brand__name { font-size: 13px; } /* the wordmark: sized as artwork, not text */
   .icon-btn { width: 34px; height: 34px; }
   .topbar__actions .icon-btn svg { width: 18px; height: 18px; }
   .user-menu__button,
   .user-menu__button:hover,
   .user-menu.is-open .user-menu__button { padding: 4px; min-height: 0; }
   .user-menu__avatar { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
-  .multiselect__button { min-height: 34px; padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+  .multiselect__button { min-height: 34px; padding-top: 6px; padding-bottom: 6px; font-size: var(--fs-body); }
   .month-stepper { height: 34px; }
-  .month-stepper__label { font-size: 13px; }
+  .month-stepper__label { font-size: var(--fs-body); }
   .month-stepper__btn { width: 30px; }
-  .topbar__controls .hide-button { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+  .topbar__controls .hide-button { min-height: 34px; padding: 6px 12px; font-size: var(--fs-body); }
 
   .container { padding-top: 16px; }
-  .page-heading { margin: 0 0 16px; }
-  .sync-status { padding: 5px 10px 5px 8px; font-size: 11.5px; }
+  .page-heading { margin: 0 0 20px; }
+  .sync-status { padding: 5px 10px 5px 8px; font-size: var(--fs-caption); }
   /* Pill beside the title; the subtitle gets the full width underneath. */
   .page-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px var(--space-3); }
   .page-heading > div { display: contents; }
-  .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 2px; font-size: 9px; letter-spacing: 0.18em; }
+  .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 4px; font-size: var(--fs-micro); letter-spacing: 0.18em; }
   .page-heading__eyebrow::before { width: 16px; }
-  .section-eyebrow { margin: var(--space-4) 0 10px; font-size: 9px; letter-spacing: 0.18em; gap: var(--space-2); }
+  .section-eyebrow { margin: var(--space-5) 0 12px; font-size: var(--fs-micro); letter-spacing: 0.18em; gap: var(--space-2); }
   .section-eyebrow::before { width: 16px; }
-  .page-heading h1 { grid-column: 1; grid-row: 2; }
-  .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; }
+  .page-heading h1 { grid-column: 1; grid-row: 2; font-size: var(--fs-heading); line-height: 1.15; }
+  .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; font-size: var(--fs-small); }
   .page-heading .sync-status { grid-column: 2; grid-row: 2; }
-  .page-heading h1 { font-size: 16px; }
-  .page-heading__subtitle { font-size: 11.5px; }
 
   .stats-grid { gap: 8px; margin-bottom: 12px; }
-  .stat-tile { padding: 12px 12px 12px; gap: 4px; }
+  .stat-tile { padding: 12px; gap: 4px; }
   .breakdown-card { padding: var(--space-4); gap: var(--space-3); }
-  .breakdown-card__value { font-size: 24px; }
-  .breakdown-row { font-size: 12.5px; column-gap: 6px; }
-  .stat-tile__label { font-size: 9.5px; letter-spacing: 0.05em; }
-  .over-list { --over-row: 14px; gap: 3px var(--space-2); height: calc(var(--over-row) * 3 + 3px * 2); }
-  .over-list li { font-size: 10.5px; gap: 5px; }
-  .stat-tile__value { font-size: 19px; }
-  .stat-tile__delta { font-size: 10.5px; line-height: 1.35; }
-  .stat-tile__value--hero { margin-top: 2px; font-size: 32px; }
+  .breakdown-card__value { font-size: var(--fs-heading); }
+  .breakdown-card__unit { font-size: var(--fs-small); }
+  .breakdown-row { font-size: var(--fs-small); column-gap: 6px; }
+  .breakdown-row__op { font-size: var(--fs-small); }
+  .breakdown-row__label small { font-size: var(--fs-caption); }
+  .breakdown-row--total .breakdown-row__amount { font-size: var(--fs-body); }
+  .stat-tile__label { font-size: var(--fs-micro); letter-spacing: 0.06em; }
+  .over-list { --over-row: 16px; gap: 3px var(--space-2); height: calc(var(--over-row) * 3 + 3px * 2); }
+  .over-list li { font-size: var(--fs-caption); gap: 5px; }
+  .stat-tile__value { font-size: var(--fs-figure); }
+  .stat-tile__value--text { font-size: var(--fs-figure-sm); }
+  .stat-tile__delta { font-size: var(--fs-caption); line-height: 1.35; }
+  .stat-tile__value--hero { margin-top: 2px; font-size: var(--fs-hero); }
   .stat-tile__delta--pill { padding: 2px 8px; }
-  .stat-tile__head .stat-tile__delta--pill { margin-top: -2px; padding: 1px 6px; font-size: 10px; }
+  .stat-tile__head .stat-tile__delta--pill { margin-top: -2px; padding: 1px 6px; font-size: var(--fs-micro); }
   .sparkline { height: 22px; margin-top: var(--space-2); }
   .hero-tile { padding-bottom: 14px; }
   .hero-tile__chart { height: 120px; margin-top: var(--space-3); }
-  .trend-legend.hero-tile__legend { gap: 4px 12px; font-size: 11px; }
+  .trend-legend { font-size: var(--fs-caption); }
+  .trend-legend.hero-tile__legend { gap: 4px 12px; }
   .hero-tile__foot { padding-top: var(--space-2); }
-  .switch { font-size: 11px; }
+  .switch { font-size: var(--fs-caption); }
+  .switch.switch--between .switch__label { font-size: var(--fs-micro); }
   /* Notes wrap to a second line on phones rather than cutting off mid-word. */
   .stat-tile__delta--truncate {
     display: -webkit-box;
@@ -3736,8 +3804,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
   .charts-grid { gap: 12px; margin-bottom: 12px; }
   .tile__header { padding: var(--space-4) var(--tile-gutter) 0; }
-  .tile__header h2 { font-size: 16px; }
-  .tile__meta { font-size: 11px; }
+  .tile__header h2 { font-size: var(--fs-title); }
+  .tile__meta { font-size: var(--fs-caption); }
+  .tile__action { font-size: var(--fs-small); }
   .chart-tile { padding-bottom: 16px; }
   /* Donut and legend side by side rather than stacked. */
   .chart-tile__body { flex-direction: row; align-items: center; gap: 16px; padding: var(--space-3) var(--tile-gutter) 0; }
@@ -3746,35 +3815,43 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .chart-tile__canvas-wrap--line { padding: 10px var(--tile-gutter) 0; height: 210px; }
   .trend-summary { margin: var(--space-4) 16px 0; padding-top: var(--space-3); }
   .trend-summary__item { padding: 0 var(--space-3); }
-  .trend-summary dt { min-height: 2.8em; font-size: 9.5px; line-height: 1.4; letter-spacing: 0.06em; white-space: normal; } /* wrap rather than cut off, two lines each so the figures line up */
-  .trend-summary__value { font-size: 17px; }
-  .trend-summary__note { font-size: 10.5px; }
-  .legend li { font-size: 12px; }
+  .trend-summary dt { min-height: 2.8em; font-size: var(--fs-micro); line-height: 1.4; letter-spacing: 0.06em; white-space: normal; } /* wrap rather than cut off, two lines each so the figures line up */
+  .trend-summary__value { font-size: var(--fs-figure-sm); }
+  .trend-summary__note { font-size: var(--fs-caption); }
+  .legend li { font-size: var(--fs-small); }
+  .legend__toggle button { font-size: var(--fs-small); }
   /* Smaller doughnut on phones, so a smaller centre label. */
   .donut-center { inset: 24%; gap: 0; }
-  .donut-center__value { font-size: 18px; }
-  .donut-center__label, .donut-center__meta { font-size: 9.5px; }
-  .budget-list { gap: 12px; padding: var(--space-4) var(--tile-gutter) 0; }
-  .budget-item__category { font-size: 12px; }
-  .budget-item__summary { font-size: 11px; }
+  .donut-center__value { font-size: var(--fs-figure-sm); }
+  .donut-center__label, .donut-center__meta { font-size: var(--fs-micro); }
+  .budget-list { gap: 14px; padding: var(--space-4) var(--tile-gutter) 0; }
+  .budget-item__category { font-size: var(--fs-small); }
+  .budget-item__summary { font-size: var(--fs-caption); }
   .budget-item__track { height: 6px; }
-  .budget-item__note { margin-top: 4px; font-size: 11px; }
+  .budget-item__note { margin-top: 4px; font-size: var(--fs-caption); }
+  .chart-tooltip__title { font-size: var(--fs-lead); }
+  .chart-tooltip__row { font-size: var(--fs-small); }
 
   .table-tile__header { padding: var(--space-3) var(--tile-gutter) 10px; }
-  .table-tile__header h2 { font-size: 17px; }
-  .field--search input { padding: 6px 8px; font-size: 13px; }
+  .table-tile__header h2 { font-size: var(--fs-title); }
+  .field--search input { padding: 6px 8px; font-size: var(--fs-body); }
   .table-filter .multiselect__button { height: 32px; padding: 0 8px; gap: 6px; }
-  .chip { padding: 4px 10px 4px 8px; font-size: 11.5px; }
-  .tx-table thead th { padding: 8px; font-size: 10px; }
-  .tx-table tbody tr:not(.tx-group) { padding: 8px 16px 8px 12px; }
-  .merchant-input { padding: 4px 6px; font-size: 10px; }
-  .tx-table tbody .tx-table__account { padding-left: 8px; font-size: 11.5px; }
+  .chip { padding: 4px 10px 4px 8px; font-size: var(--fs-small); }
+  .active-filters__search, .active-filters__clear { font-size: var(--fs-small); }
+  .tx-table thead th { padding: 8px; font-size: var(--fs-micro); }
+  .tx-table tbody tr:not(.tx-group) { padding: 10px 16px 10px 12px; row-gap: 1px; }
+  /* Merchant and amount lead the row; the date, account and category sit quieter beneath. */
+  .merchant-input { padding: 2px 6px; font-size: var(--fs-body); }
+  .tx-table tbody .tx-table__account { padding-left: 6px; }
   .amount-edit { padding: 2px 6px; }
-  .amount-display, .amount-input { font-size: 10px; }
-  .category-badge__label { font-size: 11.5px; }
+  .amount-display, .amount-input { font-size: var(--fs-body); }
   .category-badge__dot { width: 6px; height: 6px; }
   .tx-avatar { width: 30px; height: 30px; }
-  .table-tile__footer { padding: 10px 16px; font-size: 11px; }
+  .table-tile__footer { padding: 10px 16px; font-size: var(--fs-caption); }
+  .empty-state { font-size: var(--fs-body); }
+  .empty-state__title { font-size: var(--fs-title); }
+  .empty-state__hint, .empty-state__action { font-size: var(--fs-small); }
+  .load-error { font-size: var(--fs-small); }
 
 }
 
@@ -4066,10 +4143,16 @@ body.chat-page {
 @media (max-width: 560px) {
   .chat__scroll { scrollbar-gutter: auto; }
   .chat__welcome { padding: var(--space-6) var(--space-4); }
-  .chat__welcome-title { font-size: 23px; }
-  .chat__welcome-sub { margin-bottom: var(--space-6); font-size: 14px; }
+  .chat__welcome-title { font-size: var(--fs-heading); }
+  .chat__welcome-sub { margin-bottom: var(--space-6); font-size: var(--fs-body); }
   .chat__suggestions { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-  .chat__suggestion { padding: 12px 40px 12px var(--space-4); }
+  .chat__suggestion { padding: 12px 40px 12px var(--space-4); font-size: var(--fs-small); }
+  .chat__suggestion strong { font-size: var(--fs-lead); }
+  .msg__bubble, .msg__content { font-size: var(--fs-lead); }
+  .msg__content h3 { font-size: var(--fs-title); }
+  .msg__content table { font-size: var(--fs-small); }
+  .msg__content th { font-size: var(--fs-micro); }
+  .msg__action, .composer__new { font-size: var(--fs-small); }
   .chat__suggestion::after { right: var(--space-4); }
   .chat__thread { padding: var(--space-5) var(--space-4) var(--space-4); gap: var(--space-5); }
   .msg--user { max-width: 85%; }
@@ -4232,7 +4315,8 @@ body.chat-page::before { position: fixed; }
 
 @media (max-width: 560px) {
   .toast-region { width: calc(100vw - 2 * var(--space-4)); bottom: calc(var(--tabbar-clearance) + var(--space-3)); }
-  .toast { min-width: 0; max-width: none; width: 100%; }
+  .toast { min-width: 0; max-width: none; width: 100%; font-size: var(--fs-body); }
+  .toast__action { font-size: var(--fs-small); }
 }
 
 /* ==========================================================================
