@@ -947,6 +947,21 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 .user-menu__signout:hover { background: var(--surface-alt); }
 
+/* Which build this is (filled in at deploy by scripts/dashboard/build.mjs):
+   a quiet band at the foot of the menu, like the account picker's. */
+.user-menu__build {
+  margin: 6px -8px -8px;
+  padding: 10px 16px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  text-align: center;
+  background: color-mix(in srgb, var(--surface-alt) 70%, transparent);
+  border-top: var(--hairline) solid var(--border);
+  border-radius: 0 0 18px 18px;
+}
+
 /* ==========================================================================
    Buttons
    ========================================================================== */
@@ -2169,26 +2184,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   justify-content: space-between;
   gap: 12px;
 }
-
-/* The foot of each page: the wordmark and which build this is, set quietly
-   between two short gold rules, like a colophon. */
-.app-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  margin-top: var(--space-10);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-.app-footer::before,
-.app-footer::after { content: ''; width: 24px; border-top: 1px solid color-mix(in srgb, var(--gold) 60%, transparent); }
-.app-footer__mark { font-family: var(--font-display); letter-spacing: 0.24em; color: var(--text-muted); }
-.app-footer__build { font-variant-numeric: tabular-nums; letter-spacing: 0.03em; text-transform: none; } /* the commit reads as GitHub shows it */
-.is-loading .app-footer { visibility: hidden; }
 
 /* Pop-in used by the upload dialog and date picker. */
 @keyframes chat-pop {
@@ -3588,8 +3583,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .highlights__marker { font-size: var(--fs-small); }
   .highlights__empty { font-size: var(--fs-small); }
   .people-chart__label { font-size: var(--fs-micro); }
-  .app-footer { margin-top: var(--space-8); gap: var(--space-2); font-size: var(--fs-micro); letter-spacing: 0.1em; }
-  .app-footer::before, .app-footer::after { width: 16px; }
   .stat-tile__foot { font-size: var(--fs-caption); }
   .target-beads { gap: 5px; }
   .target-beads span { font-size: var(--fs-micro); }

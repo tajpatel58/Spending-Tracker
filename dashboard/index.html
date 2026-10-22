@@ -179,6 +179,9 @@
               </svg>
               <span>Sign out</span>
             </button>
+            <!-- Which deploy this is: scripts/dashboard/build.mjs fills in the build
+                 number, commit and date; running the source directly, it's a local build. -->
+            <p class="user-menu__build" data-build>Local build</p>
           </div>
         </div>
       </div>
@@ -454,13 +457,6 @@
       <span id="table-count-label">0 transactions</span>
     </div>
   </section>
-
-  <!-- Which deploy this is: scripts/dashboard/build.mjs fills in the build
-       number, commit and date; running the source directly, it's a local build. -->
-  <footer class="app-footer">
-    <span class="app-footer__mark">Ledger</span>
-    <span class="app-footer__build" data-build>Local build</span>
-  </footer>
 
 </main>
 

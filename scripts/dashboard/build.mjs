@@ -96,7 +96,7 @@ function builtEntry(entry) {
   return { file: rel(file), chunks: [...chunks].map(rel), meta };
 }
 
-// ---- Build number, shown in each page's footer: "Build 187 · 5e902ea · 22 Oct 2026" ----
+// ---- Build number, shown at the foot of the account menu: "Build 187 · 5e902ea · 22 Oct 2026" ----
 // The workflow run number counts up with every deploy; the commit says which
 // code it was. Run by hand, the commit comes from git and there's no number.
 const commit = (process.env.GITHUB_SHA || (() => {
