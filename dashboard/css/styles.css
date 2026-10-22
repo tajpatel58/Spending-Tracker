@@ -187,6 +187,7 @@
   :root {
     --tile-gutter: 16px;
     --fs-scale: 1;
+    --fs-trim: 0.7;  /* greeting, widget money figures, transaction merchant and amount: set smaller than the scale */
     --fs-micro: calc(10.5px * var(--fs-scale));    /* tracked capitals: eyebrows, labels, table heads, tab bar */
     --fs-caption: calc(11.5px * var(--fs-scale));  /* notes, meta lines, legends, footers */
     --fs-small: calc(12.5px * var(--fs-scale));    /* secondary text: chips, categories, subtitles */
@@ -3800,14 +3801,14 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .page-heading__eyebrow::before { width: 16px; }
   .section-eyebrow { margin: var(--space-5) 0 12px; font-size: var(--fs-micro); letter-spacing: 0.18em; gap: var(--space-2); }
   .section-eyebrow::before { width: 16px; }
-  .page-heading h1 { grid-column: 1; grid-row: 2; font-size: var(--fs-heading); line-height: 1.15; }
+  .page-heading h1 { grid-column: 1; grid-row: 2; font-size: calc(var(--fs-heading) * var(--fs-trim)); line-height: 1.15; }
   .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; font-size: var(--fs-small); }
   .page-heading .sync-status { grid-column: 2; grid-row: 2; }
 
   .stats-grid { gap: 8px; margin-bottom: 12px; }
   .stat-tile { padding: 12px; gap: 4px; }
   .breakdown-card { padding: var(--space-4); gap: var(--space-3); }
-  .breakdown-card__value { font-size: var(--fs-heading); }
+  .breakdown-card__value { font-size: calc(var(--fs-heading) * var(--fs-trim)); }
   .breakdown-card__unit { font-size: var(--fs-small); }
   .breakdown-row { font-size: var(--fs-small); column-gap: 6px; }
   .breakdown-row__op { font-size: var(--fs-small); }
@@ -3816,10 +3817,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .stat-tile__label { font-size: var(--fs-micro); letter-spacing: 0.06em; }
   .over-list { --over-row: 16px; gap: 3px var(--space-2); height: calc(var(--over-row) * 3 + 3px * 2); }
   .over-list li { font-size: var(--fs-caption); gap: 5px; }
-  .stat-tile__value { font-size: var(--fs-figure); }
+  .stat-tile__value { font-size: calc(var(--fs-figure) * var(--fs-trim)); }
   .stat-tile__value--text { font-size: var(--fs-figure-sm); }
   .stat-tile__delta { font-size: var(--fs-caption); line-height: 1.35; }
-  .stat-tile__value--hero { margin-top: 2px; font-size: var(--fs-hero); }
+  .stat-tile__value--hero { margin-top: 2px; font-size: calc(var(--fs-hero) * var(--fs-trim)); }
   .stat-tile__delta--pill { padding: 2px 8px; }
   .stat-tile__head .stat-tile__delta--pill { margin-top: -2px; padding: 1px 6px; font-size: var(--fs-micro); }
   .sparkline { height: 22px; margin-top: var(--space-2); }
@@ -3861,13 +3862,13 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .trend-summary { margin: var(--space-4) 16px 0; padding-top: var(--space-3); }
   .trend-summary__item { padding: 0 var(--space-3); }
   .trend-summary dt { min-height: 2.8em; font-size: var(--fs-micro); line-height: 1.4; letter-spacing: 0.06em; white-space: normal; } /* wrap rather than cut off, two lines each so the figures line up */
-  .trend-summary__value { font-size: var(--fs-figure-sm); }
+  .trend-summary__value { font-size: calc(var(--fs-figure-sm) * var(--fs-trim)); }
   .trend-summary__note { font-size: var(--fs-caption); }
   .legend li { font-size: var(--fs-small); }
   .legend__toggle button { font-size: var(--fs-small); }
   /* Smaller doughnut on phones, so a smaller centre label. */
   .donut-center { inset: 24%; gap: 0; }
-  .donut-center__value { font-size: var(--fs-figure-sm); }
+  .donut-center__value { font-size: calc(var(--fs-figure-sm) * var(--fs-trim)); }
   .donut-center__label, .donut-center__meta { font-size: var(--fs-micro); }
   .budget-list { gap: 14px; padding: var(--space-4) var(--tile-gutter) 0; }
   .budget-item__category { font-size: var(--fs-small); }
@@ -3886,10 +3887,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .tx-table thead th { padding: 8px; font-size: var(--fs-micro); }
   .tx-table tbody tr:not(.tx-group) { padding: 10px 16px 10px 12px; row-gap: 1px; }
   /* Merchant and amount lead the row; the date, account and category sit quieter beneath. */
-  .merchant-input { padding: 2px 6px; font-size: var(--fs-body); }
+  .merchant-input { padding: 2px 6px; font-size: calc(var(--fs-body) * var(--fs-trim)); }
   .tx-table tbody .tx-table__account { padding-left: 6px; }
   .amount-edit { padding: 2px 6px; }
-  .amount-display, .amount-input { font-size: var(--fs-body); }
+  .amount-display, .amount-input { font-size: calc(var(--fs-body) * var(--fs-trim)); }
   .category-badge__dot { width: 6px; height: 6px; }
   .tx-avatar { width: 30px; height: 30px; }
   .table-tile__footer { padding: 10px 16px; font-size: var(--fs-caption); }
@@ -4188,7 +4189,7 @@ body.chat-page {
 @media (max-width: 560px) {
   .chat__scroll { scrollbar-gutter: auto; }
   .chat__welcome { padding: var(--space-6) var(--space-4); }
-  .chat__welcome-title { font-size: var(--fs-heading); }
+  .chat__welcome-title { font-size: calc(var(--fs-heading) * var(--fs-trim)); } /* the greeting on the Assistant */
   .chat__welcome-sub { margin-bottom: var(--space-6); font-size: var(--fs-body); }
   .chat__suggestions { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
   .chat__suggestion { padding: 12px 40px 12px var(--space-4); font-size: var(--fs-small); }
