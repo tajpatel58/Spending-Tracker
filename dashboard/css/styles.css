@@ -187,7 +187,7 @@
   :root {
     --tile-gutter: 16px;
     --fs-scale: 1;
-    --fs-trim: 0.7;  /* greeting, widget money figures, transaction merchant and amount: set smaller than the scale */
+    --fs-trim: 0.85; /* the greeting and the widgets' money figures: a step quieter than the scale */
     --fs-micro: calc(10.5px * var(--fs-scale));    /* tracked capitals: eyebrows, labels, table heads, tab bar */
     --fs-caption: calc(11.5px * var(--fs-scale));  /* notes, meta lines, legends, footers */
     --fs-small: calc(12.5px * var(--fs-scale));    /* secondary text: chips, categories, subtitles */
@@ -200,11 +200,6 @@
     --fs-hero: calc(34px * var(--fs-scale));       /* the headline figure */
     --fs-cell: calc(10px * var(--fs-scale));       /* calendar cell amounts — "£1,234" just fits a 390pt-wide day */
   }
-}
-/* iPhone 13 and other phones under 400pt wide (12, 14, 15, 16, mini, SE):
-   the whole scale set 30% smaller. */
-@media (max-width: 399px) {
-  :root { --fs-scale: 0.7; }
 }
 /* iPhone 17 Pro (402pt) and wider phones (Plus / Pro Max, 428–440pt):
    the extra width goes to the serif figures and headings, and the
@@ -3912,10 +3907,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .tx-table thead th { padding: 8px; font-size: var(--fs-micro); }
   .tx-table tbody tr:not(.tx-group) { padding: 10px 16px 10px 12px; row-gap: 1px; }
   /* Merchant and amount lead the row; the date, account and category sit quieter beneath. */
-  .merchant-input { padding: 2px 6px; font-size: calc(var(--fs-body) * var(--fs-trim)); }
+  .merchant-input { padding: 2px 6px; font-size: calc(var(--fs-body) - 1px); } /* 13px: leads the 11.5px details line */
   .tx-table tbody .tx-table__account { padding-left: 6px; }
   .amount-edit { padding: 2px 6px; }
-  .amount-display, .amount-input { font-size: calc(var(--fs-body) * var(--fs-trim)); }
+  .amount-display, .amount-input { font-size: calc(var(--fs-body) - 1px); }
   .category-badge__dot { width: 6px; height: 6px; }
   .tx-avatar { width: 30px; height: 30px; }
   .table-tile__footer { padding: 10px 16px; font-size: var(--fs-caption); }
