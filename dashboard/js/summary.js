@@ -25,7 +25,7 @@
 import { initPageHeading, initUserMenu, signOut } from './auth.js';
 import { fade, htmlTooltip, stripePattern } from './chart-kit.js';
 import { ACCOUNTS, accountsReady, CATEGORIES, MONTH_LABEL, MONTHS, pageSession } from './data.js';
-import { initAccountFilter, pageHooks } from './filters.js';
+import { initAccountFilter, initSwipeStep, pageHooks } from './filters.js';
 import {
   daysIn,
   expectedSalaries,
@@ -125,6 +125,27 @@ function buildModel() {
 // WHAT YOU KEPT — the savings tiles
 // ============================================================
 
+const ROLLING = 3; // months in the Average saved tile's rolling window
+
+/**
+ * The rolling average saved at each of `full` (full months, oldest first):
+ * that month and the ROLLING − 1 full months before it, reaching back
+ * before the period where there's data.
+ *   [{ to, from, avg }] — `from` and `to` are the window's first and last month keys
+ */
+function rollingSaved(full) {
+  if (!full.length) return [];
+  const keys = MONTHS.map((m) => m.key);
+  const first = keys.indexOf(full[0].key);
+  const before = keys.slice(Math.max(0, first - (ROLLING - 1)), first).map(monthFigures).filter((m) => m.complete);
+  const series = [...before, ...full];
+  return full.map((m, i) => {
+    const end = before.length + i;
+    const window = series.slice(Math.max(0, end - ROLLING + 1), end + 1);
+    return { to: m.key, from: window[0].key, avg: average(window.map((w) => w.saved)) };
+  });
+}
+
 function setNote(id, text, tone = '') {
   const el = document.getElementById(id);
   el.textContent = text;
@@ -145,31 +166,61 @@ function renderSavingsTiles({ months, full, current, totals }) {
     forecast.title = 'Forecast: income (including any salary still expected) minus the month-end spending forecast';
   }
 
-  // Average month, against the target.
-  const avg = n ? totals.saved / n : 0;
-  document.getElementById('sum-avg-saved').innerHTML = n ? moneyMarkup(currency(avg)) : '—';
+  // Average saved, as a 3-month rolling window: the figure is the latest
+  // three full months, against the target. The bars are the same average
+  // taken at each month of the period, so the trend shows without one big
+  // or lean month swinging it; the first few reach back before the period
+  // where there's data, and average what there is at the very start.
+  const rolling = rollingSaved(full);
+  const latest = rolling[n - 1];
+  document.getElementById('sum-avg-saved').innerHTML = n ? moneyMarkup(currency(latest.avg)) : '—';
   if (n) {
-    const gap = avg - TARGET;
-    setNote('sum-avg-saved-note', `${currencyShort(Math.abs(gap))} ${gap >= 0 ? 'above' : 'below'} the ${currencyShort(TARGET)} target`, gap >= 0 ? 'is-positive' : 'is-negative');
-  } else setNote('sum-avg-saved-note', 'Per full month');
+    const gap = latest.avg - TARGET;
+    const span = latest.from === latest.to ? shortMonth(latest.to) : `${shortMonth(latest.from)}–${shortMonth(latest.to)}`;
+    setNote('sum-avg-saved-note', `${span} · ${currencyShort(Math.abs(gap))} ${gap >= 0 ? 'above' : 'below'} target`, gap >= 0 ? 'is-positive' : 'is-negative');
+    document.getElementById('sum-avg-saved-note').title = `Average of ${MONTH_LABEL(latest.from)} to ${MONTH_LABEL(latest.to)}, against the ${currencyShort(TARGET)} monthly target`;
+  } else setNote('sum-avg-saved-note', `Last ${ROLLING} full months`);
 
-  // Savings rate: what share of income was kept, and the share the target needs.
+  const bars = document.getElementById('sum-avg-bars');
+  const peak = Math.max(TARGET, ...rolling.map((r) => r.avg));
+  bars.hidden = !n;
+  bars.style.setProperty('--target', `${(TARGET / peak) * 100}%`);
+  bars.innerHTML = rolling.map((r, i) => {
+    const tone = r.avg < 0 ? 'is-negative' : r.avg >= TARGET ? 'is-hit' : '';
+    const height = r.avg > 0 ? Math.max(8, (r.avg / peak) * 100) : 8; // a window that lost money is a short rose stub
+    return `<i class="${tone}" style="height:${height}%; --i:${i}" title="${MONTH_LABEL(r.to)}: ${ROLLING}-month average ${currencyShort(r.avg)}"></i>`;
+  }).join('');
+
+  // Savings rate: what share of income was kept, and (the gold tick) the share the target needs.
   const rate = totals.income > 0 ? totals.saved / totals.income : null;
   document.getElementById('sum-rate').textContent = rate === null ? '—' : percent(rate);
   document.getElementById('sum-rate-bar').style.width = `${Math.max(0, Math.min(1, rate || 0)) * 100}%`;
   const needs = n && totals.income > 0 ? (TARGET * n) / totals.income : null;
-  setNote('sum-rate-note', needs === null ? 'Of income kept' : `Of income kept · the target needs ${percent(needs)}`,
+  setNote('sum-rate-note', needs === null ? 'Of income kept' : `Of income kept · target ${percent(needs)}`,
     needs === null ? '' : rate >= needs ? 'is-positive' : 'is-negative');
+  const tick = document.getElementById('sum-rate-tick');
+  tick.hidden = needs === null || needs > 1;
+  if (!tick.hidden) tick.style.left = `${needs * 100}%`;
 
-  // Best month.
+  // Best month, and the leanest one beneath it for the other end of the range.
   const best = full.reduce((top, m) => (!top || m.saved > top.saved ? m : top), null);
   document.getElementById('sum-best').innerHTML = best ? moneyMarkup(currency(best.saved)) : '—';
   setNote('sum-best-note', best ? `${MONTH_LABEL(best.key)}${best.rate !== null ? ` · ${percent(best.rate)} of income` : ''}` : 'No full months yet');
+  const worst = n > 1 ? full.reduce((low, m) => (m.saved < low.saved ? m : low)) : null;
+  const worstEl = document.getElementById('sum-worst');
+  worstEl.hidden = !worst;
+  if (worst) {
+    worstEl.innerHTML = `<span>Leanest · ${MONTH_LABEL(worst.key)}</span>`
+      + `<b class="${worst.saved < 0 ? 'is-negative' : ''}">${currencyShort(worst.saved)}</b>`;
+  }
 
-  // On target: "7 of 9", a bead per month, and the current run.
+  // On target: "7 of 9", a bead per month (with its initial while there's
+  // room — up to a year), and the current run.
   document.getElementById('sum-on-target').textContent = n ? `${totals.hits} of ${n}` : '—';
-  document.getElementById('sum-beads').innerHTML = full.map((m) =>
-    `<i class="${m.hit ? 'is-hit' : ''}" title="${MONTH_LABEL(m.key)}: ${currencyShort(m.saved)}"></i>`).join('');
+  const beads = document.getElementById('sum-beads');
+  beads.classList.toggle('is-labelled', n <= 12);
+  beads.innerHTML = full.map((m) =>
+    `<li class="${m.hit ? 'is-hit' : ''}" title="${MONTH_LABEL(m.key)}: ${currencyShort(m.saved)}"><i></i><span>${monthName(m.key)[0]}</span></li>`).join('');
   let streak = 0;
   for (let i = full.length - 1; i >= 0 && full[i].hit; i -= 1) streak += 1;
   const lastHit = [...full].reverse().find((m) => m.hit);
@@ -741,32 +792,45 @@ function renderAll() {
   renderCategories(model, matrix);
 }
 
-/** The 6 months / 12 months / All picker in the top bar. */
+/**
+ * The ‹ 12 months › stepper in the top bar, which works like Overview's
+ * month: the arrows step between 6 months, 12 months and All (stopping at
+ * either end), clicking the label opens the list, ←/→ step when you're not
+ * typing, and on touch screens a sideways swipe across the page steps too.
+ * The page slides the way you moved (motion.js).
+ */
 function initPeriod() {
-  const picker = document.querySelector('.period-picker');
-  const sync = () => picker.querySelectorAll('[data-period]').forEach((button) => {
-    button.setAttribute('aria-checked', String(button.dataset.period === view.period));
-    button.tabIndex = button.dataset.period === view.period ? 0 : -1;
-  });
-  const choose = (period) => {
-    if (period === view.period) return;
-    view.period = period;
-    try { localStorage.setItem(PERIOD_KEY, period); } catch { /* storage unavailable */ }
-    sync();
-    renderAll();
+  const select = document.getElementById('period-select');
+  const sync = () => {
+    const index = PERIODS.indexOf(view.period);
+    document.getElementById('period-label').textContent = select.options[index].textContent;
+    select.value = view.period;
+    document.getElementById('period-prev').disabled = index <= 0;
+    document.getElementById('period-next').disabled = index >= PERIODS.length - 1;
   };
-  picker.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-period]');
-    if (button) choose(button.dataset.period);
+  const choose = (period) => {
+    if (!period || period === view.period) return;
+    const direction = PERIODS.indexOf(period) > PERIODS.indexOf(view.period) ? 1 : -1;
+    motion.monthTransition(direction, () => {
+      view.period = period;
+      try { localStorage.setItem(PERIOD_KEY, period); } catch { /* storage unavailable */ }
+      sync();
+      renderAll();
+    });
+  };
+  const step = (delta) => choose(PERIODS[PERIODS.indexOf(view.period) + delta]);
+  const canStep = (delta) => Boolean(PERIODS[PERIODS.indexOf(view.period) + delta]);
+
+  select.addEventListener('change', () => choose(select.value));
+  document.getElementById('period-prev').addEventListener('click', () => step(-1));
+  document.getElementById('period-next').addEventListener('click', () => step(1));
+  document.addEventListener('keydown', (event) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.target.closest('input, select, textarea, [contenteditable="true"]')) return;
+    if (event.key === 'ArrowLeft') step(-1);
+    if (event.key === 'ArrowRight') step(1);
   });
-  // Arrow keys move between the options, as in any radio group.
-  picker.addEventListener('keydown', (event) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    const next = PERIODS[(PERIODS.indexOf(view.period) + (event.key === 'ArrowRight' ? 1 : -1) + PERIODS.length) % PERIODS.length];
-    choose(next);
-    picker.querySelector(`[data-period="${next}"]`).focus();
-  });
+  initSwipeStep(step, canStep);
   sync();
 }
 

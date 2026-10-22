@@ -129,11 +129,24 @@
           <div class="multiselect__panel" id="account-filter-panel" role="listbox" aria-label="Filter by account" hidden></div>
         </div>
 
-        <!-- How far back the page looks (summary.js initPeriod); remembered on this device. -->
-        <div class="period-picker" role="radiogroup" aria-label="Period">
-          <button type="button" role="radio" data-period="6" aria-checked="false">6 months</button>
-          <button type="button" role="radio" data-period="12" aria-checked="true">12 months</button>
-          <button type="button" role="radio" data-period="all" aria-checked="false">All</button>
+        <!-- How far back the page looks (summary.js initPeriod); remembered on this device.
+             A ‹ 12 months › stepper like Overview's month: the arrows step between
+             6 months, 12 months and All, and an invisible <select> on the label opens the list. -->
+        <div class="month-stepper" role="group" aria-label="Period">
+          <button type="button" class="month-stepper__btn" id="period-prev" aria-label="Shorter period" title="Shorter period">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <label class="month-stepper__label">
+            <span id="period-label">12 months</span>
+            <select id="period-select" aria-label="Choose period">
+              <option value="6">6 months</option>
+              <option value="12">12 months</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+          <button type="button" class="month-stepper__btn" id="period-next" aria-label="Longer period" title="Longer period">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
       </div>
 
@@ -222,30 +235,38 @@
         </ul>
       </div>
     </div>
+    <!-- Each smaller tile: label, figure and note, then a small foot along
+         the bottom, like the Overview tiles' sparklines (summary.js). -->
     <div class="tile stat-tile">
-      <div class="stat-tile__head"><span class="stat-tile__label">Average saved</span></div>
+      <div class="stat-tile__head"><span class="stat-tile__label">Average saved · 3M</span></div>
       <span class="stat-tile__value" id="sum-avg-saved">£0</span>
       <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-avg-saved-note">—</span>
+      <!-- The 3-month rolling average at each full month, against a dotted gold line at the target. -->
+      <div class="saved-bars" id="sum-avg-bars" aria-hidden="true" hidden></div>
     </div>
     <div class="tile stat-tile">
       <div class="stat-tile__head"><span class="stat-tile__label">Savings rate</span></div>
       <span class="stat-tile__value" id="sum-rate">—</span>
-      <span class="target-bar" aria-hidden="true"><span class="target-bar__fill" id="sum-rate-bar"></span></span>
       <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-rate-note">—</span>
+      <!-- The share kept, with a gold tick at the share the target needs. -->
+      <span class="target-bar target-bar--marked" aria-hidden="true">
+        <span class="target-bar__fill" id="sum-rate-bar"></span>
+        <span class="target-bar__tick" id="sum-rate-tick" hidden></span>
+      </span>
     </div>
     <div class="tile stat-tile">
       <div class="stat-tile__head"><span class="stat-tile__label">Best month</span></div>
       <span class="stat-tile__value" id="sum-best">—</span>
       <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-best-note">—</span>
+      <!-- The other end of the range: the month that kept least. -->
+      <p class="stat-tile__foot" id="sum-worst" hidden></p>
     </div>
     <div class="tile stat-tile">
-      <div class="stat-tile__head">
-        <span class="stat-tile__label">On target</span>
-        <!-- One bead per full month: gold where the savings target was met. -->
-        <span class="target-beads" id="sum-beads" aria-hidden="true"></span>
-      </div>
+      <div class="stat-tile__head"><span class="stat-tile__label">On target</span></div>
       <span class="stat-tile__value" id="sum-on-target">—</span>
       <span class="stat-tile__delta stat-tile__delta--truncate" id="sum-on-target-note">—</span>
+      <!-- One bead per full month, gold where the savings target was met, with its initial beneath. -->
+      <ol class="target-beads" id="sum-beads" aria-hidden="true"></ol>
     </div>
   </section>
 

@@ -75,26 +75,27 @@ export function initMonthSelect() {
     if (event.key === 'ArrowLeft') step(-1);
     if (event.key === 'ArrowRight') step(1);
   });
-  initMonthSwipe(step);
+  initSwipeStep(step, (delta) => Boolean(MONTHS[MONTHS.findIndex((m) => m.key === state.month) + delta]));
 }
 
 /**
- * Touch screens: swiping sideways across the page changes month — left
- * for the next, right for the previous. The page follows the finger a
- * little, then slides on to the new month, or springs back if the swipe
- * was short or there's no month that way. Swipes starting on the line
- * and bar charts, fields or sideways-scrolling rows, or at the screen's
- * edges (the browser's own back/forward gesture), are left alone.
+ * Touch screens: swiping sideways across the page steps — left for the
+ * next (a later month, a longer period on Summary), right for the
+ * previous. The page follows the finger a little, then slides on, or
+ * springs back if the swipe was short or there's nothing that way
+ * (`canStep(delta)` says). Swipes starting on the charts, fields or
+ * sideways-scrolling rows, or at the screen's edges (the browser's own
+ * back/forward gesture), are left alone.
  */
-function initMonthSwipe(step) {
+export function initSwipeStep(step, canStep) {
   const main = document.querySelector('main');
   if (!main) return;
   let start = null;
   let horizontal = null;
   let dx = 0;
-  const neighbour = (delta) => MONTHS[MONTHS.findIndex((m) => m.key === state.month) + delta];
+  const neighbour = canStep;
   // Charts you drag along to read (the running total, the trend) keep the gesture for themselves.
-  const ignore = (el) => el.closest('.hero-tile__chart, .chart-tile__canvas-wrap--line, input, select, textarea, .chip-row, .table-scroll, .multiselect__panel');
+  const ignore = (el) => el.closest('.hero-tile__chart, .chart-tile__canvas-wrap--line, .people-chart__canvas, input, select, textarea, .chip-row, .table-scroll, .multiselect__panel');
   // While the page is pulled sideways, clip what pokes out of the screen so the
   // browser doesn't treat it as a wider page (and zoom out to fit it).
   const swiping = (on) => document.documentElement.classList.toggle('is-swiping', on);

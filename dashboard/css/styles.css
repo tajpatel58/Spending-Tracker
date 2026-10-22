@@ -3248,63 +3248,99 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
    Summary page (summary.html) — months side by side, and what was saved
    ========================================================================== */
 
-/* "6 months | 12 months | All" in the top bar, in place of the month
-   stepper: the chosen span sits on a lifted surface with a gold rule. */
-.period-picker {
-  display: inline-flex;
-  align-items: center;
-  height: 36px;
-  padding: 3px;
-  gap: 2px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-}
-.period-picker button {
+/* The savings tiles' feet (summary.html): each smaller tile ends on a
+   small visual or line, as the Overview tiles end on a sparkline, so the
+   four fill alike and their figures settle at the same height. */
+
+/* Average saved: a bar per full month — green where the target was met,
+   rose for a month that lost money — under a dotted gold target line. */
+.saved-bars {
   position: relative;
-  height: 100%;
-  padding: 0 12px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: color var(--transition), background var(--transition), box-shadow var(--transition);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3px;
+  height: 26px;
+  margin-top: var(--space-2);
 }
-.period-picker button:hover { color: var(--text); }
-.period-picker button[aria-checked="true"] {
-  color: var(--text);
-  background: var(--surface-alt);
-  box-shadow: inset 0 0 0 var(--hairline) var(--border-strong);
+.saved-bars[hidden] { display: none; }
+.saved-bars i {
+  flex: 1 1 0;
+  max-width: 14px;
+  border-radius: 2px 2px 1px 1px;
+  background: color-mix(in srgb, var(--text-muted) 32%, transparent);
+  transform-origin: bottom center;
+  animation: grow-y 600ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 35ms + 150ms);
 }
-.period-picker button[aria-checked="true"]::after {
+.saved-bars i.is-hit { background: var(--accent); }
+.saved-bars i.is-negative { background: var(--rose); }
+.saved-bars::after {
   content: '';
   position: absolute;
-  left: 50%;
-  bottom: 3px;
-  width: 14px;
-  margin-left: -7px;
-  border-top: 1.5px solid var(--gold);
-  border-radius: 1px;
+  left: 0;
+  right: 0;
+  bottom: var(--target, 100%);
+  border-top: 1px dotted var(--gold);
+  pointer-events: none;
 }
-.period-picker button:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
+@keyframes grow-y { from { transform: scaleY(0); } }
 
-/* On target: one bead per full month, gold where the target was met. */
-.target-beads { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 60%; margin-top: 2px; }
+/* Savings rate: the bar, with a gold tick at the share the target needs. */
+.target-bar--marked { position: relative; overflow: visible; margin: var(--space-3) 0 2px; }
+.target-bar__tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--gold);
+  border-radius: 1px;
+  box-shadow: 0 0 0 1.5px var(--surface);
+}
+.target-bar__tick[hidden] { display: none; }
+
+/* Best month: the leanest month on a hairline-ruled line beneath. */
+.stat-tile__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-2);
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: var(--hairline) solid var(--border);
+}
+.stat-tile__foot[hidden] { display: none; }
+.stat-tile__foot span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-tile__foot b { flex: none; font-family: var(--font-num); font-weight: 500; color: var(--text); }
+.stat-tile__foot b.is-negative { color: var(--rose); }
+
+/* On target: one bead per full month, gold where the target was met,
+   with the month's initial beneath while there are a year or fewer. */
+.target-beads { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--space-2) 0 0; padding: 0; list-style: none; }
+.target-beads:empty { display: none; }
+.target-beads li { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 9px; }
 .target-beads i {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px var(--border-strong);
 }
-.target-beads i.is-hit {
+.target-beads li.is-hit i {
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--gold) 55%, #fff), var(--gold) 70%);
   box-shadow: none;
 }
+.target-beads span { font-size: 9.5px; line-height: 1; letter-spacing: 0.04em; color: var(--text-faint); }
+.target-beads:not(.is-labelled) span { display: none; }
+
+/* The figures sit straight under their labels and the feet along the
+   bottom, so both line up across a row whatever each foot's height. */
+.summary-page .stats-grid--hero > .stat-tile:not(.hero-tile) .stat-tile__head { margin-bottom: 0; }
+.summary-page .stat-tile > :is(.saved-bars, .target-bar--marked, .stat-tile__foot, .target-beads) { margin-top: auto; }
+
+.is-loading .saved-bars, .is-loading .target-bar--marked, .is-loading .stat-tile__foot, .is-loading .target-beads { visibility: hidden; }
 
 /* Month by month: the flow chart and the ledger, each the full width. */
 .summary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); margin-bottom: var(--space-6); }
@@ -3497,8 +3533,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .summary-page .table-scroll { overflow-x: auto; }
   .ledger-table tbody th, .ledger-table tfoot th { position: sticky; left: 0; z-index: 1; background: var(--surface); }
   .ledger-table tbody tr:hover th { background: var(--surface-alt); }
-  .period-picker { width: 100%; height: 40px; }
-  .period-picker button { flex: 1; padding: 0 6px; font-size: var(--fs-body); }
   .summary-flow .summary-flow__chart { height: 240px; padding-left: 8px; padding-right: 8px; }
   .ledger-table tbody td, .ledger-table tbody th, .ledger-table tfoot th, .ledger-table tfoot td { padding: 12px 10px; }
   .ledger-table__rate, .ledger-table thead th:nth-child(5), .ledger-table tfoot td:nth-child(5) { display: none; }
@@ -3513,6 +3547,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .highlights__marker { font-size: var(--fs-small); }
   .highlights__empty { font-size: var(--fs-small); }
   .people-chart__label { font-size: var(--fs-micro); }
+  .stat-tile__foot { font-size: var(--fs-caption); }
+  .target-beads { gap: 5px; }
+  .target-beads span { font-size: var(--fs-micro); }
+  .saved-bars { height: 22px; gap: 2px; }
 }
 
 /* ==========================================================================
@@ -4431,7 +4469,8 @@ html[data-month-step="next"] { --month-step: 1; }
 html[data-month-step="prev"] { --month-step: -1; }
 html.month-transition main { view-transition-name: month-page; }
 html.is-swiping, html.is-swiping body { overflow-x: clip; } /* see initMonthSwipe in filters.js */
-html.month-transition #month-label { view-transition-name: month-label; }
+html.month-transition #month-label,
+html.month-transition #period-label { view-transition-name: month-label; } /* Summary's period slides the same way */
 html.month-transition::view-transition-old(root),
 html.month-transition::view-transition-new(root) { animation: none; }
 html.month-transition::view-transition-group(month-page),
