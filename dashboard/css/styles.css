@@ -3486,9 +3486,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-weight: 500;
   white-space: nowrap;
   text-align: left;
-  border-top: var(--hairline) solid var(--border-strong);
+  /* The totals sit under an accountant's double rule in gold, on a faint gold wash. */
+  border-top: 3px double color-mix(in srgb, var(--gold) 70%, transparent);
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
 }
 .ledger-table tfoot .ledger-table__num { text-align: right; }
+.ledger-table tfoot .ledger-table__saved { color: var(--gold-strong, var(--gold)); }
 .ledger-table tfoot th { font-family: var(--font-display); font-size: 15.5px; font-weight: 450; }
 .ledger-table__hits { font-size: 12px; font-weight: 400; color: var(--text-muted); }
 
