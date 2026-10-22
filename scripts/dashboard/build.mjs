@@ -20,6 +20,7 @@
  */
 
 import * as esbuild from 'esbuild';
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -95,6 +96,16 @@ function builtEntry(entry) {
   return { file: rel(file), chunks: [...chunks].map(rel), meta };
 }
 
+// ---- Build number, shown in each page's footer: "Build 187 · 5e902ea · 22 Oct 2026" ----
+// The workflow run number counts up with every deploy; the commit says which
+// code it was. Run by hand, the commit comes from git and there's no number.
+const commit = (process.env.GITHUB_SHA || (() => {
+  try { return execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim(); } catch { return ''; }
+})()).slice(0, 7);
+const runNumber = process.env.GITHUB_RUN_NUMBER;
+const builtOn = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/London' });
+const buildLabel = [runNumber ? `Build ${runNumber}` : 'Build', commit, builtOn].filter(Boolean).join(' · ');
+
 // ---- Pages: point at the built files, preload chunks, register the service worker ----
 const SW_REGISTER = `<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});</script>`;
 for (const [page, entry] of Object.entries(PAGES)) {
@@ -108,6 +119,7 @@ for (const [page, entry] of Object.entries(PAGES)) {
   if (html === before) throw new Error(`${page}: no <script type="module" src="js/${entry}"> to replace`);
   html = html.replace('href="css/styles.css"', `href="${stylesheet}"`);
   html = html.replace(/<!-- sw-register[^>]*-->/, SW_REGISTER);
+  html = html.replace('data-build>Local build<', `data-build title="Commit ${commit}">${buildLabel}<`);
   for (const match of html.matchAll(/src="(https:\/\/cdn\.jsdelivr\.net\/npm\/[^"]+@\d[^"]*)"/g)) CDN_LIBRARIES.add(match[1]);
   fs.writeFileSync(file, html);
 }
@@ -129,5 +141,5 @@ fs.writeFileSync(path.join(out, 'sw.js'), worker);
 
 const size = (files) => files.reduce((sum, f) => sum + fs.statSync(path.join(out, f)).size, 0);
 const js = appFiles.filter((f) => f.endsWith('.js') && f !== 'js/config.js');
-console.log(`Built ${Object.keys(PAGES).length} pages: ${js.length} script files (${Math.round(size(js) / 1024)} KB), `
+console.log(`${buildLabel}. Built ${Object.keys(PAGES).length} pages:${js.length} script files (${Math.round(size(js) / 1024)} KB), `
   + `${stylesheet} (${Math.round(size([stylesheet]) / 1024)} KB), sw.js v${version} caching ${precache.length} files.`);
