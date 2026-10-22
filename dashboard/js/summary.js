@@ -727,7 +727,7 @@ function renderPeopleChart(full, everyone) {
 
 /**
  * Where it went: categories down the side, months across. Every month
- * with spending gets a faint wash of the category's colour, deepening
+ * with spending is filled with the category's colour, brightening
  * the further it ran above that category's own monthly average, so the
  * unusual months stand out and steady costs stay quiet. Then the
  * average, and the latest full month against the months before it.
@@ -762,10 +762,10 @@ function renderCategories({ months, full }, matrix) {
       <tr>
         <th scope="row" class="category-matrix__name"><i style="background:${c.color}"></i>${c.label}</th>
         ${values.map((v, i) => {
-          // A 6% wash, up to 34% at twice the average or more.
+          // The category's colour dimmed towards black, at its brightest at twice the average or more.
           const above = avg > 0 ? Math.max(0, Math.min(1, (v - avg) / avg)) : 0;
-          const strength = Math.round(6 + above * 28);
-          return `<td class="category-matrix__cell${months[i].complete ? '' : ' is-forecast'}"${v ? ` style="--tint:color-mix(in srgb, ${c.color} ${strength}%, transparent)"` : ''} title="${c.label}, ${MONTH_LABEL(months[i].key)}: ${currency(v)}">${v ? currencyShort(v) : '<span class="category-matrix__none">—</span>'}</td>`;
+          const strength = Math.round(70 + above * 30);
+          return `<td class="category-matrix__cell${months[i].complete ? '' : ' is-forecast'}"${v ? ` style="--tint:color-mix(in srgb, ${c.color} ${strength}%, black)"` : ''} title="${c.label}, ${MONTH_LABEL(months[i].key)}: ${currency(v)}">${v ? currencyShort(v) : '<span class="category-matrix__none">—</span>'}</td>`;
         }).join('')}
         <td class="category-matrix__stat">${full.length ? currencyShort(avg) : '—'}</td>
         <td class="category-matrix__stat">${trend}</td>

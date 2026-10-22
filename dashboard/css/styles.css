@@ -55,6 +55,7 @@
   --cat-salary: #15803D;
   --cat-interest: #65A30D;
   --cat-refund: #B45309;
+  --matrix-ink: #FFFFFF; /* text on the category fills in "Where it went" */
 }
 
 /* ---- Light theme (default) ---- */
@@ -159,6 +160,7 @@
   --heat-4: #2E6650;
   --heat-5: #6FC29F;
   --heat-ink-5: #0F0E0C;
+  --matrix-ink: #0F0E0C; /* text on the brighter dark-mode category fills */
 
   /* Brighter category colors retain separation against dark surfaces. */
   --cat-groceries: #F59E0B;
@@ -3549,7 +3551,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   background-clip: padding-box;
   border-left: 2px solid var(--surface);
 }
+.category-matrix__cell[style] { color: var(--matrix-ink); font-weight: 500; }
 .category-matrix__cell.is-forecast { font-style: italic; color: var(--text-muted); }
+.category-matrix__cell.is-forecast[style] { color: var(--matrix-ink); opacity: 0.85; }
 .category-matrix__none { color: var(--border-strong); }
 .category-matrix__stat { font-family: var(--font-num); font-size: 12.5px; text-align: right; color: var(--text-muted); padding-left: 16px !important; }
 .category-matrix thead th.category-matrix__stat { text-align: right; }
