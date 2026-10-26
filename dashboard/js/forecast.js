@@ -40,9 +40,14 @@ export const sumAbs = (txs) => txs.reduce((s, t) => s + Math.abs(t.amount), 0);
  * Latest transaction date loaded so far, across every account. Statements
  * arrive in batches (usually Sundays), so only days up to this date have
  * real data — later days are still forecast even if they're in the past.
+ * Uses the bank's date, so a transaction moved to a later date by hand
+ * (e.g. onto next month's event) doesn't mark the month as loaded.
  */
 export function lastLoadedDate() {
-  return Object.values(TRANSACTIONS).flat().reduce((max, t) => (t.date > max ? t.date : max), '');
+  return Object.values(TRANSACTIONS).flat().reduce((max, t) => {
+    const date = t.originalDate ?? t.date;
+    return date > max ? date : max;
+  }, '');
 }
 
 /**
