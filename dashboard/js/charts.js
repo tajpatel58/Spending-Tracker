@@ -42,6 +42,7 @@ import { renderTable } from './table.js';
 let categoryChart, trendChart, userChart, paceChart;
 
 const LEGEND_LIMIT = 6;               // legend rows shown before "+N more"
+const TREND_MONTHS = 6;               // months on the Spending trend chart
 const expandedLegends = new Set();    // legends the viewer has expanded (kept across re-renders)
 const drawnCharts = new Set();        // charts that have played their first, slower draw-in
 
@@ -811,9 +812,9 @@ export function renderPaceChart(pace) {
  * The three figures along the foot of the Spending trend tile: the
  * average of the full months shown, the highest of them, and this
  * month's forecast against its target (or, when this month isn't
- * shown, the latest month against the average).
+ * shown, the selected month against the average).
  */
-function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth }) {
+function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth, latest }) {
   const spent = months.map((_, i) => fixed[i] + everyday[i]);
   const full = months.map((key, i) => ({ key, total: spent[i] })).filter((m) => m.key !== currentMonth && m.total > 0);
   const average = full.length ? full.reduce((s, m) => s + m.total, 0) / full.length : null;
@@ -826,7 +827,8 @@ function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMo
 
   const items = [];
   if (average !== null) {
-    items.push({ label: 'Monthly average', value: currencyShort(average), note: { text: `Last ${full.length} full month${full.length === 1 ? '' : 's'}` } });
+    const count = `${full.length} full month${full.length === 1 ? '' : 's'}`;
+    items.push({ label: 'Monthly average', value: currencyShort(average), note: { text: latest ? `Last ${count}` : `${count} shown` } });
   }
   if (highest) {
     items.push({ label: 'Highest', value: currencyShort(highest.total), note: { text: MONTH_LABEL(highest.key) } });
@@ -840,11 +842,12 @@ function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMo
       note: target[i] !== null ? versus(forecast, target[i], 'target') : average !== null ? versus(forecast, average, 'average') : { text: '' },
     });
   } else {
-    const last = months.length - 1;
+    const selected = months.indexOf(state.month);
+    const shown = selected >= 0 ? selected : months.length - 1;
     items.push({
-      label: monthName(months[last]),
-      value: currencyShort(spent[last]),
-      note: average !== null ? versus(spent[last], average, 'average') : { text: '' },
+      label: monthName(months[shown]),
+      value: currencyShort(spent[shown]),
+      note: average !== null ? versus(spent[shown], average, 'average') : { text: '' },
     });
   }
 
@@ -857,7 +860,20 @@ function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMo
 }
 
 /**
- * Renders the spending trend for the last six months: each month's bar
+ * The six months the trend chart shows: the latest six while the selected
+ * month is one of them; for an earlier month, the six ending at it (or,
+ * near the start of the data, the first six), so the month being looked
+ * at is always on the chart. `latest` says which.
+ */
+function trendWindow() {
+  const idx = MONTHS.findIndex((m) => m.key === state.month);
+  const latest = idx < 0 || idx >= MONTHS.length - TREND_MONTHS;
+  const start = latest ? MONTHS.length - TREND_MONTHS : idx - TREND_MONTHS + 1;
+  return { months: MONTHS.slice(Math.max(0, start)).slice(0, TREND_MONTHS).map((m) => m.key), latest };
+}
+
+/**
+ * Renders the spending trend for six months (trendWindow): each month's bar
  * splits into fixed costs and everyday spending, the current month adds
  * a striped "still to come" segment up to its forecast (forecast.js), and
  * a dashed line marks each month's spending target (last month's salary
@@ -865,7 +881,11 @@ function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMo
  * clicking a bar jumps to that month.
  */
 export function renderTrendChart() {
-  const months = MONTHS.slice(-6).map((m) => m.key);
+  const { months, latest } = trendWindow();
+  const shortLabel = (key) => { const [name, year] = MONTH_LABEL(key).split(' '); return `${name.slice(0, 3)} ${year}`; };
+  document.getElementById('trend-chart-meta').textContent = latest
+    ? `Last ${TREND_MONTHS} months`
+    : `${shortLabel(months[0])} – ${shortLabel(months[months.length - 1])}`;
   const currentMonth = todayIso().slice(0, 7);
   const sumOf = (key, keep) => sumAbs(getMonthTransactions(key).filter(keep));
   const fixed = months.map((key) => sumOf(key, (t) => t.category === 'fixed_expense'));
@@ -882,7 +902,7 @@ export function renderTrendChart() {
   const text = cssVar('--text');
   const faint = cssVar('--text-faint');
 
-  renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth });
+  renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth, latest });
 
   const ctx = document.getElementById('trend-chart');
   if (trendChart) trendChart.destroy();
