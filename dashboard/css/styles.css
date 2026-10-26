@@ -1936,7 +1936,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .tx-group__day { font-family: var(--font-display); font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
 .tx-group__total { float: right; margin-top: 3px; font-family: var(--font-num); font-size: 12.5px; color: var(--text-muted); }
 
-/* Merchant initial, tinted by category; becomes the select-to-hide checkbox on hover. */
+/* The category's icon (category-icons.js), tinted by category; becomes the select-to-hide checkbox on hover. */
 .tx-table__select-col, .tx-table__select { width: calc(var(--tile-gutter) + 32px); padding-right: 0 !important; }
 .tx-avatar {
   position: relative;
@@ -1958,7 +1958,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .tx-avatar:has(input:focus-visible) { box-shadow: 0 0 0 1.5px var(--ring); }
 /* Checked: a filled check in the "hide" colour. */
 .tx-avatar:has(input:checked) { color: #fff; background: var(--rose); }
-.tx-avatar:has(input:checked) .tx-avatar__initial { display: none; }
+.tx-avatar__icon { display: inline-flex; }
+.tx-avatar:has(input:checked) .tx-avatar__icon { display: none; }
 .tx-avatar:has(input:checked) .tx-avatar__check { display: block; }
 
 @media (hover: hover) {

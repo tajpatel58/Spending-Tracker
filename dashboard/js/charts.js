@@ -860,16 +860,19 @@ function renderTrendSummary({ months, fixed, everyday, toCome, target, currentMo
 }
 
 /**
- * The six months the trend chart shows: the latest six while the selected
+ * The six months the trend chart shows (of those with data loaded): the latest six while the selected
  * month is one of them; for an earlier month, the six ending at it (or,
  * near the start of the data, the first six), so the month being looked
  * at is always on the chart. `latest` says which.
  */
 function trendWindow() {
-  const idx = MONTHS.findIndex((m) => m.key === state.month);
-  const latest = idx < 0 || idx >= MONTHS.length - TREND_MONTHS;
-  const start = latest ? MONTHS.length - TREND_MONTHS : idx - TREND_MONTHS + 1;
-  return { months: MONTHS.slice(Math.max(0, start)).slice(0, TREND_MONTHS).map((m) => m.key), latest };
+  // Only months the loaded data reaches: one that holds just a transaction
+  // moved forward by hand (e.g. onto next month's event) isn't charted yet.
+  const charted = MONTHS.map((m) => m.key).filter((key) => daysLoaded(key) > 0);
+  const idx = charted.indexOf(state.month);
+  const latest = idx < 0 || idx >= charted.length - TREND_MONTHS;
+  const start = latest ? charted.length - TREND_MONTHS : idx - TREND_MONTHS + 1;
+  return { months: charted.slice(Math.max(0, start)).slice(0, TREND_MONTHS), latest };
 }
 
 /**

@@ -8,12 +8,13 @@
  * and if the save fails the edit is rolled back.
  *
  * Kept visually quiet: edit controls appear on row hover, each row's
- * merchant initial doubles as its select-to-hide checkbox, and when
+ * category icon doubles as its select-to-hide checkbox, and when
  * sorted by date rows sit under day headings with that day's total.
  * The export button downloads the rows currently shown as a CSV.
  * ---------------------------------------------------------------------
  */
 
+import { categoryIcon } from './category-icons.js';
 import {
   CATEGORIES,
   MONTH_LABEL,
@@ -85,14 +86,13 @@ function transactionRow(t) {
     `<option value="${c.id}" ${c.id === t.category ? 'selected' : ''}>${c.label}</option>`
   ).join('');
   const selected = state.selectedTransactionIds.has(t.id);
-  const initial = (t.merchant.trim()[0] || '?').toUpperCase();
   const amount = t.amount.toFixed(2);
   return `
         <tr class="${selected ? 'is-selected' : ''}">
           <td class="tx-table__select">
             <label class="tx-avatar" style="--avatar-color:${cat.color}" title="Select to hide">
               <input type="checkbox" class="hide-checkbox" data-tx-id="${t.id}" ${selected ? 'checked' : ''} aria-label="Select ${escapeAttr(t.merchant)} to hide">
-              <span class="tx-avatar__initial" aria-hidden="true">${escapeAttr(initial)}</span>
+              <span class="tx-avatar__icon" aria-hidden="true">${categoryIcon(t.category)}</span>
               <svg class="tx-avatar__check" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path class="draw-tick" pathLength="1" d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
