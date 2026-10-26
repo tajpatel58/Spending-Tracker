@@ -178,10 +178,14 @@ export function categoryTotals(txs) {
   return totals;
 }
 
-/** Expense totals for a month, grouped into the budget groups above, e.g. { Groceries: 212.40, ... }. */
-export function budgetGroupActuals(month) {
+/**
+ * Expense totals for a month, grouped into the budget groups above, e.g. { Groceries: 212.40, ... }.
+ * With `upTo`, only the month's first `upTo` days count.
+ */
+export function budgetGroupActuals(month, upTo = null) {
   const actual = {};
-  Object.entries(categoryTotals(getMonthTransactions(month).filter(isExpense))).forEach(([categoryId, amount]) => {
+  const txs = getMonthTransactions(month).filter((t) => isExpense(t) && (upTo === null || Number(t.date.slice(8, 10)) <= upTo));
+  Object.entries(categoryTotals(txs)).forEach(([categoryId, amount]) => {
     const group = BUDGET_GROUPS[categoryId] || 'Extras';
     actual[group] = (actual[group] || 0) + amount;
   });

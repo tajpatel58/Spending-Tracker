@@ -221,7 +221,7 @@
   <section class="stats-grid stats-grid--hero" aria-label="Summary statistics">
     <div class="tile stat-tile hero-tile">
       <div class="hero-tile__head">
-        <span class="stat-tile__label">Total spend</span>
+        <span class="stat-tile__label" id="stat-total-label">Total spend</span>
         <span class="stat-tile__delta stat-tile__delta--pill" id="stat-total-delta">—</span>
       </div>
       <span class="stat-tile__value stat-tile__value--hero" id="stat-total">£0</span>
@@ -238,8 +238,8 @@
           <li id="pace-legend-last-item"><span class="hero-legend__line hero-legend__line--last"></span><span id="pace-legend-last">Last month</span></li>
           <li id="pace-legend-target-item"><span class="hero-legend__line hero-legend__line--target"></span>Target pace</li>
         </ul>
-        <!-- Off: the chart and its pace leave out fixed expenses (stats.js initPaceFixedToggle). -->
-        <button type="button" class="switch" id="pace-fixed-toggle" role="switch" aria-checked="true" title="Include fixed expenses in the pace chart">
+        <!-- Off: the whole tile — figure, change on last month, count, pace and chart — leaves out fixed expenses (stats.js initPaceFixedToggle). -->
+        <button type="button" class="switch" id="pace-fixed-toggle" role="switch" aria-checked="true" title="Include fixed expenses in this tile">
           <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
           <span class="switch__label">Fixed costs</span>
         </button>

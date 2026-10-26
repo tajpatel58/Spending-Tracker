@@ -29,7 +29,6 @@ import {
   isExpense,
   isVariableExpense,
   MONTHLY_SAVINGS_TARGET,
-  monthTotal,
   state,
 } from './state.js';
 
@@ -43,6 +42,22 @@ export function daysLoaded(month) {
   if (!loadedTo || loadedTo.slice(0, 7) < month) return 0;
   if (loadedTo.slice(0, 7) > month) return daysIn(month);
   return Number(loadedTo.slice(8, 10));
+}
+
+/**
+ * How far into a month to compare it with the month before: the days
+ * loaded while it's still coming in, so a part month is set against the
+ * same days of last month rather than all of it. Null once it's complete.
+ */
+function comparisonDay(month) {
+  const loaded = daysLoaded(month);
+  return loaded > 0 && loaded < daysIn(month) ? loaded : null;
+}
+
+/** A month's transactions, or with `upTo` only those in its first `upTo` days. */
+function transactionsTo(month, upTo) {
+  const txs = getMonthTransactions(month);
+  return upTo === null ? txs : txs.filter((t) => Number(t.date.slice(8, 10)) <= upTo);
 }
 
 /**
@@ -83,30 +98,40 @@ function monthPace(month, spent, { withoutFixed = false } = {}) {
  */
 export function renderStats() {
   const txs = getMonthTransactions(state.month);
-  const total = txs.filter(isExpense).reduce((s, t) => s + Math.abs(t.amount), 0);
+  // The tile's "Fixed costs" switch: off, its figure, change on last month,
+  // transaction count, pace and chart are all everyday spending only.
+  const withoutFixed = state.paceWithoutFixed;
+  const keep = withoutFixed ? isVariableExpense : isExpense;
+  const total = sumAbs(txs.filter(keep));
 
   const idx = MONTHS.findIndex((m) => m.key === state.month);
   const prevKey = idx > 0 ? MONTHS[idx - 1].key : null;
-  const prevTotal = prevKey ? monthTotal(prevKey) : null;
+  // A month still coming in is compared with last month up to the same day.
+  const upTo = comparisonDay(state.month);
+  const prevTotal = prevKey ? sumAbs(transactionsTo(prevKey, upTo).filter(keep)) : null;
 
   // Headline figures: pence set smaller (moneyMarkup in format.js).
+  document.getElementById('stat-total-label').textContent = withoutFixed ? 'Everyday spend' : 'Total spend';
   document.getElementById('stat-total').innerHTML = moneyMarkup(currency(total));
   const deltaEl = document.getElementById('stat-total-delta');
   if (prevTotal !== null && prevTotal > 0) {
     const pct = ((total - prevTotal) / prevTotal) * 100;
-    deltaEl.textContent = `${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}% vs last month`;
+    const prevName = MONTH_LABEL(prevKey).split(' ')[0].slice(0, 3);
+    deltaEl.textContent = `${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}% vs ${upTo ? `same point in ${prevName}` : 'last month'}`;
     deltaEl.className = 'stat-tile__delta stat-tile__delta--pill ' + (pct >= 0 ? 'is-up' : 'is-down');
+    deltaEl.title = upTo
+      ? `${currency(total)} by day ${upTo}, against ${currency(prevTotal)} by day ${upTo} of ${MONTH_LABEL(prevKey)}`
+      : `${MONTH_LABEL(prevKey)}: ${currency(prevTotal)}`;
   } else {
     deltaEl.textContent = 'No prior month';
     deltaEl.className = 'stat-tile__delta stat-tile__delta--pill';
+    deltaEl.title = '';
   }
 
   // "£180 under pace": spend so far against where the target says it should be by now
   // (or, with the chart's "Fixed costs" switch off, everyday spend against the target less fixed costs).
   const paceEl = document.getElementById('stat-pace');
-  const withoutFixed = state.paceWithoutFixed;
-  const paceSpend = withoutFixed ? sumAbs(txs.filter(isVariableExpense)) : total;
-  const pace = monthPace(state.month, paceSpend, { withoutFixed });
+  const pace = monthPace(state.month, total, { withoutFixed });
   paceEl.hidden = !pace;
   if (pace) {
     const under = pace.gap >= 0;
@@ -147,17 +172,19 @@ export function renderStats() {
     savedNote.className = 'stat-tile__delta';
   }
 
-  const expenseCount = txs.filter(isExpense).length;
+  const shown = withoutFixed ? txs.filter((t) => t.category !== 'fixed_expense') : txs;
+  const expenseCount = shown.filter(keep).length;
   const avg = expenseCount ? total / expenseCount : 0;
-  document.getElementById('stat-count-note').textContent = `${txs.length} transaction${txs.length === 1 ? '' : 's'}`
+  document.getElementById('stat-count-note').textContent = `${shown.length} transaction${shown.length === 1 ? '' : 's'}`
     + (expenseCount ? ` · ${currency(avg)} avg` : '');
 
   document.getElementById('stat-daily-avg').innerHTML = moneyMarkup(currency(figures.dailyAvg));
   document.getElementById('stat-daily-note').textContent = 'Excluding Fixed Expenses';
+  document.getElementById('stat-daily-avg').title = upTo ? `Everyday spending over the ${upTo} days loaded so far` : '';
 
   renderOverBudget(state.month);
 
-  renderTileTrends(idx);
+  renderTileTrends(idx, upTo);
 
   document.getElementById('page-subtitle').textContent = `Spending overview — ${MONTH_LABEL(state.month)}`;
   renderPaceChart(pace);
@@ -260,9 +287,10 @@ export function initBudgetStrip() {
 }
 
 /**
- * The "Fixed costs" switch under the Total spend chart: off, the chart's
- * lines, its target and the pace above it leave out fixed expenses, for
- * the pace of everyday spending. Remembered on this device.
+ * The "Fixed costs" switch under the Total spend chart: off, the whole
+ * tile — its figure (relabelled Everyday spend), change on last month,
+ * transaction count, pace, and the chart's lines and target — leaves out
+ * fixed expenses. Remembered on this device.
  */
 export function initPaceFixedToggle() {
   const toggle = document.getElementById('pace-fixed-toggle');
@@ -280,20 +308,24 @@ export function initPaceFixedToggle() {
  * A month's figures for the four smaller tiles (and their sparklines).
  * Income counts any salary still expected this month (expectedSalaries),
  * so Income and Total saved don't dip while a payday is still to come.
+ * The daily average is over the days loaded so far (all of them once the
+ * month is complete). With `upTo`, Total saved and Over budget count only
+ * spending in the month's first `upTo` days, set against the whole
+ * month's income, to compare with a month still coming in.
  */
-function monthFigures(month) {
+function monthFigures(month, upTo = null) {
   const txs = getMonthTransactions(month);
   const expected = expectedSalaries(month);
   const income = txs
     .filter((t) => t.category === 'salary' || t.category === 'interest')
     .reduce((sum, t) => sum + t.amount, 0)
     + expected.reduce((sum, salary) => sum + salary.amount, 0);
-  const actualByGroup = budgetGroupActuals(month);
+  const actualByGroup = budgetGroupActuals(month, upTo);
   return {
     income,
     expected,
-    saved: income - sumAbs(txs.filter(isExpense)),
-    dailyAvg: sumAbs(txs.filter(isVariableExpense)) / daysIn(month),
+    saved: income - sumAbs(transactionsTo(month, upTo).filter(isExpense)),
+    dailyAvg: sumAbs(txs.filter(isVariableExpense)) / (daysLoaded(month) || daysIn(month)),
     overBudget: Object.keys(BUDGETS).filter((group) => (actualByGroup[group] || 0) > BUDGETS[group]),
   };
 }
@@ -304,25 +336,32 @@ const poundsPence = (n) => `£${Math.abs(n).toFixed(2)}`;
 /**
  * For each smaller tile: a pill with the change on last month (green
  * when it's the good direction for that figure, rose when not), and a
- * sparkline of the last six months ending at the selected one.
+ * sparkline of the last six months ending at the selected one. While the
+ * month is coming in (`upTo` is its days loaded), Total saved and Over
+ * budget compare with last month at the same day; Income (already a
+ * whole month's, expected salaries included) and the daily average (a
+ * rate) compare with last month as a whole.
  */
-function renderTileTrends(idx) {
+function renderTileTrends(idx, upTo) {
   const months = MONTHS.slice(Math.max(0, idx - SPARK_MONTHS + 1), idx + 1).map((m) => m.key);
   const series = months.map((month) => ({ month, ...monthFigures(month) }));
   const now = series[series.length - 1];
   const prev = series.length > 1 ? series[series.length - 2] : null;
+  const prevToDate = prev && upTo ? monthFigures(prev.month, upTo) : prev;
 
   const tiles = [
     { key: 'income', value: (f) => f.income, show: (n) => currencyShort(n), betterWhen: 'up' },
-    { key: 'saved', value: (f) => f.saved, show: (n) => currencyShort(n), betterWhen: 'up' },
+    { key: 'saved', value: (f) => f.saved, show: (n) => currencyShort(n), betterWhen: 'up', toDate: true },
     { key: 'daily', value: (f) => f.dailyAvg, show: poundsPence, betterWhen: 'down' },
-    { key: 'over-budget', value: (f) => f.overBudget.length, show: (n) => String(n), betterWhen: 'down', count: true },
+    { key: 'over-budget', value: (f) => f.overBudget.length, show: (n) => String(n), betterWhen: 'down', count: true, toDate: true },
   ];
   tiles.forEach((tile) => {
     const pill = document.getElementById(`stat-${tile.key}-change`);
     pill.hidden = !prev;
     if (prev) {
-      const change = tile.value(now) - tile.value(prev);
+      const sameDay = tile.toDate && upTo;
+      const base = sameDay ? prevToDate : prev;
+      const change = tile.value(now) - tile.value(base);
       const flat = tile.count ? change === 0 : Math.abs(change) < 0.5;
       const good = tile.betterWhen === 'up' ? change > 0 : change < 0;
       pill.textContent = flat
@@ -331,7 +370,7 @@ function renderTileTrends(idx) {
           ? `${change > 0 ? '+' : '−'}${Math.abs(change)}`
           : `${change > 0 ? '↑' : '↓'} ${tile.key === 'daily' ? poundsPence(change) : currencyShort(Math.abs(change))}`;
       pill.className = `stat-tile__delta stat-tile__delta--pill${flat ? '' : good ? ' is-good' : ' is-bad'}`;
-      pill.title = `vs ${MONTH_LABEL(prev.month)}: ${tile.show(tile.value(prev))}`;
+      pill.title = `vs ${MONTH_LABEL(prev.month)}${sameDay ? ` by day ${upTo}` : ''}: ${tile.show(tile.value(base))}`;
     }
     // Over budget lists its groups instead of a sparkline.
     const spark = document.getElementById(`spark-${tile.key}`);
