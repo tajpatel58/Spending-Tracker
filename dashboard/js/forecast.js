@@ -8,7 +8,7 @@
  * ---------------------------------------------------------------------
  */
 
-import { CALENDAR_EVENTS, TRANSACTIONS } from './data.js';
+import { CALENDAR_EVENTS, MONTH_LABEL, TRANSACTIONS } from './data.js';
 import {
   getMonthTransactions,
   isExpense,
@@ -48,6 +48,31 @@ export function lastLoadedDate() {
     const date = t.originalDate ?? t.date;
     return date > max ? date : max;
   }, '');
+}
+
+/**
+ * How many days of a month have data loaded: up to the latest loaded
+ * transaction in the month it falls in, every day of months before it.
+ * Statements arrive in batches, so this can trail today.
+ */
+export function daysLoaded(month) {
+  const loadedTo = lastLoadedDate();
+  if (!loadedTo || loadedTo.slice(0, 7) < month) return 0;
+  if (loadedTo.slice(0, 7) > month) return daysIn(month);
+  return Number(loadedTo.slice(8, 10));
+}
+
+/**
+ * How far a month's data runs, for the subtitle under the Overview and
+ * Calendar greetings (after the page's name), since statements arrive in
+ * batches and can trail today — "Up to 25 Oct", "Full month", or "No
+ * data yet". (The month itself is in the stepper above.)
+ */
+export function coverageLine(month) {
+  const loaded = daysLoaded(month);
+  if (loaded >= daysIn(month)) return 'Full month';
+  if (!loaded) return 'No data yet';
+  return `Up to ${loaded} ${MONTH_LABEL(month).slice(0, 3)}`;
 }
 
 /**

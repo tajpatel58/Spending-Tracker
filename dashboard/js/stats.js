@@ -12,10 +12,11 @@
 import { renderPaceChart } from './charts.js';
 import { MONTH_LABEL, MONTHS } from './data.js';
 import {
+  coverageLine,
   daysIn,
+  daysLoaded,
   expectedSalaries,
   forecastSpend,
-  lastLoadedDate,
   spendingAllowance,
   sumAbs,
 } from './forecast.js';
@@ -31,18 +32,6 @@ import {
   MONTHLY_SAVINGS_TARGET,
   state,
 } from './state.js';
-
-/**
- * How many days of a month have data loaded: up to the latest loaded
- * transaction in the month it falls in, every day of months before it.
- * Statements arrive in batches, so this can trail today.
- */
-export function daysLoaded(month) {
-  const loadedTo = lastLoadedDate();
-  if (!loadedTo || loadedTo.slice(0, 7) < month) return 0;
-  if (loadedTo.slice(0, 7) > month) return daysIn(month);
-  return Number(loadedTo.slice(8, 10));
-}
 
 /**
  * How far into a month to compare it with the month before: the days
@@ -186,7 +175,7 @@ export function renderStats() {
 
   renderTileTrends(idx, upTo);
 
-  document.getElementById('page-subtitle').textContent = `Spending overview — ${MONTH_LABEL(state.month)}`;
+  document.getElementById('page-subtitle').textContent = `Spending overview — ${coverageLine(state.month)}`;
   renderPaceChart(pace);
 }
 

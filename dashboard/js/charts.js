@@ -13,6 +13,7 @@ import { CATEGORIES, MONTH_LABEL, MONTHS, TRANSACTIONS } from './data.js';
 import { setMonth, syncTableFilters } from './filters.js';
 import {
   daysIn,
+  daysLoaded,
   forecastSpend,
   savingsByPerson,
   shiftMonth,
@@ -36,7 +37,6 @@ import {
   spendOwnerColor,
   state,
 } from './state.js';
-import { daysLoaded } from './stats.js';
 import { renderTable } from './table.js';
 
 let categoryChart, trendChart, userChart, paceChart;

@@ -20,6 +20,7 @@ import { initPageHeading, initUserMenu, signOut } from './auth.js';
 import { ACCOUNTS, accountsReady, MONTH_LABEL, MONTHS, pageSession, TRANSACTIONS } from './data.js';
 import { initAccountFilter, initMonthSelect, pageHooks, renderMonthOptions } from './filters.js';
 import {
+  coverageLine,
   daysIn,
   EVENTS_BY_DATE,
   expectedSalaries,
@@ -295,7 +296,7 @@ function renderAll() {
   const thresholds = heatThresholds(totals);
   const total = totals.reduce((s, v) => s + v, 0);
 
-  document.getElementById('page-subtitle').textContent = `Daily spending — ${MONTH_LABEL(month)}`;
+  document.getElementById('page-subtitle').textContent = `Daily spending — ${coverageLine(month)}`;
 
   // ---- Stat tiles ----
   const spendDays = totals.filter((v) => v > 0).length;
