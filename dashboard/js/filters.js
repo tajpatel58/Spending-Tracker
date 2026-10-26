@@ -40,15 +40,13 @@ export function renderMonthOptions() {
 }
 
 /**
- * Switches the dashboard to a month ('YYYY-MM'), remembering it for the
- * other page. The page slides the way you moved (motion.js).
+ * Switches the dashboard to a month ('YYYY-MM'). The page slides the way you moved (motion.js).
  */
 export function setMonth(key) {
   if (!key || key === state.month) return;
   const direction = key > state.month ? 1 : -1;
   const update = () => {
     state.month = key;
-    try { sessionStorage.setItem('ledger-month', state.month); } catch { /* storage unavailable */ }
     renderMonthOptions();
     pageHooks.renderAll();
   };

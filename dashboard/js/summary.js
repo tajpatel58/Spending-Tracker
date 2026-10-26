@@ -332,7 +332,7 @@ function renderCumulativeChart(months) {
 // MONTH BY MONTH — the flow chart and the ledger
 // ============================================================
 
-/** Opens a month on the Overview (the month is shared through sessionStorage, as between Overview and Calendar). */
+/** Opens a month on the Overview (the month is handed over through sessionStorage and read once by state.js). */
 function openMonth(key) {
   try { sessionStorage.setItem('ledger-month', key); } catch { /* storage unavailable */ }
   window.location.href = 'index.html';

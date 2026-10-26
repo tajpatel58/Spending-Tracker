@@ -11,13 +11,22 @@
 import { CATEGORIES, TRANSACTIONS } from './data.js';
 import { motion } from './motion.js';
 
-/** The month last picked on either page, so Overview and Calendar stay in step. */
-function savedMonth() {
-  try { return sessionStorage.getItem('ledger-month'); } catch { return null; }
+/**
+ * The month a page opens on: one handed over by the Summary page's month
+ * links (used once, then cleared), otherwise the month we're in today.
+ */
+function openingMonth() {
+  let handedOver = null;
+  try {
+    handedOver = sessionStorage.getItem('ledger-month');
+    sessionStorage.removeItem('ledger-month');
+  } catch { /* storage unavailable */ }
+  const today = new Date();
+  return handedOver || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 }
 
 export const state = {
-  month: savedMonth(), // falls back to the most recent month once transactions load
+  month: openingMonth(), // Overview falls back to the most recent month if this one has no transactions
   categories: new Set(), // table category filter; empty = every category
   users: new Set(),      // table user filter (see spendOwner); empty = everyone
   activeAccounts: new Set(), // populated after accounts.csv loads

@@ -58,7 +58,7 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 /**
  * Makes every month with transactions or events selectable, plus the
  * current month (even if it's empty so far), and opens on the current
- * month unless one was already picked this session.
+ * month unless the Summary page handed over another one.
  */
 function initCalendarMonths() {
   const currentMonth = todayIso().slice(0, 7);
