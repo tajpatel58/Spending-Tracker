@@ -377,9 +377,19 @@
 
     <div class="tile chart-tile chart-tile--budget">
       <div class="tile__header">
-        <h2>Budget vs Actual</h2>
-        <span class="tile__meta" id="budget-chart-meta"></span>
+        <div class="tile__heading">
+          <h2>Budget vs Actual</h2>
+          <p class="tile__sub" hidden></p>
+        </div>
+        <span class="tile__aside">
+          <span class="tile__meta" id="budget-chart-meta" aria-live="polite"></span>
+          <button type="button" class="tile-edit" data-edit-budget aria-label="Edit this month’s budgets" title="Edit this month’s budgets">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 19.5l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3l-10 10-4 1.5ZM13.5 7l3 3" stroke="currentColor"/></svg>
+          </button>
+        </span>
       </div>
+      <!-- The bars; the pencil turns them into gauges to set the month's budgets,
+           saved to the Supabase `monthly_budgets` table (budget-editor.js). -->
       <ul class="budget-list" id="budget-list" aria-label="Budget versus actual spending"></ul>
     </div>
   </section>

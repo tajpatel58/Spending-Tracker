@@ -1664,6 +1664,124 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .budget-item__note.is-ahead { color: var(--amber); }
 .budget-item__note.is-negative { color: var(--rose); }
 .budget-item__note.is-positive { color: var(--accent); }
+
+/* A tile's title, with a quiet line under it while editing, and its
+   meta with the pencil beside it. */
+.tile__heading { min-width: 0; }
+.tile__sub { margin: 5px 0 0; font-size: 12px; line-height: 1.4; color: var(--text-faint); animation: fade-in 240ms ease both; }
+.tile__sub[hidden] { display: none; }
+.tile__aside { display: inline-flex; flex: none; align-items: center; gap: var(--space-3); }
+
+/* Editing budgets in place (budget-sliders.js): the tile takes a fine
+   gold ring, and the pencil steps aside for the live total in the serif,
+   then Cancel and a gold Save, as small pills. */
+.tile.is-editing { border-color: color-mix(in srgb, var(--gold) 45%, transparent); box-shadow: 0 0 0 3px var(--gold-soft), var(--shadow-1); transition: box-shadow 220ms ease, border-color 220ms ease; }
+.tile.is-editing .tile__aside .tile-edit { display: none; }
+.tile__meta.is-editing { font-family: var(--font-display); font-size: 16px; font-weight: 450; color: var(--text); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.budget-edit-total__label { margin-right: 3px; font-family: var(--font-body); font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); vertical-align: 1px; }
+.budget-edit-actions { display: inline-flex; gap: 6px; animation: fade-in 220ms ease both; }
+.budget-edit-btn {
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.budget-edit-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.budget-edit-btn--save { color: var(--gold-strong); background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
+.budget-edit-btn--save:hover { color: var(--gold-strong); border-color: var(--gold); }
+.budget-edit-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
+
+/* Each bar as a gauge: what's spent in its colour, the budget a soft
+   tint of it, any overspend running on in rose stripes, and a knob at
+   the budget to drag. The gauge takes the bar's place at the same
+   height, so nothing around it moves; the track is inset by the knob's
+   radius, so the knob's centre and the budget's edge always meet. */
+.budget-gauge { animation: fade-in 260ms ease both; animation-delay: calc(var(--i, 0) * 25ms); }
+.budget-gauge__bar { display: flex; align-items: center; height: 22px; margin: -8px -8px; } /* reaches past the bar by the knob's radius each side, so the track sits where the bar did */
+.budget-gauge__track { flex: 1; margin: 0 8px; }
+.budget-gauge__budget,
+.budget-gauge__spent,
+.budget-gauge__over { position: absolute; top: 0; bottom: 0; left: 0; }
+.budget-gauge__budget { width: var(--budget); background: color-mix(in srgb, var(--avatar-color) 24%, transparent); border-radius: inherit; }
+.budget-gauge__spent { width: var(--spent); background: var(--avatar-color); border-radius: inherit; }
+.budget-gauge__over {
+  left: var(--budget);
+  width: calc(var(--over) - var(--budget));
+  background: repeating-linear-gradient(-45deg, var(--rose) 0 2px, color-mix(in srgb, var(--rose) 35%, transparent) 2px 4px);
+}
+.budget-gauge.is-over .budget-gauge__spent { border-radius: var(--radius-full) 0 0 var(--radius-full); }
+.budget-gauge__bar input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+}
+.budget-gauge__bar input[type="range"]:focus { outline: none; }
+.budget-gauge__bar input[type="range"]::-webkit-slider-runnable-track { height: 16px; background: none; }
+.budget-gauge__bar input[type="range"]::-moz-range-track { height: 16px; background: none; }
+.budget-gauge__bar input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--avatar-color);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+  transition: transform 140ms var(--ease-out), box-shadow 140ms ease;
+}
+.budget-gauge__bar input[type="range"]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--avatar-color);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+  transition: transform 140ms var(--ease-out), box-shadow 140ms ease;
+}
+.budget-gauge__bar input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.12); }
+.budget-gauge__bar input[type="range"]:hover::-moz-range-thumb { transform: scale(1.12); }
+.budget-gauge__bar input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.2); box-shadow: 0 0 0 5px var(--gold-soft), 0 1px 3px rgb(0 0 0 / 0.18); }
+.budget-gauge__bar input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); box-shadow: 0 0 0 5px var(--gold-soft), 0 1px 3px rgb(0 0 0 / 0.18); }
+.budget-gauge__bar input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--gold-soft), 0 0 0 5px var(--gold); }
+.budget-gauge__bar input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--gold-soft), 0 0 0 5px var(--gold); }
+
+/* "£312 of £400": the budget is a figure to type into, on a fine dashed gold rule. */
+.budget-gauge__amount { display: inline-flex; align-items: baseline; font-weight: 500; color: var(--text); border-bottom: 1px dashed color-mix(in srgb, var(--gold) 65%, transparent); transition: border-color 160ms ease; }
+.budget-gauge__amount:hover { border-bottom-color: var(--gold); }
+.budget-gauge__amount:focus-within { border-bottom: 1px solid var(--gold); }
+.budget-gauge__amount input {
+  min-width: 1.25ch;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  background: none;
+  border: none;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.budget-gauge__amount input::-webkit-inner-spin-button,
+.budget-gauge__amount input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+@media (max-width: 560px) {
+  .tile.is-editing .tile__header { flex-wrap: wrap; row-gap: var(--space-2); }
+  .tile.is-editing .tile__aside { justify-content: space-between; width: 100%; }
+}
+@media (pointer: coarse) {
+  .budget-gauge__amount input { font-size: 16px; } /* 16px stops iOS zooming into the field */
+}
 .budget-item__fill {
   display: block;
   height: 100%;
@@ -3656,10 +3774,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .tile-link { padding: 0; font: inherit; color: var(--gold-strong); background: none; border: none; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
 .tile-link:hover { text-decoration-color: currentColor; }
 
-/* Editing the budget's parts: a hint, then Cancel and Save. */
-.budget-edit__hint { margin: 0; font-size: 12px; color: var(--text-faint); }
-.budget-edit__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
-.budget-edit__actions .btn { padding: 6px 14px; font-size: 13px; }
 .stat-tile__foot b.is-positive { color: var(--accent); }
 .hero-tile__link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
 .hero-tile__link:hover { text-decoration-color: currentColor; }
@@ -3710,78 +3824,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* Where it went: the parts across the full width, in two columns. */
 .trip-parts { margin-bottom: var(--space-6); }
 .trip-parts .budget-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px var(--space-10); }
-.trip-parts__meta { display: inline-flex; align-items: center; gap: var(--space-3); }
-.trip-parts__meta .tile__meta.is-editing { font-family: var(--font-num); font-weight: 500; color: var(--text); } /* the live total */
-.trip-parts.is-editing { border-color: color-mix(in srgb, var(--gold) 55%, transparent); box-shadow: 0 0 0 3px var(--gold-soft), var(--shadow-1); }
-.trip-parts.is-editing .tile-edit { visibility: hidden; }
-
-/* Editing By part: a slider and a £ field for each part, in the part's
-   colour, with a faint tick where its spending so far reaches. */
-.part-budgets { padding: var(--space-6) var(--tile-gutter) var(--tile-gutter); }
-.part-budgets[hidden] { display: none; }
-.part-sliders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px var(--space-10); }
-.part-slider { min-width: 0; animation: legend-in 320ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 30ms); }
-.part-slider__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
-.part-slider__head .trip-part { cursor: pointer; }
-.part-slider__money { flex: none; width: 108px; }
-.part-slider__amount { padding-top: 5px; padding-bottom: 5px; font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
-.part-slider__track { position: relative; display: block; }
-.part-slider input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
-  width: 100%;
-  height: 28px; /* a roomy target for a thumb on a 6px track */
-  margin: 0;
-  background: none;
-  cursor: pointer;
-}
-.part-slider input[type="range"]:focus { outline: none; }
-.part-slider input[type="range"]::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: linear-gradient(to right, var(--avatar-color) var(--fill, 0%), color-mix(in srgb, var(--text) 8%, transparent) var(--fill, 0%));
-}
-.part-slider input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  margin-top: -7px;
-  background: var(--surface);
-  border: 2px solid var(--avatar-color);
-  border-radius: 50%;
-  box-shadow: var(--shadow-1);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-.part-slider input[type="range"]::-moz-range-track { height: 6px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--text) 8%, transparent); }
-.part-slider input[type="range"]::-moz-range-progress { height: 6px; border-radius: var(--radius-full); background: var(--avatar-color); }
-.part-slider input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: var(--surface);
-  border: 2px solid var(--avatar-color);
-  border-radius: 50%;
-  box-shadow: var(--shadow-1);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-.part-slider input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
-.part-slider input[type="range"]:active::-moz-range-thumb { transform: scale(1.12); }
-.part-slider input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--gold-soft), var(--shadow-1); }
-.part-slider input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--gold-soft), var(--shadow-1); }
-.part-slider__spent {
-  position: absolute;
-  top: 50%;
-  left: calc(10px + (100% - 20px) * var(--spent, 0)); /* lined up with the thumb's centre at that amount */
-  width: 2px;
-  height: 12px;
-  background: var(--text-muted);
-  border-radius: 1px;
-  opacity: 0.55;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-.part-slider .budget-item__note { margin-top: 0; }
-.part-sliders__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-6); padding-top: var(--space-4); border-top: var(--hairline) solid var(--border); }
 
 .trip-tx { display: flex; align-items: center; gap: var(--space-3); padding: 8px var(--tile-gutter); }
 .trip-tx + .trip-tx { border-top: var(--hairline) solid color-mix(in srgb, var(--border) 60%, transparent); }
@@ -4032,7 +4074,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 @media (max-width: 900px) {
   .trip-parts .budget-list { grid-template-columns: minmax(0, 1fr); }
-  .part-sliders { grid-template-columns: minmax(0, 1fr); }
   .stats-grid.trips-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats-grid.stats-grid--quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .charts-grid.trips-home-charts { grid-template-columns: minmax(0, 1fr); }
@@ -4047,8 +4088,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .place__meta, .place__figure.is-empty { font-size: var(--fs-small); }
   .place__note { font-size: var(--fs-caption); }
   .stats-grid.stats-grid--quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .part-sliders__foot { flex-direction: column; align-items: stretch; }
-  .budget-edit__actions .btn { flex: 1; padding: 11px 16px; }
   .trip-form { padding: var(--space-5) var(--space-4) var(--space-4); }
   .trip-field__input { font-size: 16px; } /* 16px stops iOS zooming into the field */
   .trip-date { font-size: var(--fs-body); }

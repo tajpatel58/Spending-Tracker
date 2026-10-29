@@ -27,6 +27,7 @@
  */
 
 import { initPageHeading, initUserMenu, signOut } from './auth.js';
+import { budgetEditHeader, budgetSliders, endBudgetEditHeader, endBudgetSliders } from './budget-sliders.js';
 import { fade, htmlTooltip } from './chart-kit.js';
 import { categoryIcon } from './category-icons.js';
 import { accountsReady, dataStatus, pageSession, refreshData, saveDataCache, TRANSACTIONS } from './data.js';
@@ -377,121 +378,55 @@ function renderStats(m) {
 }
 
 /**
- * Editing the budget, part by part, on the "By part" tile: its pencil
- * (or the Budget tile's, or "Set a budget") swaps the bars for a slider
- * and a £ field for each part, with the total adding up live in the
- * tile's corner. A faint tick on each slider marks what the part has
- * spent so far. Save (or Enter) updates the page straight away and the
- * `trips` table behind it, with Undo; Cancel or Escape leaves it as it
- * was. Nothing is saved while sliding.
+ * Editing the budget, part by part, in place on the "By part" tile: its
+ * pencil (or the Budget tile's, or "Set a budget") turns every part's bar
+ * into a gauge with a knob to drag and its amount to type
+ * (budget-sliders.js), and the tile's header shows the total adding up
+ * with Cancel and Save. Save (or Enter) updates the page straight away
+ * and the `trips` table behind it, with Undo; Cancel or Escape leaves it
+ * as it was. Nothing is saved while sliding.
  */
 function initBudgetEditing() {
   const detail = document.getElementById('trip-detail');
   const section = document.querySelector('.trip-parts');
   const list = document.getElementById('trip-budget');
-  const form = document.getElementById('trip-budget-form');
-  const meta = document.getElementById('trip-budget-meta');
   let trip = null;
-  let draft = {}; // { part: pounds } as it's being set
-  let spentBy = {}; // { part: pounds } spent so far
+  let sliders = null;
 
-  /** The slider's reach: at least £2,000, and room for the part's budget and spending. */
-  const reach = (part, value) => Math.max(2000, Math.ceil((value * 2) / 100) * 100, Math.ceil((spentBy[part] || 0) / 100) * 100);
-
-  const showTotal = () => {
-    const total = sum(Object.values(draft));
-    meta.textContent = `Total ${currencyShort(total)}`;
-    meta.classList.add('is-editing');
-  };
-
-  /** Brings a part's slider, field and spent tick in line with draft[part] (growing the slider when the field goes past it). */
-  const sync = (row, { from } = {}) => {
-    const part = row.dataset.part;
-    const value = draft[part];
-    const range = row.querySelector('input[type="range"]');
-    const amount = row.querySelector('.part-slider__amount');
-    if (value > Number(range.max)) range.max = Math.ceil(value / 100) * 100;
-    if (from !== range) range.value = value;
-    if (from !== amount) amount.value = value || '';
-    const max = Number(range.max);
-    row.style.setProperty('--fill', `${(Math.min(value, max) / max) * 100}%`);
-    row.style.setProperty('--spent', Math.min((spentBy[part] || 0) / max, 1));
-  };
+  const save = () => setBudgets(trip, Object.fromEntries(Object.entries(sliders.values()).filter(([, amount]) => amount > 0)));
 
   const open = () => {
     trip = TRIPS.find((t) => t.id === view.trip);
     if (!trip) return;
-    spentBy = tripModel(trip).byPart;
-    draft = Object.fromEntries(BUDGET_PARTS.map((part) => [part, trip.budget[part] || 0]));
+    const spentBy = tripModel(trip).byPart;
     const totalOnly = trip.total && !Object.keys(trip.budget).length;
-
-    form.innerHTML = `
-      <div class="part-sliders">
-        ${BUDGET_PARTS.map((part, i) => {
-          const info = PARTS[part];
-          const spent = spentBy[part] || 0;
-          return `
-            <div class="part-slider" data-part="${part}" style="--avatar-color:${info.color}; --i:${i}">
-              <div class="part-slider__head">
-                <label class="budget-item__category trip-part" for="part-range-${part}">
-                  <span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}
-                </label>
-                <span class="trip-field__money part-slider__money">
-                  <span class="trip-field__currency" aria-hidden="true">£</span>
-                  <input class="trip-field__input part-slider__amount" type="number" min="0" step="any" inputmode="decimal" placeholder="0" aria-label="${info.label} budget, in pounds">
-                </span>
-              </div>
-              <span class="part-slider__track">
-                <input type="range" id="part-range-${part}" min="0" max="${reach(part, draft[part])}" step="10" value="${draft[part]}">
-                ${spent ? `<span class="part-slider__spent" title="Spent ${currencyShort(spent)}"></span>` : ''}
-              </span>
-              <p class="budget-item__note">${spent ? `${currencyShort(spent)} spent so far` : BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing spent yet'}</p>
-            </div>`;
-        }).join('')}
-      </div>
-      <div class="part-sliders__foot">
-        <p class="budget-edit__hint">${totalOnly ? `Was ${currencyShort(trip.total)} overall — split it across the parts.` : 'The trip’s budget is the total of its parts. Set a part to £0 to leave it out.'}</p>
-        <div class="budget-edit__actions">
-          <button type="button" class="btn btn--ghost" data-cancel-budget>Cancel</button>
-          <button type="submit" class="btn btn--primary">Save</button>
-        </div>
-      </div>`;
-    form.querySelectorAll('.part-slider').forEach((row) => sync(row));
-    list.hidden = true;
-    form.hidden = false;
-    section.classList.add('is-editing');
-    showTotal();
-    section.scrollIntoView({ behavior: motion.reduced() ? 'auto' : 'smooth', block: 'start' });
-    form.querySelector('input[type="range"]').focus({ preventScroll: true });
+    const showTotal = budgetEditHeader(section, totalOnly
+      ? `Was ${currencyShort(trip.total)} overall — split it across the parts`
+      : 'Drag each part, or type an amount. The trip’s budget is their total.');
+    sliders = budgetSliders(list, BUDGET_PARTS.map((part) => ({
+      key: part,
+      label: PARTS[part].label,
+      icon: PARTS[part].icon,
+      color: PARTS[part].color,
+      value: trip.budget[part] || 0,
+      spent: spentBy[part] || 0,
+    })), { minReach: 2000, onInput: showTotal, onSubmit: save, onCancel: render });
+    showTotal(sum(Object.values(sliders.values())));
+    section.scrollIntoView({ behavior: motion.reduced() ? 'auto' : 'smooth', block: 'nearest' });
+    list.querySelector('input[type="range"]').focus({ preventScroll: true });
   };
 
   detail.addEventListener('click', (event) => {
     if (event.target.closest('[data-edit-budget]')) open();
     else if (event.target.closest('[data-cancel-budget]')) render();
-  });
-  form.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') render();
-  });
-  form.addEventListener('input', (event) => {
-    const row = event.target.closest('.part-slider');
-    if (!row) return;
-    const value = Number(event.target.value);
-    draft[row.dataset.part] = value > 0 ? Math.round(value * 100) / 100 : 0;
-    sync(row, { from: event.target });
-    showTotal();
-  });
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    setBudgets(trip, Object.fromEntries(Object.entries(draft).filter(([, amount]) => amount > 0)));
+    else if (event.target.closest('[data-save-budget]')) save();
   });
 }
 
-/** Closes the part editor (render() redraws the bars in its place). */
+/** Ends an edit of the parts (render() redraws the bars in its place). */
 function closeBudgetEditing() {
-  document.getElementById('trip-budget-form').hidden = true;
-  document.getElementById('trip-budget').hidden = false;
-  document.querySelector('.trip-parts').classList.remove('is-editing');
-  document.getElementById('trip-budget-meta').classList.remove('is-editing');
+  endBudgetSliders(document.getElementById('trip-budget'));
+  endBudgetEditHeader(document.querySelector('.trip-parts'));
 }
 
 /** Sets a trip's part budgets on the page and in Supabase, with Undo; puts them back if the save fails. */

@@ -25,7 +25,7 @@ import { motion } from './motion.js';
 import {
   BUDGET_GROUP_COLORS,
   budgetGroupActuals,
-  BUDGETS,
+  budgetsFor,
   getMonthTransactions,
   isExpense,
   isVariableExpense,
@@ -181,16 +181,16 @@ export function renderStats() {
 
 /**
  * Each budget group's standing for a month, in BUDGETS order: what's
- * spent against its budget, and whether it's 'over', 'ahead' (under
- * budget but past an even pace for the days loaded — not Fixed Expenses,
- * whose bills land on set dates) or 'ok'.
+ * spent against that month's budget (budgetsFor), and whether it's
+ * 'over', 'ahead' (under budget but past an even pace for the days
+ * loaded — not Fixed Expenses, whose bills land on set dates) or 'ok'.
  */
 function budgetStanding(month) {
   const actualByGroup = budgetGroupActuals(month);
   const days = daysIn(month);
   const loaded = daysLoaded(month);
   const complete = loaded >= days;
-  const groups = Object.entries(BUDGETS).map(([group, budget]) => {
+  const groups = Object.entries(budgetsFor(month)).map(([group, budget]) => {
     const actual = actualByGroup[group] || 0;
     const pace = budget * (loaded / days);
     const status = budget && actual > budget ? 'over'
@@ -310,12 +310,13 @@ function monthFigures(month, upTo = null) {
     .reduce((sum, t) => sum + t.amount, 0)
     + expected.reduce((sum, salary) => sum + salary.amount, 0);
   const actualByGroup = budgetGroupActuals(month, upTo);
+  const budgets = budgetsFor(month);
   return {
     income,
     expected,
     saved: income - sumAbs(transactionsTo(month, upTo).filter(isExpense)),
     dailyAvg: sumAbs(txs.filter(isVariableExpense)) / (daysLoaded(month) || daysIn(month)),
-    overBudget: Object.keys(BUDGETS).filter((group) => (actualByGroup[group] || 0) > BUDGETS[group]),
+    overBudget: Object.keys(budgets).filter((group) => (actualByGroup[group] || 0) > budgets[group]),
   };
 }
 

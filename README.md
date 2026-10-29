@@ -228,6 +228,36 @@ create policy "Household can delete trips" on public.trips
   using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
 ```
 
+## Monthly budgets
+
+The Overview's **Budget vs Actual** tile has a pencil that opens a slider
+for each budget group, for the month on show. Saving writes that month's
+row to the `monthly_budgets` table (`js/budgets-api.js`): `month` (text,
+unique, e.g. `'2026-10'`), `budgets` (jsonb, e.g.
+`{"Groceries": 300, "Dining Out": 250}`) and `created_at`. Each month
+keeps its own budgets; a month without a row, or a group missing from its
+JSON, uses the defaults in `BUDGETS` (`js/state.js`). Holiday spending
+isn't counted in any budget group — trips have their own budgets.
+
+A save is an upsert, so the table needs select, insert and update rights:
+
+```sql
+alter table public.monthly_budgets enable row level security;
+
+create policy "Household can read budgets" on public.monthly_budgets
+  for select to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can add budgets" on public.monthly_budgets
+  for insert to authenticated
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can update budgets" on public.monthly_budgets
+  for update to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'))
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+```
+
 ## Design notes
 
 - Category colors are CSS custom properties (`--cat-groceries`, etc.) in
