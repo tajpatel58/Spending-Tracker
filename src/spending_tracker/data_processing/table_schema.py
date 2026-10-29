@@ -27,6 +27,7 @@ _TRANSACTIONS_METADATA_DB_COLUMNS = [
     "llm_category",
     "manual_merchant",
     "manual_category",
+    "manual_sub_category",
     "manual_amount",
     "manual_date",
     "hidden",

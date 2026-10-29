@@ -163,6 +163,51 @@ these policies, e.g.
 `supabase_client.storage.from_("spending-tracker").list("data/transactions/raw/Taj/Amex/123456/September-26")`
 and `.download(path)`.
 
+## Trips
+
+`trips.html` opens on every trip at a glance (places, days away, what
+they cost, the ledger); the ‹ All trips › stepper in the top bar, a place
+card or a ledger row opens one. **Plan a trip** saves a location, start
+date and end date to the `trips` table (`js/trips-api.js`), and a saved
+trip's page has **Delete trip** (after a confirmation). A trip's spending
+is every transaction in the **Holiday** category dated within its start
+and end dates (inclusive; hidden transactions don't count) — so a flight
+booked months ahead only counts if its date is moved into the trip
+(change it from the transactions table). Which categories count is
+`TRIP_CATEGORIES` in `js/trips.js`.
+
+Create the table once in the Supabase SQL editor:
+
+```sql
+create table public.trips (
+  id bigint generated always as identity primary key,
+  location text not null,
+  start_date date not null,
+  end_date date not null check (end_date >= start_date),
+  created_at timestamptz not null default now()
+);
+alter table public.trips enable row level security;
+```
+
+With RLS on and no policies, every read and save is refused (the page
+says so). The page needs select, insert and delete rights, e.g. for the
+household allow-list (a delete without a policy deletes nothing rather
+than failing, so the page checks a row actually went):
+
+```sql
+create policy "Household can read trips" on public.trips
+  for select to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can add trips" on public.trips
+  for insert to authenticated
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can delete trips" on public.trips
+  for delete to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+```
+
 ## Design notes
 
 - Category colors are CSS custom properties (`--cat-groceries`, etc.) in
