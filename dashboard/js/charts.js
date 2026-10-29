@@ -8,7 +8,7 @@
  * ---------------------------------------------------------------------
  */
 
-import { fade, htmlTooltip, stripePattern } from './chart-kit.js';
+import { drawChart, fade, htmlTooltip, stripePattern } from './chart-kit.js';
 import { CATEGORIES, MONTH_LABEL, MONTHS, TRANSACTIONS } from './data.js';
 import { setMonth, syncTableFilters } from './filters.js';
 import {
@@ -124,9 +124,8 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
   };
 
   // ---- Chart ----
-  if (chart) chart.destroy();
   const firstDraw = isFirstDraw(canvasId);
-  const instance = new Chart(canvas, {
+  const instance = drawChart(chart, canvas, {
     type: 'doughnut',
     data: {
       labels: entries.map((e) => e.label),
@@ -703,10 +702,9 @@ export function renderPaceChart(pace) {
   };
 
   const canvas = document.getElementById('pace-chart');
-  if (paceChart) paceChart.destroy();
   canvas.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible');
   const firstDraw = isFirstDraw('pace-chart');
-  paceChart = new Chart(canvas, {
+  paceChart = drawChart(paceChart, canvas, {
     type: 'line',
     plugins: [hoverLine],
     data: {
@@ -908,10 +906,9 @@ export function renderTrendChart() {
   renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth, latest });
 
   const ctx = document.getElementById('trend-chart');
-  if (trendChart) trendChart.destroy();
   ctx.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible'); // e.g. after clicking a bar
   const firstDraw = isFirstDraw('trend-chart');
-  trendChart = new Chart(ctx, {
+  trendChart = drawChart(trendChart, ctx, {
     data: {
       labels: months.map((key) => MONTH_LABEL(key).split(' ')[0].slice(0, 3)),
       datasets: [

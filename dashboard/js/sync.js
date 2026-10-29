@@ -9,6 +9,7 @@
  */
 
 import { dataStatus, refreshData } from './data.js';
+import { afterEntrance } from './state.js';
 import { showToast } from './toast.js';
 
 /** "just now", "5 min ago", "9:14 am", "yesterday 6:02 pm", "12 Oct". */
@@ -77,8 +78,11 @@ export function initSync({ onChange }) {
 
   button.hidden = false;
   render();
-  // Drawn from a saved copy that isn't recent? Quietly check for anything newer.
-  if (dataStatus.fromCache && Date.now() - (dataStatus.syncedAt || 0) > FRESH_FOR_MS) refreshData().catch((error) => console.error('[Ledger data] Background refresh failed:', error));
+  // Drawn from a saved copy that isn't recent? Quietly check for anything newer,
+  // once the page has finished drawing in (comparing the data is main-thread work).
+  if (dataStatus.fromCache && Date.now() - (dataStatus.syncedAt || 0) > FRESH_FOR_MS) {
+    afterEntrance(() => refreshData().catch((error) => console.error('[Ledger data] Background refresh failed:', error)));
+  }
 }
 
 /** Pulls fresh data on request and says how it went (Refresh button and pull-to-refresh). */

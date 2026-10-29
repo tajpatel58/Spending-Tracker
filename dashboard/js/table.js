@@ -78,13 +78,44 @@ function dayHeading(iso) {
   return day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
+// Every category as <option>s, built once. A row's select holds only its own
+// category until it's pressed or focused (fillCategorySelect), so a month's
+// table isn't rebuilt with fifteen options per row on every search keystroke.
+const CATEGORY_OPTIONS = CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join('');
+
+/** Gives a row's category select the full list, still showing its category, just before it opens. */
+function fillCategorySelect(select) {
+  if (select.options.length > 1) return;
+  const current = select.value;
+  select.innerHTML = CATEGORY_OPTIONS;
+  select.value = current;
+}
+
+/**
+ * A select is as wide as its longest option, so with only its own category
+ * a row's would size to that one. The full list's width is measured once
+ * (again when the fonts arrive) and set on the table, keeping every
+ * select, and its chevron, where the full list puts them.
+ */
+function sizeCategorySelects(table) {
+  const measure = () => {
+    const probe = document.createElement('select');
+    probe.className = 'category-select';
+    probe.innerHTML = CATEGORY_OPTIONS;
+    probe.style.cssText = 'position:absolute;visibility:hidden;width:auto';
+    table.parentElement.appendChild(probe);
+    table.style.setProperty('--category-select-width', `${probe.getBoundingClientRect().width}px`);
+    probe.remove();
+  };
+  measure();
+  document.fonts?.ready.then(measure);
+}
+
 /** One transaction row. */
 function transactionRow(t) {
   const cat = catById[t.category];
   const acc = accountById[t.account];
-  const options = CATEGORIES.map((c) =>
-    `<option value="${c.id}" ${c.id === t.category ? 'selected' : ''}>${c.label}</option>`
-  ).join('');
+  const options = `<option value="${t.category}" selected>${cat.label}</option>`;
   const selected = state.selectedTransactionIds.has(t.id);
   const amount = t.amount.toFixed(2);
   return `
@@ -217,6 +248,12 @@ function updateHideButton() {
  */
 export function initTableEditing() {
   const body = document.getElementById('tx-table-body');
+  sizeCategorySelects(body.closest('table'));
+
+  // The full category list goes in just before a select opens: pressed (mouse or touch) or reached by keyboard.
+  const fill = (e) => { if (e.target.classList?.contains('category-select')) fillCategorySelect(e.target); };
+  body.addEventListener('pointerdown', fill);
+  body.addEventListener('focusin', fill);
 
   body.addEventListener('change', async (e) => {
     const target = e.target;

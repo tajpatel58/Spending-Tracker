@@ -102,6 +102,23 @@ export function finishLoading() {
 
 /** How long (from page start) the launch mark stays up at least: long enough to finish drawing. */
 const LAUNCH_MS = 1500;
+/** Roughly how long the cards, counting figures and charts take to draw in once revealed. */
+const ENTRANCE_MS = 1300;
+
+/**
+ * Runs `task` once the page's entrance has played (the launch mark, then
+ * the cards rising and charts drawing in) and the browser is idle, so
+ * work it doesn't need straight away doesn't cost the entrance frames.
+ * Call after finishLoading.
+ */
+export function afterEntrance(task) {
+  const launching = document.documentElement.classList.contains('is-launching');
+  const delay = motion.reduced() ? 0 : Math.max(0, launching ? LAUNCH_MS - performance.now() : 0) + ENTRANCE_MS;
+  setTimeout(() => {
+    if ('requestIdleCallback' in window) requestIdleCallback(task, { timeout: 1000 });
+    else task();
+  }, delay);
+}
 
 /** Swaps the loading placeholders for a short message with a Retry button. */
 export function showLoadError(error) {
