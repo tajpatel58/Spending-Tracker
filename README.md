@@ -176,6 +176,13 @@ booked months ahead only counts if its date is moved into the trip
 (change it from the transactions table). Which categories count is
 `TRIP_CATEGORIES` in `js/trips.js`.
 
+A trip's budget is set part by part (flights, stay, food...) with the
+sliders behind the pencil on its **By part** tile. The parts are saved to
+`part_budgets` (e.g. `{"flights": 420, "stay": 900}`), and `budget` is
+kept as their sum, which is the trip's Budget everywhere on the page. A
+trip saved before there were parts keeps its `budget` total until its
+parts are set.
+
 Create the table once in the Supabase SQL editor:
 
 ```sql
@@ -184,15 +191,23 @@ create table public.trips (
   location text not null,
   start_date date not null,
   end_date date not null check (end_date >= start_date),
+  budget numeric,
+  part_budgets jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 alter table public.trips enable row level security;
 ```
 
+For a table made before budgets by part, add the column:
+
+```sql
+alter table public.trips add column if not exists part_budgets jsonb not null default '{}'::jsonb;
+```
+
 With RLS on and no policies, every read and save is refused (the page
-says so). The page needs select, insert and delete rights, e.g. for the
-household allow-list (a delete without a policy deletes nothing rather
-than failing, so the page checks a row actually went):
+says so). The page needs select, insert, update and delete rights, e.g.
+for the household allow-list (an update or delete without a policy
+changes nothing rather than failing, so the page checks a row came back):
 
 ```sql
 create policy "Household can read trips" on public.trips
@@ -201,6 +216,11 @@ create policy "Household can read trips" on public.trips
 
 create policy "Household can add trips" on public.trips
   for insert to authenticated
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can update trips" on public.trips
+  for update to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'))
   with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
 
 create policy "Household can delete trips" on public.trips

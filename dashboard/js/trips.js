@@ -17,11 +17,12 @@
  * same widgets empty. "Plan a trip" saves a new trip, and a trip's page
  * can delete it.
  *
- * A trip's page opens on its financial summary (Budget — the `trips`
- * table's budget column — Spent and Remaining), then the itinerary.
- * Per-part budgets, a savings pot and local currency (trip.budget,
- * trip.pot, trip.fx) are drawn when a trip has them; trips from
- * Supabase don't yet.
+ * A trip's page opens on its financial summary (Budget, Spent and
+ * Remaining), then the itinerary. The budget is set part by part with
+ * sliders on the "By part" tile (the `trips` table's part_budgets
+ * column), and the trip's Budget is their sum. A savings pot and local
+ * currency (trip.pot, trip.fx) are drawn when a trip has them; trips
+ * from Supabase don't yet.
  * ---------------------------------------------------------------------
  */
 
@@ -36,7 +37,7 @@ import { finishLoading, people, showLoadError, spendOwnerColor } from './state.j
 import { initTheme, toggleTheme } from './theme.js';
 import { showToast } from './toast.js';
 import { updateTransactionSubCategory } from './transactions-api.js';
-import { createTrip, deleteTrip, fetchTrips, updateTripBudget } from './trips-api.js';
+import { createTrip, deleteTrip, fetchTrips, updateTripBudgets } from './trips-api.js';
 
 // ============================================================
 // TRIPS
@@ -86,19 +87,29 @@ const BUDGET_PARTS = HOLIDAY_SUB_CATEGORIES;
 /** The category whose transactions, dated within a trip, belong to it. */
 const TRIP_CATEGORY = 'holiday';
 
+/** A trip's part budgets from a row's part_budgets, as numbers in BUDGET_PARTS order (jsonb doesn't keep the order). */
+const partBudgets = (stored) => Object.fromEntries(BUDGET_PARTS
+  .filter((part) => Number(stored?.[part]) > 0)
+  .map((part) => [part, Number(stored[part])]));
+
 /** A row of the Supabase `trips` table as a trip: where and when, with its spending tagged in by tagTransactions. */
-const fromRow = (row) => ({
-  id: `trip-${row.id}`,
-  dbId: row.id, // the row's id in Supabase
-  name: row.location,
-  place: '',
-  start: row.start_date,
-  end: row.end_date,
-  total: row.budget != null && row.budget !== '' ? Number(row.budget) : null, // the trip's budget, in pounds
-  budget: {}, // per-part budgets: none yet
-  pot: null,
-  txs: [],
-});
+const fromRow = (row) => {
+  const budget = partBudgets(row.part_budgets);
+  return {
+    id: `trip-${row.id}`,
+    dbId: row.id, // the row's id in Supabase
+    name: row.location,
+    place: '',
+    start: row.start_date,
+    end: row.end_date,
+    // The trip's budget, in pounds: the sum of its parts, or (set before
+    // there were parts) the budget column on its own.
+    total: Object.keys(budget).length ? sum(Object.values(budget)) : row.budget != null && row.budget !== '' ? Number(row.budget) : null,
+    budget, // per-part budgets, e.g. { flights: 420, stay: 900 }
+    pot: null,
+    txs: [],
+  };
+};
 
 /** Every trip, earliest first. */
 const TRIPS = [];
@@ -366,87 +377,150 @@ function renderStats(m) {
 }
 
 /**
- * Editing the budget, in place on the Budget tile: the pencil (or "Set a
- * budget") turns the tile into a £ field with Save and Cancel; Enter
- * saves and Escape cancels. Saving updates the page straight away and
- * the `trips` table behind it, with Undo; a blank field removes the
- * budget. If the save fails, the old budget is put back.
+ * Editing the budget, part by part, on the "By part" tile: its pencil
+ * (or the Budget tile's, or "Set a budget") swaps the bars for a slider
+ * and a £ field for each part, with the total adding up live in the
+ * tile's corner. A faint tick on each slider marks what the part has
+ * spent so far. Save (or Enter) updates the page straight away and the
+ * `trips` table behind it, with Undo; Cancel or Escape leaves it as it
+ * was. Nothing is saved while sliding.
  */
 function initBudgetEditing() {
-  const grid = document.getElementById('trip-stats');
+  const detail = document.getElementById('trip-detail');
+  const section = document.querySelector('.trip-parts');
+  const list = document.getElementById('trip-budget');
+  const form = document.getElementById('trip-budget-form');
+  const meta = document.getElementById('trip-budget-meta');
+  let trip = null;
+  let draft = {}; // { part: pounds } as it's being set
+  let spentBy = {}; // { part: pounds } spent so far
+
+  /** The slider's reach: at least £2,000, and room for the part's budget and spending. */
+  const reach = (part, value) => Math.max(2000, Math.ceil((value * 2) / 100) * 100, Math.ceil((spentBy[part] || 0) / 100) * 100);
+
+  const showTotal = () => {
+    const total = sum(Object.values(draft));
+    meta.textContent = `Total ${currencyShort(total)}`;
+    meta.classList.add('is-editing');
+  };
+
+  /** Brings a part's slider, field and spent tick in line with draft[part] (growing the slider when the field goes past it). */
+  const sync = (row, { from } = {}) => {
+    const part = row.dataset.part;
+    const value = draft[part];
+    const range = row.querySelector('input[type="range"]');
+    const amount = row.querySelector('.part-slider__amount');
+    if (value > Number(range.max)) range.max = Math.ceil(value / 100) * 100;
+    if (from !== range) range.value = value;
+    if (from !== amount) amount.value = value || '';
+    const max = Number(range.max);
+    row.style.setProperty('--fill', `${(Math.min(value, max) / max) * 100}%`);
+    row.style.setProperty('--spent', Math.min((spentBy[part] || 0) / max, 1));
+  };
 
   const open = () => {
-    const trip = TRIPS.find((t) => t.id === view.trip);
-    const tile = grid.querySelector('.budget-tile');
-    if (!trip || !tile) return;
-    tile.classList.remove('is-empty');
-    tile.classList.add('is-editing');
-    tile.innerHTML = `
-      <form class="budget-edit" novalidate>
-        <div class="stat-tile__head"><label class="stat-tile__label" for="budget-edit-input">Budget</label></div>
-        <span class="trip-field__money">
-          <span class="trip-field__currency" aria-hidden="true">£</span>
-          <input class="trip-field__input budget-edit__input" id="budget-edit-input" type="number" min="0" step="any" inputmode="decimal"
-            placeholder="e.g. 1,500" value="${trip.total ?? ''}" aria-describedby="budget-edit-hint">
-        </span>
-        <p class="budget-edit__hint" id="budget-edit-hint">For the whole trip. Leave empty to remove it.</p>
+    trip = TRIPS.find((t) => t.id === view.trip);
+    if (!trip) return;
+    spentBy = tripModel(trip).byPart;
+    draft = Object.fromEntries(BUDGET_PARTS.map((part) => [part, trip.budget[part] || 0]));
+    const totalOnly = trip.total && !Object.keys(trip.budget).length;
+
+    form.innerHTML = `
+      <div class="part-sliders">
+        ${BUDGET_PARTS.map((part, i) => {
+          const info = PARTS[part];
+          const spent = spentBy[part] || 0;
+          return `
+            <div class="part-slider" data-part="${part}" style="--avatar-color:${info.color}; --i:${i}">
+              <div class="part-slider__head">
+                <label class="budget-item__category trip-part" for="part-range-${part}">
+                  <span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}
+                </label>
+                <span class="trip-field__money part-slider__money">
+                  <span class="trip-field__currency" aria-hidden="true">£</span>
+                  <input class="trip-field__input part-slider__amount" type="number" min="0" step="any" inputmode="decimal" placeholder="0" aria-label="${info.label} budget, in pounds">
+                </span>
+              </div>
+              <span class="part-slider__track">
+                <input type="range" id="part-range-${part}" min="0" max="${reach(part, draft[part])}" step="10" value="${draft[part]}">
+                ${spent ? `<span class="part-slider__spent" title="Spent ${currencyShort(spent)}"></span>` : ''}
+              </span>
+              <p class="budget-item__note">${spent ? `${currencyShort(spent)} spent so far` : BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing spent yet'}</p>
+            </div>`;
+        }).join('')}
+      </div>
+      <div class="part-sliders__foot">
+        <p class="budget-edit__hint">${totalOnly ? `Was ${currencyShort(trip.total)} overall — split it across the parts.` : 'The trip’s budget is the total of its parts. Set a part to £0 to leave it out.'}</p>
         <div class="budget-edit__actions">
           <button type="button" class="btn btn--ghost" data-cancel-budget>Cancel</button>
           <button type="submit" class="btn btn--primary">Save</button>
         </div>
-      </form>`;
-    const input = tile.querySelector('input');
-    input.focus();
-    input.select();
+      </div>`;
+    form.querySelectorAll('.part-slider').forEach((row) => sync(row));
+    list.hidden = true;
+    form.hidden = false;
+    section.classList.add('is-editing');
+    showTotal();
+    section.scrollIntoView({ behavior: motion.reduced() ? 'auto' : 'smooth', block: 'start' });
+    form.querySelector('input[type="range"]').focus({ preventScroll: true });
   };
 
-  grid.addEventListener('click', (event) => {
+  detail.addEventListener('click', (event) => {
     if (event.target.closest('[data-edit-budget]')) open();
     else if (event.target.closest('[data-cancel-budget]')) render();
   });
-  grid.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && event.target.closest('.budget-edit')) render();
+  form.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') render();
   });
-  grid.addEventListener('submit', (event) => {
+  form.addEventListener('input', (event) => {
+    const row = event.target.closest('.part-slider');
+    if (!row) return;
+    const value = Number(event.target.value);
+    draft[row.dataset.part] = value > 0 ? Math.round(value * 100) / 100 : 0;
+    sync(row, { from: event.target });
+    showTotal();
+  });
+  form.addEventListener('submit', (event) => {
     event.preventDefault();
-    const trip = TRIPS.find((t) => t.id === view.trip);
-    const input = event.target.querySelector('input');
-    const text = input.value.trim();
-    const next = text === '' ? null : Math.round(Number(text) * 100) / 100;
-    if (next !== null && !(next >= 0)) {
-      input.setCustomValidity('Enter an amount in pounds, e.g. 1500');
-      input.reportValidity();
-      return;
-    }
-    setBudget(trip, next);
+    setBudgets(trip, Object.fromEntries(Object.entries(draft).filter(([, amount]) => amount > 0)));
   });
-  grid.addEventListener('input', (event) => event.target.setCustomValidity?.(''));
 }
 
-/** Sets a trip's budget on the page and in Supabase, with Undo; puts it back if the save fails. */
-function setBudget(trip, next) {
-  const previous = trip.total ?? null;
-  const apply = (value) => {
-    trip.total = value;
+/** Closes the part editor (render() redraws the bars in its place). */
+function closeBudgetEditing() {
+  document.getElementById('trip-budget-form').hidden = true;
+  document.getElementById('trip-budget').hidden = false;
+  document.querySelector('.trip-parts').classList.remove('is-editing');
+  document.getElementById('trip-budget-meta').classList.remove('is-editing');
+}
+
+/** Sets a trip's part budgets on the page and in Supabase, with Undo; puts them back if the save fails. */
+function setBudgets(trip, next) {
+  const previous = { parts: trip.budget, total: trip.total ?? null };
+  const nextTotal = Object.keys(next).length ? sum(Object.values(next)) : null;
+  const apply = ({ parts, total }) => {
+    trip.budget = parts;
+    trip.total = total;
     render();
   };
-  apply(next);
-  if (next === previous) return;
+  apply({ parts: next, total: nextTotal });
+  const unchanged = nextTotal === previous.total && BUDGET_PARTS.every((p) => (next[p] || 0) === (previous.parts[p] || 0));
+  if (unchanged) return;
 
-  const saving = updateTripBudget(trip.dbId, next);
+  const saving = updateTripBudgets(trip.dbId, next);
   showToast({
-    message: next === null ? `Removed the budget for ${trip.name}` : `Budget for ${trip.name} set to ${currencyShort(next)}`,
+    message: nextTotal === null ? `Removed the budget for ${trip.name}` : `Budget for ${trip.name} set to ${currencyShort(nextTotal)}`,
     action: {
       label: 'Undo',
       onClick: async () => {
         apply(previous);
         try {
           await saving.catch(() => {}); // nothing to undo server-side if the save itself failed
-          await updateTripBudget(trip.dbId, previous);
+          await updateTripBudgets(trip.dbId, previous.parts, previous.total);
           showToast({ message: 'Change undone', tone: 'info', duration: 2500 });
         } catch (error) {
           console.error('[Ledger] Could not undo the budget:', error);
-          apply(next);
+          apply({ parts: next, total: nextTotal });
           showToast({ message: 'Couldn’t undo — the change was kept', tone: 'error' });
         }
       },
@@ -527,7 +601,10 @@ function renderBudget(m) {
         </div>
         <p class="budget-item__note ${tone}">${note}</p>
       </li>`;
-  }).join('');
+  }).join('') + Object.keys(PARTS) // then what's been spent on parts without a budget (and what's still to sort)
+    .filter((part) => !trip.budget[part] && m.byPart[part])
+    .map((part, i) => unbudgetedRow(m, part, Object.keys(trip.budget).length + i, m.byPart[part]))
+    .join('');
 
   document.getElementById('trip-budget-meta').textContent = {
     saving: `${currencyShort(m.booked)} booked of ${currencyShort(m.budget)}`,
@@ -536,37 +613,39 @@ function renderBudget(m) {
   }[status];
 }
 
+/** A part without a budget: what it's spent, its bar as its share of the trip. */
+function unbudgetedRow(m, part, i, actual) {
+  const info = PARTS[part];
+  const share = m.spent ? Math.round((actual / m.spent) * 100) : 0;
+  return `
+    <li class="budget-item${actual ? '' : ' is-empty'}" style="--i:${i}">
+      <div class="budget-item__header">
+        <span class="budget-item__category trip-part" style="--avatar-color:${info.color}">
+          <span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}
+        </span>
+        <span class="budget-item__summary">
+          <span class="budget-item__amounts">${actual ? currencyShort(actual) : `${currencyShort(0)} of —`}</span>
+          <span class="budget-item__status">${actual ? `${share}%` : '—'}</span>
+        </span>
+      </div>
+      <div class="budget-item__bar" aria-label="${info.label}: ${currencyShort(actual)}, no budget set">
+        <span class="budget-item__track">
+          ${actual ? `<span class="budget-item__fill" style="width:${share}%; background:${info.color}"></span>` : ''}
+        </span>
+      </div>
+      <p class="budget-item__note${part === 'unsorted' ? ' is-ahead' : ''}">${part === 'unsorted' ? `${share}% of the trip · choose what each was for, above` : actual ? `${share}% of the trip` : BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing yet'}</p>
+    </li>`;
+}
+
 /**
  * Budget by part with no budget set yet: each part with spending, its
  * bar as its share of the trip, then the parts still waiting for a budget.
  */
 function renderUnbudgeted(m, list) {
   const spentParts = Object.keys(PARTS).filter((p) => m.byPart[p]);
-  const row = (part, i, actual) => {
-    const info = PARTS[part];
-    const share = m.spent ? Math.round((actual / m.spent) * 100) : 0;
-    return `
-      <li class="budget-item${actual ? '' : ' is-empty'}" style="--i:${i}">
-        <div class="budget-item__header">
-          <span class="budget-item__category trip-part" style="--avatar-color:${info.color}">
-            <span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}
-          </span>
-          <span class="budget-item__summary">
-            <span class="budget-item__amounts">${actual ? currencyShort(actual) : `${currencyShort(0)} of —`}</span>
-            <span class="budget-item__status">${actual ? `${share}%` : '—'}</span>
-          </span>
-        </div>
-        <div class="budget-item__bar" aria-label="${info.label}: ${currencyShort(actual)}, no budget set">
-          <span class="budget-item__track">
-            ${actual ? `<span class="budget-item__fill" style="width:${share}%; background:${info.color}"></span>` : ''}
-          </span>
-        </div>
-        <p class="budget-item__note${part === 'unsorted' ? ' is-ahead' : ''}">${part === 'unsorted' ? `${share}% of the trip · choose what each was for, above` : actual ? `${share}% of the trip` : BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing yet'}</p>
-      </li>`;
-  };
   list.innerHTML = [
-    ...spentParts.map((p, i) => row(p, i, m.byPart[p])),
-    ...BUDGET_PARTS.filter((p) => !m.byPart[p]).map((p, i) => row(p, spentParts.length + i, 0)),
+    ...spentParts.map((p, i) => unbudgetedRow(m, p, i, m.byPart[p])),
+    ...BUDGET_PARTS.filter((p) => !m.byPart[p]).map((p, i) => unbudgetedRow(m, p, spentParts.length + i, 0)),
   ].join('');
   document.getElementById('trip-budget-meta').textContent = m.spent ? `${currencyShort(m.spent)} in all` : '';
 }
@@ -1071,7 +1150,25 @@ function renderEmpty(m) {
   const { status } = m;
   renderStats(m);
 
-  // ---- By part: every part, waiting ----
+  // ---- By part: the budget's parts when it has them, otherwise every part, waiting ----
+  if (Object.keys(m.trip.budget).length) renderBudget(m);
+  else renderEmptyParts();
+
+  // ---- The itinerary: each day of the trip, waiting for its spending ----
+  document.getElementById('itinerary-strips').innerHTML = '';
+  document.getElementById('trip-days').innerHTML = tripDays(m).map((d, i) => dayCard({
+    i,
+    title: `Day ${i + 1}`,
+    date: dayLabel(d.iso),
+    flag: d.iso === TODAY ? 'Today' : '',
+    tone: `is-waiting${d.iso === TODAY ? ' is-today' : ''}`,
+    rows: quietRow(status === 'done' || (status === 'away' && i + 1 < m.day) ? 'Nothing tagged' : 'Nothing yet'),
+  })).join('');
+  itineraryHeading(m, 'Nothing tagged yet');
+}
+
+/** By part with no budget and nothing spent: every part, waiting. */
+function renderEmptyParts() {
   const list = document.getElementById('trip-budget');
   list.classList.remove('is-entering');
   list.innerHTML = BUDGET_PARTS.map((part) => [part, PARTS[part]]).map(([part, info], i) => `
@@ -1091,18 +1188,6 @@ function renderEmpty(m) {
       <p class="budget-item__note">${BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing yet'}</p>
     </li>`).join('');
   document.getElementById('trip-budget-meta').textContent = '';
-
-  // ---- The itinerary: each day of the trip, waiting for its spending ----
-  document.getElementById('itinerary-strips').innerHTML = '';
-  document.getElementById('trip-days').innerHTML = tripDays(m).map((d, i) => dayCard({
-    i,
-    title: `Day ${i + 1}`,
-    date: dayLabel(d.iso),
-    flag: d.iso === TODAY ? 'Today' : '',
-    tone: `is-waiting${d.iso === TODAY ? ' is-today' : ''}`,
-    rows: quietRow(status === 'done' || (status === 'away' && i + 1 < m.day) ? 'Nothing tagged' : 'Nothing yet'),
-  })).join('');
-  itineraryHeading(m, 'Nothing tagged yet');
 }
 
 // ============================================================
@@ -1185,7 +1270,6 @@ function initNewTrip() {
   const location = document.getElementById('trip-location');
   const start = document.getElementById('trip-start');
   const end = document.getElementById('trip-end');
-  const budget = document.getElementById('trip-budget-input');
   const summary = document.getElementById('trip-form-summary');
   const error = document.getElementById('trip-form-error');
   const save = document.getElementById('trip-save');
@@ -1222,7 +1306,7 @@ function initNewTrip() {
     location.focus();
   });
   initDialog(dialog);
-  [location, budget].forEach((input) => input.addEventListener('input', () => showError('')));
+  location.addEventListener('input', () => showError(''));
 
   start.addEventListener('click', () => openDatePicker({
     anchor: start,
@@ -1255,13 +1339,11 @@ function initNewTrip() {
     if (!name) { showError('Add where you’re going.'); location.focus(); return; }
     if (!from || !to) { showError('Choose both dates.'); (from ? end : start).focus(); return; }
     if (to < from) { showError('The trip can’t end before it starts.'); end.focus(); return; }
-    const amount = budget.value.trim() === '' ? null : Math.round(Number(budget.value) * 100) / 100;
-    if (amount !== null && !(amount >= 0)) { showError('The budget should be an amount in pounds, e.g. 1500.'); budget.focus(); return; }
 
     save.disabled = true;
     form.classList.add('is-uploading'); // shows the button's spinner (upload page styles)
     try {
-      const trip = fromRow(await createTrip({ location: name, startDate: from, endDate: to, budget: amount }));
+      const trip = fromRow(await createTrip({ location: name, startDate: from, endDate: to }));
       TRIPS.push(trip);
       sortTrips();
       tagTransactions();
@@ -1359,7 +1441,8 @@ function render() {
   }[m.status];
   document.getElementById('trip-subtitle').textContent = `${trip.place ? `${trip.place} · ` : ''}${dateRange(trip)} · ${state}`;
 
-  // A trip with nothing budgeted or tagged yet shows every widget empty (renderEmpty).
+  // A trip with nothing tagged yet shows every widget empty (renderEmpty).
+  closeBudgetEditing();
   const empty = !trip.txs.length;
   if (empty) {
     document.getElementById('trip-sort-wrap').hidden = true;

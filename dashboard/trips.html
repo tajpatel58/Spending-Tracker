@@ -279,7 +279,7 @@
 
   <!-- ============ ONE TRIP ============ -->
   <div id="trip-detail" hidden>
-    <!-- The financial summary: Budget (editable), Spent, Remaining and Each (trips.js renderStats). -->
+    <!-- The financial summary: Budget (the total of the parts' budgets; its pencil opens the sliders below), Spent, Remaining and Each (trips.js renderStats). -->
     <p class="section-eyebrow" id="trip-hero-eyebrow" aria-hidden="true">Financial summary</p>
     <section class="stats-grid stats-grid--quad" id="trip-stats" aria-label="Financial summary"></section>
 
@@ -313,14 +313,22 @@
       </section>
     </div>
 
-    <!-- Where it went: each part of the trip (its sub-categories) as a bar. -->
+    <!-- Where it went: each part of the trip (its sub-categories) as a bar.
+         The pencil swaps the bars for a slider per part, saved to the
+         `trips` table's part_budgets (trips.js initBudgetEditing). -->
     <p class="section-eyebrow" aria-hidden="true">Where it went</p>
     <section class="tile chart-tile trip-parts" aria-labelledby="trip-parts-title">
       <div class="tile__header">
         <h2 id="trip-parts-title">By part</h2>
-        <span class="tile__meta" id="trip-budget-meta"></span>
+        <span class="trip-parts__meta">
+          <span class="tile__meta" id="trip-budget-meta" aria-live="polite"></span>
+          <button type="button" class="tile-edit" data-edit-budget aria-label="Edit the budget for each part" title="Edit the budget for each part">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 19.5l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3l-10 10-4 1.5ZM13.5 7l3 3" stroke="currentColor"/></svg>
+          </button>
+        </span>
       </div>
       <ul class="budget-list" id="trip-budget" aria-label="Spending by part of the trip"></ul>
+      <form class="part-budgets" id="trip-budget-form" aria-label="Budget for each part of the trip" novalidate hidden></form>
     </section>
   </div>
 
@@ -354,13 +362,6 @@
         <button type="button" class="trip-field__input trip-date" id="trip-end" aria-labelledby="trip-end-label trip-end" aria-haspopup="dialog" aria-expanded="false" data-value=""></button>
       </div>
     </div>
-    <label class="trip-field">
-      <span class="trip-field__label">Budget <span class="trip-field__optional">· optional</span></span>
-      <span class="trip-field__money">
-        <span class="trip-field__currency" aria-hidden="true">£</span>
-        <input class="trip-field__input" type="number" name="budget" id="trip-budget-input" placeholder="e.g. 1,500" min="0" step="any" inputmode="decimal">
-      </span>
-    </label>
     <!-- "6 days · 24–29 October 2026", or what's missing. -->
     <p class="trip-form__summary" id="trip-form-summary" aria-live="polite"></p>
     <p class="trip-form__error" id="trip-form-error" role="alert" hidden></p>

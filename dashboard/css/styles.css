@@ -3656,14 +3656,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .tile-link { padding: 0; font: inherit; color: var(--gold-strong); background: none; border: none; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
 .tile-link:hover { text-decoration-color: currentColor; }
 
-/* Editing the budget, in place: a £ field, a hint, then Cancel and Save. */
-.budget-edit { display: flex; flex-direction: column; gap: var(--space-2); height: 100%; }
-.budget-edit__input { font-family: var(--font-display); font-size: 20px; font-weight: 450; padding-top: 7px; padding-bottom: 7px; }
-.budget-edit .trip-field__currency { font-family: var(--font-display); font-size: 16px; }
+/* Editing the budget's parts: a hint, then Cancel and Save. */
 .budget-edit__hint { margin: 0; font-size: 12px; color: var(--text-faint); }
-.budget-edit__actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: auto; padding-top: var(--space-2); }
+.budget-edit__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
 .budget-edit__actions .btn { padding: 6px 14px; font-size: 13px; }
-.stat-tile.is-editing { border-color: color-mix(in srgb, var(--gold) 55%, transparent); box-shadow: 0 0 0 3px var(--gold-soft), var(--shadow-1); }
 .stat-tile__foot b.is-positive { color: var(--accent); }
 .hero-tile__link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
 .hero-tile__link:hover { text-decoration-color: currentColor; }
@@ -3714,6 +3710,78 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* Where it went: the parts across the full width, in two columns. */
 .trip-parts { margin-bottom: var(--space-6); }
 .trip-parts .budget-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px var(--space-10); }
+.trip-parts__meta { display: inline-flex; align-items: center; gap: var(--space-3); }
+.trip-parts__meta .tile__meta.is-editing { font-family: var(--font-num); font-weight: 500; color: var(--text); } /* the live total */
+.trip-parts.is-editing { border-color: color-mix(in srgb, var(--gold) 55%, transparent); box-shadow: 0 0 0 3px var(--gold-soft), var(--shadow-1); }
+.trip-parts.is-editing .tile-edit { visibility: hidden; }
+
+/* Editing By part: a slider and a £ field for each part, in the part's
+   colour, with a faint tick where its spending so far reaches. */
+.part-budgets { padding: var(--space-6) var(--tile-gutter) var(--tile-gutter); }
+.part-budgets[hidden] { display: none; }
+.part-sliders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px var(--space-10); }
+.part-slider { min-width: 0; animation: legend-in 320ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 30ms); }
+.part-slider__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
+.part-slider__head .trip-part { cursor: pointer; }
+.part-slider__money { flex: none; width: 108px; }
+.part-slider__amount { padding-top: 5px; padding-bottom: 5px; font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.part-slider__track { position: relative; display: block; }
+.part-slider input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px; /* a roomy target for a thumb on a 6px track */
+  margin: 0;
+  background: none;
+  cursor: pointer;
+}
+.part-slider input[type="range"]:focus { outline: none; }
+.part-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(to right, var(--avatar-color) var(--fill, 0%), color-mix(in srgb, var(--text) 8%, transparent) var(--fill, 0%));
+}
+.part-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -7px;
+  background: var(--surface);
+  border: 2px solid var(--avatar-color);
+  border-radius: 50%;
+  box-shadow: var(--shadow-1);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.part-slider input[type="range"]::-moz-range-track { height: 6px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--text) 8%, transparent); }
+.part-slider input[type="range"]::-moz-range-progress { height: 6px; border-radius: var(--radius-full); background: var(--avatar-color); }
+.part-slider input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  border: 2px solid var(--avatar-color);
+  border-radius: 50%;
+  box-shadow: var(--shadow-1);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.part-slider input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
+.part-slider input[type="range"]:active::-moz-range-thumb { transform: scale(1.12); }
+.part-slider input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--gold-soft), var(--shadow-1); }
+.part-slider input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--gold-soft), var(--shadow-1); }
+.part-slider__spent {
+  position: absolute;
+  top: 50%;
+  left: calc(10px + (100% - 20px) * var(--spent, 0)); /* lined up with the thumb's centre at that amount */
+  width: 2px;
+  height: 12px;
+  background: var(--text-muted);
+  border-radius: 1px;
+  opacity: 0.55;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.part-slider .budget-item__note { margin-top: 0; }
+.part-sliders__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-6); padding-top: var(--space-4); border-top: var(--hairline) solid var(--border); }
 
 .trip-tx { display: flex; align-items: center; gap: var(--space-3); padding: 8px var(--tile-gutter); }
 .trip-tx + .trip-tx { border-top: var(--hairline) solid color-mix(in srgb, var(--border) 60%, transparent); }
@@ -3964,6 +4032,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 @media (max-width: 900px) {
   .trip-parts .budget-list { grid-template-columns: minmax(0, 1fr); }
+  .part-sliders { grid-template-columns: minmax(0, 1fr); }
   .stats-grid.trips-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats-grid.stats-grid--quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .charts-grid.trips-home-charts { grid-template-columns: minmax(0, 1fr); }
@@ -3978,7 +4047,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .place__meta, .place__figure.is-empty { font-size: var(--fs-small); }
   .place__note { font-size: var(--fs-caption); }
   .stats-grid.stats-grid--quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .budget-edit__input { font-size: var(--fs-figure); }
+  .part-sliders__foot { flex-direction: column; align-items: stretch; }
+  .budget-edit__actions .btn { flex: 1; padding: 11px 16px; }
   .trip-form { padding: var(--space-5) var(--space-4) var(--space-4); }
   .trip-field__input { font-size: 16px; } /* 16px stops iOS zooming into the field */
   .trip-date { font-size: var(--fs-body); }
