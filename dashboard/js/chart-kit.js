@@ -35,6 +35,28 @@ export function stripePattern(color) {
   return g.createPattern(tile, 'repeat');
 }
 
+/**
+ * Draws `config` on `canvas` and returns the chart. The chart drawn there
+ * last (`chart`) is given the new data and options instead of being
+ * destroyed and rebuilt, which saves Chart.js setting the canvas up and
+ * measuring the page again on every redraw. Its datasets are new objects,
+ * so Chart.js plays the same draw-in as for a new chart; any hover is
+ * cleared, as a new chart would start without one.
+ */
+export function drawChart(chart, canvas, config) {
+  if (!chart || chart.canvas !== canvas) {
+    chart?.destroy();
+    return new Chart(canvas, config);
+  }
+  chart.setActiveElements([]);
+  chart.tooltip?.setActiveElements([], { x: 0, y: 0 });
+  chart._lastEvent = null; // otherwise Chart.js replays the last pointer position onto the new data
+  chart.data = config.data;
+  chart.options = config.options;
+  chart.update();
+  return chart;
+}
+
 /** Touch screens can't hover away from a chart, so its tooltip carries a close button there. */
 const canHover = () => window.matchMedia('(hover: hover)').matches;
 

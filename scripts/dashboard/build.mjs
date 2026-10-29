@@ -36,6 +36,7 @@ const PAGES = {
   'index.html': 'main.js',
   'calendar.html': 'calendar.js',
   'summary.html': 'summary.js',
+  'trips.html': 'trips.js',
   'chat.html': 'chat.js',
   'upload.html': 'upload.js',
   'login.html': 'login.js',

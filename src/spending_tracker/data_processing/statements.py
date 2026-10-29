@@ -48,6 +48,7 @@ def create_transactions_metadata_df(cleaned_transactions_df: pd.DataFrame,
     # add NULL columns for default values of manually changed fiels
     transactions_metadata_df["manual_merchant"] = None
     transactions_metadata_df["manual_category"] = None
+    transactions_metadata_df["manual_sub_category"] = None
     transactions_metadata_df["manual_amount"] = None
     transactions_metadata_df["manual_date"] = None  
     transactions_metadata_df["hidden"] = False

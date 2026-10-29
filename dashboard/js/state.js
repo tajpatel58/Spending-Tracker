@@ -102,6 +102,23 @@ export function finishLoading() {
 
 /** How long (from page start) the launch mark stays up at least: long enough to finish drawing. */
 const LAUNCH_MS = 1500;
+/** Roughly how long the cards, counting figures and charts take to draw in once revealed. */
+const ENTRANCE_MS = 1300;
+
+/**
+ * Runs `task` once the page's entrance has played (the launch mark, then
+ * the cards rising and charts drawing in) and the browser is idle, so
+ * work it doesn't need straight away doesn't cost the entrance frames.
+ * Call after finishLoading.
+ */
+export function afterEntrance(task) {
+  const launching = document.documentElement.classList.contains('is-launching');
+  const delay = motion.reduced() ? 0 : Math.max(0, launching ? LAUNCH_MS - performance.now() : 0) + ENTRANCE_MS;
+  setTimeout(() => {
+    if ('requestIdleCallback' in window) requestIdleCallback(task, { timeout: 1000 });
+    else task();
+  }, delay);
+}
 
 /** Swaps the loading placeholders for a short message with a Retry button. */
 export function showLoadError(error) {
@@ -135,7 +152,9 @@ export function isVariableExpense(t) {
 // "Max spend per day" (last month's salary minus this is what can be spent).
 export const MONTHLY_SAVINGS_TARGET = 4400;
 
-// Edit these monthly budget values as the household budget evolves.
+// The default monthly budget for each group, and the order the groups are
+// shown in. A month's own budgets, edited on the Overview, are saved to the
+// Supabase `monthly_budgets` table (MONTHLY_BUDGETS, read through budgetsFor).
 export const BUDGETS = {
   'Fixed Expenses': 800,
   'Dining Out': 250,
@@ -145,7 +164,21 @@ export const BUDGETS = {
   Extras: 400,
 };
 
+/** Each month's saved budgets, from `monthly_budgets`: { '2026-10': { Groceries: 300, ... } }. */
+export const MONTHLY_BUDGETS = {};
+
+/** A month's budget for each group: its saved amounts, and the default for any group it hasn't saved. */
+export function budgetsFor(month) {
+  const saved = MONTHLY_BUDGETS[month] || {};
+  return Object.fromEntries(Object.entries(BUDGETS).map(([group, amount]) => [
+    group,
+    saved[group] != null && Number.isFinite(Number(saved[group])) ? Number(saved[group]) : amount,
+  ]));
+}
+
 // Maps raw category IDs into the budget groups shown on the dashboard.
+// null keeps a category out of every group: Holiday spending is budgeted
+// trip by trip (Trips page) instead.
 export const BUDGET_GROUPS = {
   dining: 'Dining Out',
   groceries: 'Groceries',
@@ -153,13 +186,16 @@ export const BUDGET_GROUPS = {
   shopping: 'Shopping',
   transport: 'Transport',
   health: 'Extras',
-  holiday: 'Extras',
+  holiday: null,
   subscriptions: 'Extras',
   fixed_expense: 'Fixed Expenses',
   'birthday/gifts': 'Extras',
   activities: 'Extras',
   other: 'Extras',
 };
+
+/** The budget group a category's spending counts towards: 'Extras' when it isn't mapped, null when it's kept out. */
+export const budgetGroupOf = (category) => (category in BUDGET_GROUPS ? BUDGET_GROUPS[category] : 'Extras');
 
 /** Each budget group's colour, shared by the budget bars and the Over budget tile's strip. */
 export const BUDGET_GROUP_COLORS = {
@@ -186,8 +222,8 @@ export function budgetGroupActuals(month, upTo = null) {
   const actual = {};
   const txs = getMonthTransactions(month).filter((t) => isExpense(t) && (upTo === null || Number(t.date.slice(8, 10)) <= upTo));
   Object.entries(categoryTotals(txs)).forEach(([categoryId, amount]) => {
-    const group = BUDGET_GROUPS[categoryId] || 'Extras';
-    actual[group] = (actual[group] || 0) + amount;
+    const group = budgetGroupOf(categoryId);
+    if (group) actual[group] = (actual[group] || 0) + amount;
   });
   return actual;
 }

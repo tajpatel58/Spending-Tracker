@@ -1,8 +1,8 @@
 /**
  * transactions-api.js
  * ---------------------------------------------------------------------
- * Writes edits made in the dashboard (category, merchant name, amount,
- * date, hide) back to Supabase. Each function updates the transactions_metadata
+ * Writes edits made in the dashboard (category, Holiday sub-category,
+ * merchant name, amount, date, hide) back to Supabase. Each function updates the transactions_metadata
  * row for one transaction and throws on failure, so the caller can undo
  * its optimistic UI update (see table.js).
  * ---------------------------------------------------------------------
@@ -18,6 +18,21 @@ export async function updateTransactionCategory(transactionId, categoryId) {
     .eq('event_id', transactionId);
 
   if (error) throw error;
+}
+
+/**
+ * Sets a Holiday transaction's sub-category (e.g. 'flights', from the
+ * Trips page). Passing null clears it, so it's back to be sorted.
+ */
+export async function updateTransactionSubCategory(transactionId, subCategory) {
+  const { data, error } = await supabaseClient
+    .from('transactions_metadata')
+    .update({ manual_sub_category: subCategory })
+    .eq('event_id', transactionId)
+    .select('event_id');
+
+  if (error) throw error;
+  if (!data?.length) throw new Error(`No metadata row found for transaction ${transactionId}`);
 }
 
 /** Renames a transaction's merchant. */

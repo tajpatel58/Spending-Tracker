@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Ledger — Trips</title>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- Add to Home Screen opens it as a full-screen app (no Safari bars). -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="application-name" content="Ledger">
+<!-- Browser/status bar colour; theme.js keeps it in step with light/dark mode. -->
+<meta name="theme-color" content="#F6F4EF">
+<meta name="color-scheme" content="light dark">
+<!-- The deploy workflow replaces the next line with a preconnect to the
+     Supabase project (its URL lives only in the deploy secrets). -->
+<!-- supabase-preconnect -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..650&family=Geist:wght@400..650&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Before first paint: apply the saved theme (so nothing flashes light,
+     then dark) and, on the first page of a visit, show the launch mark
+     (state.js finishLoading lifts it). Skipped with reduced motion. -->
+<script>
+  try {
+    var t = localStorage.getItem('ledger-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+    if (!sessionStorage.getItem('ledger-launched') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('is-launching');
+      sessionStorage.setItem('ledger-launched', '1');
+    }
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+<!-- sw-register: the deployed build switches on the service worker here (scripts/dashboard/build.mjs). -->
+<!-- Scripts download in parallel while the page parses (defer keeps their order). -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
+<script defer src="js/config.js"></script>
+<!-- The page's code, as ES modules: trips.js imports what it needs (deferred, like the scripts above). -->
+<script type="module" src="js/trips.js"></script>
+<!-- Chart.js after the modules, as on the Overview, so the data starts loading first. -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<!-- is-loading shows placeholder shapes until the data has loaded and
+     rendered (see .is-loading in styles.css). No data is in the page
+     until the access check passes, so nothing leaks to signed-out visitors. -->
+<body class="is-loading" aria-busy="true">
+
+<!-- Launch mark: the gold ring draws itself, the monogram and wordmark
+     settle in, then the dashboard rises in beneath it (first page of a visit). -->
+<div class="launch" aria-hidden="true">
+  <svg class="launch__mark" viewBox="0 0 64 64" fill="none">
+    <circle class="launch__ring" cx="32" cy="32" r="30.5" stroke="var(--gold)" stroke-width="1.4" pathLength="1"/>
+    <g class="launch__letter"><path transform="translate(20.527 46.412) scale(0.021008 -0.021008)" fill="var(--text)" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/></g>
+  </svg>
+  <span class="launch__word">Ledger</span>
+</div>
+
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar__inner">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg class="brand__svg" width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="30.5" stroke="var(--gold)" stroke-width="2"/>
+          <path transform="translate(20.527 46.412) scale(0.021008 -0.021008)" fill="var(--text)" d="M572 1387 485 1374Q466.5 1371.5 457.25 1365.25Q448 1359 448 1347V58Q448 36.5 460.5 27.25Q473 18 497 18H716Q764 18 806.25 36.0Q848.5 54 889.5 101.0Q930.5 148 973.5 236L1064 422Q1066.5 426.5 1068.75 428.75Q1071 431 1074 430Q1078 429.5 1079.0 425.75Q1080 422 1078 415L986 -8Q983 -21 981.25 -24.5Q979.5 -28 977 -28Q970.5 -28 957.75 -21.0Q945 -14 924.25 -7.0Q903.5 0 872 0H79Q74.5 0 72.25 2.0Q70 4 70 6Q70 11.5 81 13L168 26Q187 29 196.0 35.0Q205 41 205 53V1347Q205 1359 196.0 1365.25Q187 1371.5 168 1374L81 1387Q70 1388.5 70 1394Q70 1396.5 72.25 1398.25Q74.5 1400 79 1400H574Q578.5 1400 580.75 1398.25Q583 1396.5 583 1394Q583 1388.5 572 1387Z"/>
+        </svg>
+      </span>
+      <span class="brand__name">Ledger</span>
+    </div>
+
+    <nav class="view-nav" aria-label="Views">
+      <a href="index.html" title="Overview" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="4" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+          <rect x="13" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <span>Overview</span>
+      </a>
+      <a href="calendar.html" title="Calendar" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="5.5" width="16" height="14.5" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Calendar</span>
+      </a>
+      <a href="summary.html" title="Summary" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4.5 19.5h15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <path d="M7.5 16v-3.5M12 16V8.5M16.5 16V5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Summary</span>
+      </a>
+      <a href="trips.html" title="Trips" class="view-nav__link is-active" aria-current="page">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="7.5" width="16" height="12" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M9 7.5V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5v2M9 11v5M15 11v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Trips</span>
+      </a>
+      <a href="chat.html" title="Assistant" class="view-nav__link">
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.5l1.6 4.3a3 3 0 0 0 1.8 1.8l4.1 1.4-4.1 1.4a3 3 0 0 0-1.8 1.8L12 18.5l-1.6-4.3a3 3 0 0 0-1.8-1.8L4.5 11l4.1-1.4a3 3 0 0 0 1.8-1.8L12 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M18.5 16.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4Z" fill="currentColor"/>
+        </svg>
+        <span>Assistant</span>
+      </a>
+      <!-- Upload is hidden for now (data arrives through the bank API); remove `hidden` to bring it back. -->
+      <a href="upload.html" title="Upload" class="view-nav__link" hidden>
+        <svg class="view-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 15V4.5M12 4.5l-4 4M12 4.5l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4.5 14v3.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Upload</span>
+      </a>
+    </nav>
+
+    <div class="topbar__controls">
+      <div class="topbar__filters">
+        <!-- Which trip the page shows (trips.js initTripStepper): an ‹ All trips › stepper
+             like Overview's month, with an invisible <select> on the label. -->
+        <div class="month-stepper" role="group" aria-label="Trip">
+          <button type="button" class="month-stepper__btn" id="trip-prev" aria-label="Earlier trip" title="Earlier trip">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <label class="month-stepper__label">
+            <span id="trip-label">All trips</span>
+            <select id="trip-select" aria-label="Choose trip"></select>
+          </label>
+          <button type="button" class="month-stepper__btn" id="trip-next" aria-label="Later trip" title="Later trip">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="topbar__actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+          <svg class="icon icon--sun" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <svg class="icon icon--moon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="user-menu" id="user-menu">
+          <button class="user-menu__button" id="user-menu-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu-panel">
+            <span class="user-menu__avatar" id="user-menu-avatar" aria-hidden="true"></span>
+            <span class="user-menu__name" id="user-menu-name"></span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="user-menu__panel" id="user-menu-panel" role="menu" hidden>
+            <div class="user-menu__identity">
+              <span class="user-menu__panel-name" id="user-menu-panel-name"></span>
+              <span class="user-menu__email" id="user-menu-email"></span>
+            </div>
+            <div class="user-menu__divider"></div>
+            <button id="signout-button" class="user-menu__signout" type="button" role="menuitem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 12H10.5M20 12l-3.5-3.5M20 12l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Sign out</span>
+            </button>
+            <!-- Which deploy this is: scripts/dashboard/build.mjs fills in the build
+                 number, commit and date; running the source directly, it's a local build. -->
+            <p class="user-menu__build" data-build>Local build</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MAIN ============ -->
+<main class="container trips-page">
+
+  <div class="page-heading">
+    <div>
+      <p class="page-heading__eyebrow" id="page-eyebrow"></p>
+      <h1 id="trip-title">Trips</h1>
+      <p id="trip-subtitle" class="page-heading__subtitle">Every trip, from saving up to coming home</p>
+    </div>
+    <!-- A span, not a div: on phones the heading lays its divs out as part of its own grid. -->
+    <span class="trips-actions">
+      <!-- On a saved trip's page (trips.js initDeleteTrip); sample trips can't be deleted. -->
+      <button type="button" class="trip-delete-btn" id="trip-delete" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14M10 4h4M7 7l.8 12a2 2 0 0 0 2 1.9h4.4a2 2 0 0 0 2-1.9L17 7M10.5 11v6M13.5 11v6" stroke="currentColor"/></svg>
+        <span>Delete trip</span>
+      </button>
+      <button type="button" class="trip-new-btn" id="trip-new">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor"/></svg>
+        <span>Plan a trip</span>
+      </button>
+    </span>
+  </div>
+
+  <!-- ============ HOME: every trip at a glance ============ -->
+  <div id="trips-home">
+    <p class="section-eyebrow" aria-hidden="true">At a glance</p>
+    <section class="stats-grid trips-glance" id="trips-glance" aria-label="Trips at a glance"></section>
+
+    <!-- Where the money went: a slice per trip, beside each trip's cost
+         split by whose account paid (and its budget, when it has one). -->
+    <p class="section-eyebrow" aria-hidden="true">Where it went</p>
+    <section class="charts-grid trips-home-charts" aria-label="Where it went">
+      <div class="tile chart-tile">
+        <div class="tile__header">
+          <h2>Spending by trip</h2>
+          <span class="tile__meta" id="home-trips-meta"></span>
+        </div>
+        <div class="chart-tile__body">
+          <div class="chart-tile__canvas-wrap chart-tile__canvas-wrap--donut">
+            <canvas id="home-trips-chart" role="img" aria-label="Donut chart of spending by trip"></canvas>
+          </div>
+          <ul class="legend" id="home-trips-legend"></ul>
+        </div>
+      </div>
+
+      <div class="tile chart-tile">
+        <div class="tile__header">
+          <h2>Trip by trip</h2>
+          <span class="tile__meta">What each cost, by who paid</span>
+        </div>
+        <div class="chart-tile__canvas-wrap trips-compare__chart">
+          <canvas id="home-compare-chart" role="img" aria-label="Bar chart of each trip's cost, split by whose account paid"></canvas>
+        </div>
+        <p class="trips-compare__empty" hidden>Trips appear here once Holiday spending falls within their dates.</p>
+        <ul class="trend-legend" id="home-compare-legend" aria-hidden="true"></ul>
+      </div>
+    </section>
+
+    <!-- Every place, a card each, opening that trip. -->
+    <p class="section-eyebrow" aria-hidden="true">Places</p>
+    <section class="tile places-tile" aria-label="Places">
+      <div class="tile__header">
+        <h2>Where you’ve been</h2>
+        <span class="tile__meta" id="places-meta"></span>
+      </div>
+      <ul class="places" id="places"></ul>
+    </section>
+
+    <!-- Every trip side by side; choosing one opens it. -->
+    <p class="section-eyebrow" aria-hidden="true">All trips</p>
+    <section class="tile table-tile ledger-tile" aria-label="All trips">
+      <div class="table-tile__header">
+        <h2>The trips ledger</h2>
+        <span class="tile__meta">Choose a trip to open it</span>
+      </div>
+      <div class="table-scroll">
+        <table class="ledger-table trips-table">
+          <thead>
+            <tr>
+              <th scope="col">Trip</th>
+              <th scope="col">When</th>
+              <th scope="col" class="ledger-table__num">Budget</th>
+              <th scope="col" class="ledger-table__num">Spent</th>
+              <th scope="col" class="ledger-table__num">Per day</th>
+              <th scope="col" class="ledger-table__target">Against budget</th>
+            </tr>
+          </thead>
+          <tbody id="trips-ledger-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ONE TRIP ============ -->
+  <div id="trip-detail" hidden>
+    <!-- The financial summary: Budget (the total of the parts' budgets; its pencil edits them on By part below), Spent, Remaining and Each (trips.js renderStats). -->
+    <p class="section-eyebrow" id="trip-hero-eyebrow" aria-hidden="true">Financial summary</p>
+    <section class="stats-grid stats-grid--quad" id="trip-stats" aria-label="Financial summary"></section>
+
+    <!-- The itinerary: the trip day by day, as the page's centrepiece —
+         Essentials (flights, parking) first, then a card for each day with
+         what was spent on it (trips.js renderItinerary). -->
+    <p class="section-eyebrow" aria-hidden="true">The itinerary</p>
+    <section class="tile itinerary" aria-labelledby="itinerary-title">
+      <div class="itinerary__head">
+        <div>
+          <h2 class="itinerary__title" id="itinerary-title">Day by day</h2>
+          <p class="itinerary__sub" id="itinerary-sub"></p>
+        </div>
+        <span class="tile__meta" id="itinerary-meta"></span>
+      </div>
+      <div id="itinerary-strips"></div>
+      <ol class="itinerary__days" id="trip-days"></ol>
+    </section>
+
+    <!-- Holiday spending in the trip with no sub-category yet: a chip for each
+         sub-category files it (trips.js renderToSort). Hidden when there's none. -->
+    <div id="trip-sort-wrap" hidden>
+      <p class="section-eyebrow" aria-hidden="true">To sort</p>
+      <section class="tile trip-sort" aria-labelledby="trip-sort-title">
+        <div class="tile__header">
+          <h2 id="trip-sort-title">What was it for?</h2>
+          <span class="tile__meta" id="trip-sort-meta"></span>
+        </div>
+        <p class="trip-sort__intro">Holiday spending during this trip without a sub-category yet. Choose one for each and it’s saved straight away.</p>
+        <ul class="trip-sort__list" id="trip-sort-list"></ul>
+      </section>
+    </div>
+
+    <!-- Where it went: each part of the trip (its sub-categories) as a bar.
+         The pencil turns the bars into gauges to drag, saved to the
+         `trips` table's part_budgets (trips.js initBudgetEditing). -->
+    <p class="section-eyebrow" aria-hidden="true">Where it went</p>
+    <section class="tile chart-tile trip-parts" aria-labelledby="trip-parts-title">
+      <div class="tile__header">
+        <div class="tile__heading">
+          <h2 id="trip-parts-title">By part</h2>
+          <p class="tile__sub" hidden></p>
+        </div>
+        <span class="tile__aside">
+          <span class="tile__meta" id="trip-budget-meta" aria-live="polite"></span>
+          <button type="button" class="tile-edit" data-edit-budget aria-label="Edit the budget for each part" title="Edit the budget for each part">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 19.5l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3l-10 10-4 1.5ZM13.5 7l3 3" stroke="currentColor"/></svg>
+          </button>
+        </span>
+      </div>
+      <ul class="budget-list" id="trip-budget" aria-label="Spending by part of the trip"></ul>
+    </section>
+  </div>
+
+</main>
+
+<!-- Plan a trip: where and when, saved to the Supabase `trips` table (trips.js initNewTrip). -->
+<dialog class="trip-dialog" id="trip-dialog" aria-labelledby="trip-dialog-title">
+  <form class="trip-form" id="trip-form" novalidate>
+    <div class="trip-form__head">
+      <div>
+        <p class="trip-form__eyebrow">New trip</p>
+        <h2 id="trip-dialog-title">Plan a trip</h2>
+      </div>
+      <button type="button" class="trip-form__close" data-close aria-label="Close" title="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor"/></svg>
+      </button>
+    </div>
+
+    <label class="trip-field">
+      <span class="trip-field__label">Where</span>
+      <input class="trip-field__input" type="text" name="location" id="trip-location" placeholder="e.g. Lisbon" maxlength="80" autocomplete="off" required>
+    </label>
+    <div class="trip-form__dates">
+      <!-- Each opens the transactions table's date picker (datepicker.js); the chosen date is kept in data-value. -->
+      <div class="trip-field">
+        <span class="trip-field__label" id="trip-start-label">From</span>
+        <button type="button" class="trip-field__input trip-date" id="trip-start" aria-labelledby="trip-start-label trip-start" aria-haspopup="dialog" aria-expanded="false" data-value=""></button>
+      </div>
+      <div class="trip-field">
+        <span class="trip-field__label" id="trip-end-label">To</span>
+        <button type="button" class="trip-field__input trip-date" id="trip-end" aria-labelledby="trip-end-label trip-end" aria-haspopup="dialog" aria-expanded="false" data-value=""></button>
+      </div>
+    </div>
+    <!-- "6 days · 24–29 October 2026", or what's missing. -->
+    <p class="trip-form__summary" id="trip-form-summary" aria-live="polite"></p>
+    <p class="trip-form__error" id="trip-form-error" role="alert" hidden></p>
+
+    <div class="trip-form__foot">
+      <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn--primary trip-form__save" id="trip-save">
+        <span class="upload-submit__spinner" aria-hidden="true"></span>
+        <span>Save trip</span>
+      </button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Delete a trip: asks first, then removes its row from the Supabase `trips` table. -->
+<dialog class="trip-dialog" id="trip-delete-dialog" aria-labelledby="trip-delete-title">
+  <form class="trip-form" id="trip-delete-form">
+    <div class="trip-form__head">
+      <div>
+        <p class="trip-form__eyebrow trip-form__eyebrow--danger">Delete trip</p>
+        <h2 id="trip-delete-title">Delete this trip?</h2>
+      </div>
+      <button type="button" class="trip-form__close" data-close aria-label="Close" title="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor"/></svg>
+      </button>
+    </div>
+    <p class="trip-form__text" id="trip-delete-text"></p>
+    <p class="trip-form__error" id="trip-delete-error" role="alert" hidden></p>
+    <div class="trip-form__foot">
+      <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn--danger trip-form__save" id="trip-delete-confirm">
+        <span class="upload-submit__spinner" aria-hidden="true"></span>
+        <span>Delete trip</span>
+      </button>
+    </div>
+  </form>
+</dialog>
+
+
+<!--
+  The page's code is ES modules with trips.js as the entry point (see
+  the notes in index.html): it imports the shared files it uses.
+-->
+</body>
+</html>

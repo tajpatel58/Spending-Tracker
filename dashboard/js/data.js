@@ -133,7 +133,8 @@ function applyDataBundle(bundle) {
  * moved there (in localStorage) is read once, moved across and removed.
  */
 async function readDataCache(email) {
-  const valid = (cached) => (cached && cached.user === email && cached.version === 1 ? cached : null);
+  // Version 2 added each transaction's subCategory: an older copy is skipped and fetched afresh.
+  const valid = (cached) => (cached && cached.user === email && cached.version === 2 ? cached : null);
   let stored = null;
   try { stored = await localCache.get(LEDGER_DATA_CACHE_KEY); } catch { /* IndexedDB unavailable */ }
   if (stored) return valid(stored);
@@ -148,7 +149,7 @@ async function readDataCache(email) {
 async function writeDataCache() {
   saveDataCache.timer = null;
   if (!dataStatus.user || localDataCleared) return;
-  const copy = { version: 1, user: dataStatus.user, syncedAt: dataStatus.syncedAt, ...currentDataBundle() };
+  const copy = { version: 2, user: dataStatus.user, syncedAt: dataStatus.syncedAt, ...currentDataBundle() };
   try {
     await localCache.set(LEDGER_DATA_CACHE_KEY, copy);
   } catch {
@@ -190,7 +191,26 @@ async function fetchDataBundle() {
   return { accountRows, transactions, events };
 }
 
-const sameData = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/** True when two lists of flat records (every value a string, number, boolean or null) hold the same values in the same order. */
+function sameRows(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    const keys = Object.keys(x);
+    if (keys.length !== Object.keys(y).length) return false;
+    for (const key of keys) if (!Object.is(x[key], y[key])) return false;
+  }
+  return true;
+}
+
+/**
+ * True when two data bundles match. Compared field by field rather than
+ * as JSON, which built two strings of every transaction on each check.
+ */
+const sameData = (a, b) => sameRows(a.accountRows, b.accountRows)
+  && sameRows(a.transactions, b.transactions)
+  && sameRows(a.events || [], b.events || []);
 const notify = (name, detail) => document.dispatchEvent(new CustomEvent(name, { detail }));
 
 /**
@@ -207,7 +227,7 @@ export function refreshData() {
       const fresh = await fetchDataBundle();
       const current = currentDataBundle();
       const changed = !sameData(fresh, current);
-      const accountsChanged = changed && !sameData(fresh.accountRows, current.accountRows);
+      const accountsChanged = changed && !sameRows(fresh.accountRows, current.accountRows);
       if (changed) applyDataBundle(fresh);
       dataStatus.syncedAt = Date.now();
       saveDataCache();

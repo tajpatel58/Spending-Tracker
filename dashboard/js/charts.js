@@ -8,7 +8,7 @@
  * ---------------------------------------------------------------------
  */
 
-import { fade, htmlTooltip, stripePattern } from './chart-kit.js';
+import { drawChart, fade, htmlTooltip, stripePattern } from './chart-kit.js';
 import { CATEGORIES, MONTH_LABEL, MONTHS, TRANSACTIONS } from './data.js';
 import { setMonth, syncTableFilters } from './filters.js';
 import {
@@ -21,13 +21,15 @@ import {
   sumAbs,
   todayIso,
 } from './forecast.js';
+import { closeBudgetEditor } from './budget-editor.js';
 import { cssVar, currency, currencyShort, escapeAttr, formatDate, signedFixed } from './format.js';
 import { motion } from './motion.js';
 import {
   BUDGET_GROUP_COLORS,
-  BUDGET_GROUPS,
   budgetGroupActuals,
+  budgetGroupOf,
   BUDGETS,
+  budgetsFor,
   catById,
   categoryTotals,
   getMonthTransactions,
@@ -124,9 +126,8 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
   };
 
   // ---- Chart ----
-  if (chart) chart.destroy();
   const firstDraw = isFirstDraw(canvasId);
-  const instance = new Chart(canvas, {
+  const instance = drawChart(chart, canvas, {
     type: 'doughnut',
     data: {
       labels: entries.map((e) => e.label),
@@ -539,15 +540,17 @@ export function initUserDrill() {
 
 /** The date each budget group's running total first went over its budget, e.g. { Groceries: '2026-10-14' }. */
 function budgetCrossings(month) {
+  const budgets = budgetsFor(month);
   const running = {};
   const crossed = {};
   getMonthTransactions(month)
     .filter(isExpense)
     .sort((a, b) => a.date.localeCompare(b.date))
     .forEach((t) => {
-      const group = BUDGET_GROUPS[t.category] || 'Extras';
+      const group = budgetGroupOf(t.category);
+      if (!group) return; // kept out of the budgets (Holiday)
       running[group] = (running[group] || 0) + Math.abs(t.amount);
-      if (!crossed[group] && BUDGETS[group] && running[group] > BUDGETS[group]) crossed[group] = t.date;
+      if (!crossed[group] && budgets[group] && running[group] > budgets[group]) crossed[group] = t.date;
     });
   return crossed;
 }
@@ -560,16 +563,21 @@ function budgetCrossings(month) {
  * the budget line, and the overspend runs on past it as rose stripes.
  * Under each bar, a quiet note says what's left per day, how far ahead
  * of pace it is, or when it went over. Fixed Expenses skips the pace and
- * per-day figures, as bills land on set dates rather than evenly.
+ * per-day figures, as bills land on set dates rather than evenly. The
+ * budgets are the month's own (budgetsFor), set from the tile's pencil
+ * (budget-editor.js); redrawing closes that editor, so it can't be left
+ * open on a different month.
  */
 export function renderBudgetChart() {
+  closeBudgetEditor();
   const groupNames = Object.keys(BUDGETS); // chart order follows BUDGETS in state.js
   const actualByGroup = budgetGroupActuals(state.month);
+  const budgets = budgetsFor(state.month);
 
   const entries = groupNames.map((name) => ({
     label: name,
     actual: actualByGroup[name] || 0,
-    budget: BUDGETS[name] || 0,
+    budget: budgets[name] || 0,
     color: BUDGET_GROUP_COLORS[name],
   }));
   // How far through the month the data runs (statements arrive in batches).
@@ -703,10 +711,9 @@ export function renderPaceChart(pace) {
   };
 
   const canvas = document.getElementById('pace-chart');
-  if (paceChart) paceChart.destroy();
   canvas.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible');
   const firstDraw = isFirstDraw('pace-chart');
-  paceChart = new Chart(canvas, {
+  paceChart = drawChart(paceChart, canvas, {
     type: 'line',
     plugins: [hoverLine],
     data: {
@@ -908,10 +915,9 @@ export function renderTrendChart() {
   renderTrendSummary({ months, fixed, everyday, toCome, target, currentMonth, latest });
 
   const ctx = document.getElementById('trend-chart');
-  if (trendChart) trendChart.destroy();
   ctx.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible'); // e.g. after clicking a bar
   const firstDraw = isFirstDraw('trend-chart');
-  trendChart = new Chart(ctx, {
+  trendChart = drawChart(trendChart, ctx, {
     data: {
       labels: months.map((key) => MONTH_LABEL(key).split(' ')[0].slice(0, 3)),
       datasets: [

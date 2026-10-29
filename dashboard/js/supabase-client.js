@@ -63,7 +63,8 @@ function normalizeCategory(value) {
  * flag) stored in the transactions_metadata table.
  *
  * @returns {Promise<Array<Object>>} transactions shaped for the
- *   dashboard: { id, date, merchant, category, amount, account, user, hidden }
+ *   dashboard: { id, date, merchant, category, subCategory, amount, account, user, hidden }
+ *   (subCategory: a Holiday transaction's sub-category, e.g. 'flights' — see trips.js)
  */
 export async function fetchTransactions() {
   // event_id breaks ties between same-day rows, so pages never overlap or skip.
@@ -76,7 +77,7 @@ export async function fetchTransactions() {
 
     fetchAllRows((options) => supabaseClient
       .from('transactions_metadata')
-      .select('event_id, llm_merchant, llm_category, manual_merchant, manual_category, manual_amount, manual_date, hidden', options)
+      .select('event_id, llm_merchant, llm_category, manual_merchant, manual_category, manual_sub_category, manual_amount, manual_date, hidden', options)
       .order('event_id', { ascending: true })),
   ]);
 
@@ -110,6 +111,7 @@ export async function fetchTransactions() {
         originalDate: transaction.date,
         merchant,
         category,
+        subCategory: metadata.manual_sub_category ?? null,
         amount: Number(amount),
         account: String(transaction.account_id),
         user: transaction.user,

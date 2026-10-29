@@ -8,6 +8,7 @@
  */
 
 import { initPageHeading, initUserMenu, signOut } from './auth.js';
+import { initBudgetEditor, loadMonthlyBudgets } from './budget-editor.js';
 import {
   initCategoryDrill,
   initUserDrill,
@@ -115,6 +116,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initUserMode();
     initBudgetStrip();
     initPaceFixedToggle();
+    initBudgetEditor();
+    loadMonthlyBudgets(); // this device's copy now, Supabase's when it arrives
 
     renderAll();
     finishLoading();

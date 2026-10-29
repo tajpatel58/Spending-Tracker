@@ -33,6 +33,8 @@ const SHAPES = {
   'birthday/gifts': '<rect x="4" y="8.5" width="16" height="4" rx="1"/><path d="M5.5 12.5v8h13v-8M12 8.5v12"/><path d="M12 8.5C10.5 5 7 4.5 7 7c0 1.5 2.5 1.5 5 1.5ZM12 8.5C13.5 5 17 4.5 17 7c0 1.5-2.5 1.5-5 1.5Z"/>',
   // A ticket.
   activities: '<path d="M3.5 7.5h17v3a1.5 1.5 0 0 0 0 3v3h-17v-3a1.5 1.5 0 0 0 0-3v-3Z"/><path d="M14.5 7.5v1.5M14.5 11.25v1.5M14.5 15v1.5"/>',
+  // A parking sign: a P in a rounded square (the Trips page's Parking sub-category).
+  parking: '<rect x="4.5" y="4.5" width="15" height="15" rx="3.5"/><path d="M10 16.5v-9h2.75a2.75 2.75 0 0 1 0 5.5H10"/>',
   // A blank tag: not yet categorised.
   other: '<path d="M4 4h7.5l8.5 8.5-7.5 7.5L4 11.5V4Z"/><circle cx="8.25" cy="8.25" r="1.25"/>',
   // A banknote.

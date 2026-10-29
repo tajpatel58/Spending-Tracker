@@ -44,9 +44,17 @@ export const motion = (() => {
     };
   }
 
-  const format = (n, p) => p.prefix
-    + n.toLocaleString('en-GB', { minimumFractionDigits: p.decimals, maximumFractionDigits: p.decimals, useGrouping: p.grouped })
-    + p.suffix;
+  // One formatter per style: toLocaleString builds a new one on every call,
+  // which is slow enough in Safari to drop frames while figures count.
+  const formatters = new Map();
+  const formatter = (p) => {
+    const key = `${p.decimals}|${p.grouped}`;
+    if (!formatters.has(key)) {
+      formatters.set(key, new Intl.NumberFormat('en-GB', { minimumFractionDigits: p.decimals, maximumFractionDigits: p.decimals, useGrouping: p.grouped }));
+    }
+    return formatters.get(key);
+  };
+  const format = (n, p) => p.prefix + formatter(p).format(n) + p.suffix;
 
   const shown = new WeakMap();    // element -> the text it last settled on
   const writing = new WeakMap();  // element -> text we just wrote (so the observer ignores it)
@@ -81,12 +89,30 @@ export const motion = (() => {
 
     const duration = 650;
     const began = performance.now();
+    let last = null;
+    let parts = null; // a money figure's [pounds text node, pence span], updated in place
+    const write = (text, final) => {
+      writing.set(el, text);
+      if (!money) { el.textContent = text; return; }
+      // Mid-count, change only the digits rather than rebuilding the £/pence
+      // markup, so Safari isn't re-laying out fresh nodes every frame.
+      const pence = text.match(/(\.\d+)(?!.*\d)/)?.[1];
+      if (!final && parts && pence) {
+        parts[0].nodeValue = text.slice(text.indexOf('£') + 1, text.lastIndexOf(pence));
+        parts[1].textContent = pence;
+        return;
+      }
+      el.innerHTML = moneyMarkup(text);
+      const sym = el.querySelector('.money__sym');
+      const penceEl = el.querySelector('.money__pence');
+      parts = sym && penceEl && sym.nextSibling?.nodeType === 3 && sym.nextSibling.nextSibling === penceEl
+        ? [sym.nextSibling, penceEl] : null;
+    };
     const step = (now) => {
       const t = Math.min(1, (now - began) / duration);
       const text = t < 1 ? format(start + (to.value - start) * ease(t), to) : target;
-      writing.set(el, text);
-      if (money) el.innerHTML = moneyMarkup(text);
-      else el.textContent = text;
+      if (text !== last || t >= 1) write(text, t >= 1);
+      last = text;
       if (t < 1) frames.set(el, requestAnimationFrame(step));
     };
     frames.set(el, requestAnimationFrame(step));

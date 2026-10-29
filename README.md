@@ -163,6 +163,101 @@ these policies, e.g.
 `supabase_client.storage.from_("spending-tracker").list("data/transactions/raw/Taj/Amex/123456/September-26")`
 and `.download(path)`.
 
+## Trips
+
+`trips.html` opens on every trip at a glance (places, days away, what
+they cost, the ledger); the ‹ All trips › stepper in the top bar, a place
+card or a ledger row opens one. **Plan a trip** saves a location, start
+date and end date to the `trips` table (`js/trips-api.js`), and a saved
+trip's page has **Delete trip** (after a confirmation). A trip's spending
+is every transaction in the **Holiday** category dated within its start
+and end dates (inclusive; hidden transactions don't count) — so a flight
+booked months ahead only counts if its date is moved into the trip
+(change it from the transactions table). Which categories count is
+`TRIP_CATEGORIES` in `js/trips.js`.
+
+A trip's budget is set part by part (flights, stay, food...) with the
+sliders behind the pencil on its **By part** tile. The parts are saved to
+`part_budgets` (e.g. `{"flights": 420, "stay": 900}`), and `budget` is
+kept as their sum, which is the trip's Budget everywhere on the page. A
+trip saved before there were parts keeps its `budget` total until its
+parts are set.
+
+Create the table once in the Supabase SQL editor:
+
+```sql
+create table public.trips (
+  id bigint generated always as identity primary key,
+  location text not null,
+  start_date date not null,
+  end_date date not null check (end_date >= start_date),
+  budget numeric,
+  part_budgets jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+alter table public.trips enable row level security;
+```
+
+For a table made before budgets by part, add the column:
+
+```sql
+alter table public.trips add column if not exists part_budgets jsonb not null default '{}'::jsonb;
+```
+
+With RLS on and no policies, every read and save is refused (the page
+says so). The page needs select, insert, update and delete rights, e.g.
+for the household allow-list (an update or delete without a policy
+changes nothing rather than failing, so the page checks a row came back):
+
+```sql
+create policy "Household can read trips" on public.trips
+  for select to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can add trips" on public.trips
+  for insert to authenticated
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can update trips" on public.trips
+  for update to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'))
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can delete trips" on public.trips
+  for delete to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+```
+
+## Monthly budgets
+
+The Overview's **Budget vs Actual** tile has a pencil that opens a slider
+for each budget group, for the month on show. Saving writes that month's
+row to the `monthly_budgets` table (`js/budgets-api.js`): `month` (text,
+unique, e.g. `'2026-10'`), `budgets` (jsonb, e.g.
+`{"Groceries": 300, "Dining Out": 250}`) and `created_at`. Each month
+keeps its own budgets; a month without a row, or a group missing from its
+JSON, uses the defaults in `BUDGETS` (`js/state.js`). Holiday spending
+isn't counted in any budget group — trips have their own budgets.
+
+A save is an upsert, so the table needs select, insert and update rights:
+
+```sql
+alter table public.monthly_budgets enable row level security;
+
+create policy "Household can read budgets" on public.monthly_budgets
+  for select to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can add budgets" on public.monthly_budgets
+  for insert to authenticated
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+
+create policy "Household can update budgets" on public.monthly_budgets
+  for update to authenticated
+  using (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'))
+  with check (exists (select 1 from public.users u where u.email = auth.jwt() ->> 'email'));
+```
+
 ## Design notes
 
 - Category colors are CSS custom properties (`--cat-groceries`, etc.) in

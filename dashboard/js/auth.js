@@ -44,7 +44,10 @@ export const localCache = (() => {
 /** Wipes the local copy of the data. Resolves once it's gone, so callers can wait before leaving the page. */
 async function clearLocalData() {
   localDataCleared = true; // stops a refresh or save already in flight writing it again (data.js saveDataCache)
-  try { localStorage.removeItem(LEDGER_DATA_CACHE_KEY); } catch { /* storage unavailable */ }
+  try {
+    localStorage.removeItem(LEDGER_DATA_CACHE_KEY);
+    localStorage.removeItem('ledger-monthly-budgets'); // the Overview's budgets (budget-editor.js)
+  } catch { /* storage unavailable */ }
   await localCache.delete(LEDGER_DATA_CACHE_KEY).catch(() => { /* IndexedDB unavailable: nothing stored there */ });
 }
 export let localDataCleared = false;
