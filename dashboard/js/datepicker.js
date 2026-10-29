@@ -3,20 +3,44 @@
  * ---------------------------------------------------------------------
  * A small pop-over month calendar for picking a date. One shared
  * instance; call openDatePicker() with the element it should sit next
- * to. Used by table.js to change a transaction's date.
+ * to. Used by table.js to change a transaction's date, and by trips.js
+ * for a new trip's dates.
  *
  *   openDatePicker({
  *     anchor,          // element to position against
- *     value,           // current date, 'YYYY-MM-DD'
- *     original,        // the bank's date — marked, with a reset link when different
+ *     value,           // current date, 'YYYY-MM-DD' ('' for none yet)
+ *     original,        // optional: the bank's date — marked, with a reset link when different
+ *     min,             // optional: the earliest date that can be picked, 'YYYY-MM-DD'
+ *     container,       // optional: the element the picker lives in (a modal <dialog>,
+ *                      //   whose outside can't be clicked while it's open); default <body>
  *     onSelect(date),  // called with 'YYYY-MM-DD', or null for "reset to original"
  *   });
+ *
+ * Imports nothing that loads data, so pages without the dashboard's data
+ * (the Trips page) can use it too.
  * ---------------------------------------------------------------------
  */
 
-import { MONTH_LABEL } from './data.js';
-import { shiftMonth } from './forecast.js';
 import { formatDate } from './format.js';
+
+/** "October 2026" for a month key ('2026-10'). */
+const monthLabel = (key) => {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+};
+
+/** Shifts a month key by n months, e.g. ('2026-01', -1) -> '2025-12'. */
+function shiftMonth(key, n) {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Today as 'YYYY-MM-DD' (local time). */
+function todayIso() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 const datePicker = {
   el: null,
@@ -24,15 +48,14 @@ const datePicker = {
   viewMonth: null, // 'YYYY-MM' currently shown
 };
 
-/** Draws the pop-over month grid (shiftMonth comes from forecast.js). */
+/** Draws the pop-over month grid. */
 function renderDatePicker() {
-  const { value, original } = datePicker.options;
+  const { value, original, min } = datePicker.options;
   const key = datePicker.viewMonth;
   const [y, m] = key.split('-').map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const firstWeekday = (new Date(y, m - 1, 1).getDay() + 6) % 7; // Monday = 0
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const today = todayIso();
 
   const days = Array.from({ length: firstWeekday }, () => '<span aria-hidden="true"></span>');
   for (let d = 1; d <= daysInMonth; d += 1) {
@@ -43,14 +66,14 @@ function renderDatePicker() {
       iso === original ? 'is-original' : '',
       iso === today ? 'is-today' : '',
     ].filter(Boolean).join(' ');
-    days.push(`<button type="button" class="${classes}" data-date="${iso}" aria-pressed="${iso === value}"
+    days.push(`<button type="button" class="${classes}" data-date="${iso}" aria-pressed="${iso === value}"${min && iso < min ? ' disabled' : ''}
       aria-label="${new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}${iso === original ? ' (original date)' : ''}">${d}</button>`);
   }
 
-  const edited = value !== original;
+  const edited = original && value !== original;
   datePicker.el.innerHTML = `
     <div class="datepicker__header">
-      <span class="datepicker__title">${MONTH_LABEL(key)}</span>
+      <span class="datepicker__title">${monthLabel(key)}</span>
       <div class="datepicker__controls">
         <button type="button" class="datepicker__nav" data-shift="-1" aria-label="Previous month">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -66,10 +89,10 @@ function renderDatePicker() {
     </div>
     <div class="datepicker__weekdays" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
     <div class="datepicker__grid">${days.join('')}</div>
-    <div class="datepicker__footer">
+    ${original ? `<div class="datepicker__footer">
       <span class="datepicker__original"><span class="datepicker__original-dot" aria-hidden="true"></span>Bank date ${formatDate(original)}</span>
       ${edited ? '<button type="button" class="datepicker__reset">Reset</button>' : ''}
-    </div>
+    </div>` : ''}
   `;
 }
 
@@ -101,7 +124,8 @@ export function openDatePicker(options) {
   if (datePicker.options?.anchor === options.anchor) { closeDatePicker(); return; } // second click toggles shut
   closeDatePicker();
   datePicker.options = options;
-  datePicker.viewMonth = options.value.slice(0, 7);
+  (options.container || document.body).appendChild(datePicker.el);
+  datePicker.viewMonth = (options.value || options.min || todayIso()).slice(0, 7);
   options.anchor.setAttribute('aria-expanded', 'true');
   renderDatePicker();
   datePicker.el.hidden = false;
@@ -134,7 +158,7 @@ function initDatePicker() {
       anchor.focus({ preventScroll: true });
       return;
     }
-    const day = e.target.closest('.datepicker__day');
+    const day = e.target.closest('.datepicker__day:not(:disabled)');
     const reset = e.target.closest('.datepicker__reset');
     if (!day && !reset) return;
     const { onSelect, value, original, anchor } = datePicker.options;
@@ -151,6 +175,7 @@ function initDatePicker() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !datePicker.options) return;
+    e.preventDefault(); // close just the picker, not a <dialog> it sits in
     const { anchor } = datePicker.options;
     closeDatePicker();
     anchor.focus({ preventScroll: true });

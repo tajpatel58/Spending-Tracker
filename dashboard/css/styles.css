@@ -2767,6 +2767,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .btn--ghost:hover { color: var(--text); border-color: var(--accent); }
 .btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn--primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn--danger { background: var(--rose); border-color: var(--rose); color: #fff; }
+.btn--danger:hover { background: color-mix(in srgb, var(--rose) 85%, #000); border-color: color-mix(in srgb, var(--rose) 85%, #000); }
+[data-theme="dark"] .btn--danger { color: var(--bg); }
 .btn:disabled { opacity: 0.6; cursor: wait; }
 
 /* ==========================================================================
@@ -2890,6 +2893,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .datepicker__day.is-today { font-weight: 600; }
 .datepicker__day.is-selected,
 .datepicker__day.is-selected:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+/* Before the earliest allowed date (a trip's end can't come before its start). */
+.datepicker__day:disabled { color: var(--text-faint); opacity: 0.45; cursor: default; }
+.datepicker__day:disabled:hover { background: none; border-color: transparent; }
 
 /* The bank's original date carries a small dot underneath. */
 .datepicker__day.is-original::after,
@@ -3595,6 +3601,411 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .target-beads { gap: 5px; }
   .target-beads span { font-size: var(--fs-micro); }
   .saved-bars { height: 22px; gap: 2px; }
+}
+
+/* ==========================================================================
+   Trips page
+   ========================================================================== */
+
+/* As on Summary: figures straight under their labels, feet along the
+   bottom, and the hero's two notes stacked. */
+.trips-page .stats-grid--hero > .stat-tile:not(.hero-tile) .stat-tile__head { margin-bottom: 0; }
+.trips-page .stat-tile > :is(.target-bar--marked, .trip-split) { margin-top: auto; }
+.trips-page .hero-tile__meta { flex-direction: column; gap: 2px; }
+.trips-page .hero-tile__meta > :not([hidden]) ~ :not([hidden])::before { content: none; }
+
+/* Who paid: each person's card and the joint account as one segmented bar. */
+.trip-split { display: flex; gap: 2px; height: 6px; overflow: hidden; border-radius: var(--radius-full); }
+.trip-split i { display: block; min-width: 4px; transform-origin: left center; animation: grow-x 700ms var(--ease-out) both; animation-delay: 200ms; }
+.trip-split + .stat-tile__foot { margin-top: var(--space-1); }
+
+/* A budget part: its category icon, in the category's colour, before the name. */
+.trip-part { display: inline-flex; align-items: center; gap: var(--space-2); }
+.trip-part__icon { display: inline-flex; color: var(--avatar-color); }
+
+/* The financial summary: Budget, Spent, Remaining and Each, four across.
+   Each tile's foot settles to the bottom (Each's split bar just above
+   its own), so the feet line up along the row. */
+.stats-grid.stats-grid--quad { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stats-grid--quad .stat-tile__head { margin-bottom: 0; }
+.stats-grid--quad .stat-tile > .stat-tile__foot { margin-top: auto; padding-top: var(--space-3); }
+.stats-grid--quad .stat-tile > .trip-split { margin-top: auto; }
+.stats-grid--quad .stat-tile > .trip-split + .stat-tile__foot { margin-top: var(--space-2); }
+.stats-grid--quad .stat-tile__value.is-negative { color: var(--rose); }
+
+/* The Budget tile's pencil: quiet until hovered, gold when it is. */
+.tile-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: -6px -8px -6px 0;
+  padding: 0;
+  color: var(--text-faint);
+  background: none;
+  border: var(--hairline) solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.tile-edit:hover { color: var(--gold-strong); background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
+.tile-edit:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
+.tile-link { padding: 0; font: inherit; color: var(--gold-strong); background: none; border: none; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
+.tile-link:hover { text-decoration-color: currentColor; }
+
+/* Editing the budget, in place: a £ field, a hint, then Cancel and Save. */
+.budget-edit { display: flex; flex-direction: column; gap: var(--space-2); height: 100%; }
+.budget-edit__input { font-family: var(--font-display); font-size: 20px; font-weight: 450; padding-top: 7px; padding-bottom: 7px; }
+.budget-edit .trip-field__currency { font-family: var(--font-display); font-size: 16px; }
+.budget-edit__hint { margin: 0; font-size: 12px; color: var(--text-faint); }
+.budget-edit__actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: auto; padding-top: var(--space-2); }
+.budget-edit__actions .btn { padding: 6px 14px; font-size: 13px; }
+.stat-tile.is-editing { border-color: color-mix(in srgb, var(--gold) 55%, transparent); box-shadow: 0 0 0 3px var(--gold-soft), var(--shadow-1); }
+.stat-tile__foot b.is-positive { color: var(--accent); }
+.hero-tile__link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
+.hero-tile__link:hover { text-decoration-color: currentColor; }
+
+/* The itinerary: the trip day by day, as the page's centrepiece — a
+   serif heading, Essentials as a band on a faint gold wash, then a card
+   for each day: its number in the serif, its date in tracked capitals,
+   its total, and what was spent on it. Today wears a gold ring; days
+   still to come are drawn in outline. */
+.itinerary { margin-bottom: var(--space-6); padding-bottom: var(--tile-gutter); }
+.itinerary__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); padding: var(--space-8) var(--tile-gutter) 0; }
+.itinerary__title { margin: 0; font-size: 28px; font-weight: 450; line-height: 1.15; letter-spacing: -0.02em; }
+.itinerary__sub { margin: 6px 0 0; font-size: 13.5px; color: var(--text-muted); }
+.itinerary-strip { margin: var(--space-6) var(--tile-gutter) 0; padding: var(--space-3) 0 var(--space-1); background: color-mix(in srgb, var(--gold) 5%, transparent); border: var(--hairline) solid color-mix(in srgb, var(--gold) 24%, transparent); border-radius: var(--radius-sm); }
+.itinerary-strip + .itinerary-strip { margin-top: var(--space-3); }
+.itinerary-strip__head { display: flex; align-items: baseline; gap: var(--space-3); padding: 0 var(--space-4) var(--space-2); }
+.itinerary-strip__title { font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-strong); }
+.itinerary-strip__sub { font-size: 12.5px; color: var(--text-muted); }
+.itinerary-strip__total { margin-left: auto; font-family: var(--font-display); font-size: 15px; font-weight: 450; font-variant-numeric: lining-nums tabular-nums; }
+.itinerary-strip__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: 0; padding: 0; list-style: none; }
+.itinerary-strip .trip-tx { padding: 8px var(--space-4); }
+.itinerary-strip .trip-tx + .trip-tx { border-top: none; }
+.itinerary__days { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); margin: 0; padding: var(--space-5) var(--tile-gutter) 0; list-style: none; }
+.itinerary-day {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-4) 0 var(--space-2);
+  background: var(--surface-alt);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-sm);
+  animation: legend-in 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms + 80ms);
+}
+.itinerary-day__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-4); }
+.itinerary-day__title { font-family: var(--font-display); font-size: 21px; font-weight: 450; letter-spacing: -0.015em; }
+.itinerary-day__total { font-family: var(--font-display); font-size: 16px; font-weight: 450; color: var(--text-muted); font-variant-numeric: lining-nums tabular-nums; }
+.itinerary-day__date { display: flex; align-items: center; gap: var(--space-2); min-height: 18px; margin: 3px 0 var(--space-3); padding: 0 var(--space-4); font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
+.itinerary-day__date .ledger-table__flag { margin-left: 0; font-family: var(--font-body); }
+.itinerary-day__list { flex: 1; margin: 0; padding: 0; list-style: none; border-top: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent); }
+.itinerary-day .trip-tx { padding: 9px var(--space-4); }
+.itinerary-day__quiet { padding: var(--space-3) var(--space-4) var(--space-1); font-size: 12.5px; color: var(--text-faint); }
+.itinerary-day.is-today { background: var(--surface); border-color: color-mix(in srgb, var(--gold) 70%, transparent); box-shadow: 0 0 0 3px var(--gold-soft); }
+.itinerary-day:is(.is-future, .is-waiting) { background: transparent; border-style: dashed; border-color: var(--border-strong); }
+.itinerary-day:is(.is-future, .is-waiting) .itinerary-day__title { color: var(--text-faint); }
+.itinerary-day.is-waiting.is-today { border-style: solid; }
+
+/* Where it went: the parts across the full width, in two columns. */
+.trip-parts { margin-bottom: var(--space-6); }
+.trip-parts .budget-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px var(--space-10); }
+
+.trip-tx { display: flex; align-items: center; gap: var(--space-3); padding: 8px var(--tile-gutter); }
+.trip-tx + .trip-tx { border-top: var(--hairline) solid color-mix(in srgb, var(--border) 60%, transparent); }
+.trip-tx__avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--avatar-color);
+  background: color-mix(in srgb, var(--avatar-color) 14%, transparent);
+}
+.trip-tx__main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.trip-tx__merchant { font-size: 13.5px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.trip-tx__meta { font-size: 12px; color: var(--text-faint); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.trip-tx__amount { font-family: var(--font-num); font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* The heading's actions: "Delete trip" (on a trip's page), then "+ Plan a
+   trip" as a dark pill with a gold plus, like the nav's current tab. */
+.trips-actions { display: inline-flex; align-items: center; gap: var(--space-3); flex: none; }
+.trip-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px 9px 13px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--surface);
+  background: var(--text);
+  border: none;
+  border-radius: var(--radius-full);
+  box-shadow: 0 1px 2px rgba(40, 32, 18, 0.18), 0 4px 12px -4px rgba(40, 32, 18, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), box-shadow 200ms ease;
+}
+.trip-new-btn svg { color: var(--gold); }
+[data-theme="dark"] .trip-new-btn { color: var(--bg); }
+[data-theme="dark"] .trip-new-btn svg { color: color-mix(in srgb, var(--gold) 62%, #000); }
+.trip-new-btn:hover { box-shadow: 0 2px 4px rgba(40, 32, 18, 0.2), 0 8px 18px -6px rgba(40, 32, 18, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.trip-new-btn:active { transform: scale(0.97); }
+.trip-new-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
+/* "Delete trip": a quiet outlined pill that turns rose on hover. */
+.trip-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color 200ms ease, border-color 200ms ease, background 200ms ease, transform 160ms var(--ease-out);
+}
+.trip-delete-btn[hidden] { display: none; }
+.trip-delete-btn:hover { color: var(--rose); border-color: color-mix(in srgb, var(--rose) 50%, transparent); background: var(--rose-soft); }
+.trip-delete-btn:active { transform: scale(0.97); }
+.trip-delete-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
+
+/* Home: four tiles across, then the places. */
+.stats-grid.trips-glance { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.trips-glance .stat-tile__head { margin-bottom: auto; padding-bottom: var(--space-1); }
+.trips-glance .stat-tile__value--text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Places: a card for each trip — the name in the serif, where and when,
+   then what it cost and where it stands. */
+.places-tile { margin-bottom: var(--space-6); }
+.places {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-5) var(--tile-gutter) var(--tile-gutter);
+  list-style: none;
+}
+.places > li { animation: legend-in 420ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms + 120ms); }
+.place {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-4) 18px;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: var(--surface-alt);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 200ms ease, transform 160ms var(--ease-out), box-shadow 200ms ease;
+}
+.place:hover { border-color: var(--gold); box-shadow: var(--shadow-1); }
+.place:active { transform: scale(0.98); }
+.place:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
+.place__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+.place__name { min-width: 0; font-family: var(--font-display); font-size: 18px; font-weight: 450; line-height: 1.3; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.place__flags { display: inline-flex; flex: none; gap: 4px; margin-top: 3px; }
+.place__flags .ledger-table__flag { margin-left: 0; }
+.place__meta { font-size: 12.5px; color: var(--text-muted); }
+.place__foot { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); margin-top: auto; padding-top: var(--space-3); border-top: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent); }
+.place__figure { font-family: var(--font-num); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.place__figure.is-empty { font-size: 12.5px; font-weight: 400; color: var(--text-faint); }
+.place__note { font-family: var(--font-num); font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+.places__empty { grid-column: 1 / -1; padding: var(--space-4) 0; font-size: 13px; color: var(--text-faint); }
+
+/* Where it went: the doughnut beside the trip-by-trip bars. */
+.charts-grid.trips-home-charts { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.trips-compare__chart { padding: var(--space-5) var(--tile-gutter) 0; }
+.trips-compare__tick { width: 2px; height: 11px; background: var(--gold); border-radius: 1px; }
+.trips-compare__chart[hidden], .trips-compare__empty[hidden] { display: none; }
+.trips-compare__empty { flex: 1; display: flex; align-items: center; justify-content: center; margin: var(--space-5) var(--tile-gutter) 0; padding: var(--space-8) var(--space-4); font-size: 13px; color: var(--text-faint); text-align: center; border: var(--hairline) dashed var(--border-strong); border-radius: var(--radius-sm); }
+
+/* A place's parts as one colour strip; striped while it's only booked. */
+.place__strip { display: flex; gap: 2px; height: 5px; margin: var(--space-2) 0 0; overflow: hidden; border-radius: var(--radius-full); }
+.place__strip i { display: block; min-width: 3px; transform-origin: left center; animation: grow-x 700ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms + 250ms); }
+.place__strip.is-empty { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.place__strip.is-booked i { -webkit-mask: repeating-linear-gradient(-45deg, #000 0 3px, rgba(0, 0, 0, 0.35) 3px 5px); mask: repeating-linear-gradient(-45deg, #000 0 3px, rgba(0, 0, 0, 0.35) 3px 5px); }
+
+/* A trip with nothing tagged yet: every widget in place, its figures in a
+   quieter ink, and its charts as placeholders — hairline gridlines, the
+   trip's days along the axis, and one line saying what will draw there. */
+.stat-tile.is-empty .stat-tile__value { color: var(--text-faint); }
+.stat-tile.is-empty .stat-tile__delta:not(.stat-tile__delta--pill) { color: var(--text-faint); }
+.trip-split.is-empty { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.budget-item.is-empty .budget-item__category { color: var(--text-faint); }
+.budget-item.is-empty .trip-part__icon { opacity: 0.55; }
+.budget-item.is-empty .budget-item__amounts,
+.budget-item.is-empty .budget-item__status { color: var(--text-faint); font-weight: 400; }
+.trend-summary__item.is-empty .trend-summary__value { color: var(--text-faint); }
+.trend-summary__item.is-empty .trend-summary__note { color: var(--text-faint); }
+
+/* To sort: each unsorted Holiday transaction, then a row of chips — one
+   per sub-category, in its colour — to file it with one tap. */
+.trip-sort { margin-bottom: var(--space-6); padding-bottom: var(--space-3); }
+.trip-sort__intro { max-width: 70ch; margin: var(--space-2) 0 0; padding: 0 var(--tile-gutter); font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+.trip-sort__list { margin: var(--space-3) 0 0; padding: 0; list-style: none; }
+.trip-sort__item { padding: var(--space-3) 0 var(--space-4); border-top: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent); animation: legend-in 420ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
+.trip-sort__item:first-child { border-top: none; }
+.trip-sort__tx { padding-top: 4px; padding-bottom: 4px; }
+.trip-sort__tx .trip-tx__avatar { background: none; box-shadow: inset 0 0 0 1px var(--border-strong); }
+.trip-sort__choices { display: flex; flex-wrap: wrap; gap: 6px; padding: var(--space-2) var(--tile-gutter) 0 calc(var(--tile-gutter) + 28px + var(--space-3)); }
+.sub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px 5px 8px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease, transform 160ms var(--ease-out);
+}
+.sub-chip svg { color: var(--chip-color); }
+.sub-chip:hover { color: var(--text); border-color: var(--chip-color); background: color-mix(in srgb, var(--chip-color) 10%, transparent); }
+.sub-chip:active { transform: scale(0.96); }
+.sub-chip:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
+/* A transaction's sub-category in its meta line: a quiet dropdown, as in the transactions table. */
+.trip-tx__sub { field-sizing: content; margin: -4px 0 -4px -6px; padding-top: 2px; padding-bottom: 2px; font-size: inherit; font-weight: inherit; color: inherit; } /* field-sizing: as wide as the chosen option, where supported */
+.trip-tx__meta:has(.trip-tx__sub) { overflow: visible; }
+
+/* Plan a trip: a dialog card over a dimmed, blurred page. */
+.trip-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3);
+}
+.trip-dialog::backdrop { background: color-mix(in srgb, var(--bg) 55%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.trip-dialog[open] { animation: dialog-in 280ms var(--ease-out) backwards; } /* no lasting transform: the date picker inside is position: fixed */
+@keyframes dialog-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.trip-form { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6) var(--space-6) var(--space-5); }
+.trip-form__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.trip-form__eyebrow { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); font-size: 10.5px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+.trip-form__eyebrow::before { content: ''; width: 16px; border-top: 1px solid currentColor; }
+.trip-form__head h2 { margin: 0; font-size: 22px; font-weight: 450; letter-spacing: -0.015em; }
+.trip-form__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.trip-form__close:hover { color: var(--text); background: var(--surface-alt); }
+.trip-form__dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.trip-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.trip-field__label { font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
+.trip-field__input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.trip-field__input::placeholder { color: var(--text-faint); }
+.trip-field__input:hover { border-color: var(--border-strong); }
+.trip-field__input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+.trip-date { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); text-align: left; font-family: var(--font-num); font-variant-numeric: tabular-nums; cursor: pointer; }
+.trip-date svg { flex: none; color: var(--text-faint); transition: color var(--transition); }
+.trip-date:hover svg, .trip-date[aria-expanded="true"] svg { color: var(--gold); }
+.trip-date[aria-expanded="true"] { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+.trip-date.is-empty { color: var(--text-faint); }
+.trip-date:focus-visible { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+.trip-date span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trip-form__text { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-muted); }
+.trip-form__eyebrow--danger { color: var(--rose); }
+.trip-field__optional { letter-spacing: 0.04em; text-transform: none; }
+.trip-field__money { position: relative; display: block; }
+.trip-field__currency { position: absolute; top: 50%; left: 12px; transform: translateY(-50%); font-family: var(--font-num); font-size: 14px; color: var(--text-faint); pointer-events: none; }
+.trip-field__money .trip-field__input { padding-left: 26px; font-family: var(--font-num); }
+.trip-field__money .trip-field__input::-webkit-inner-spin-button, .trip-field__money .trip-field__input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.trip-field__money .trip-field__input { -moz-appearance: textfield; }
+.trip-form__summary { min-height: 1.4em; margin: -4px 0 0; font-family: var(--font-num); font-size: 12.5px; color: var(--text-muted); }
+.trip-form__error { margin: 0; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; color: var(--rose); background: var(--rose-soft); border-radius: var(--radius-sm); }
+.trip-form__error[hidden] { display: none; }
+.trip-form__foot { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-1); padding-top: var(--space-4); border-top: var(--hairline) solid var(--border); }
+.trip-form__save { display: inline-flex; align-items: center; gap: 8px; }
+
+.trips-table__when { color: var(--text-muted); }
+.ledger-bar.is-unset .ledger-bar__gap { color: var(--text-faint); } /* no budget set: nothing to be over */
+.trips-table__when span { font-size: 12px; color: var(--text-faint); }
+
+@media (max-width: 900px) {
+  .trip-parts .budget-list { grid-template-columns: minmax(0, 1fr); }
+  .stats-grid.trips-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-grid.stats-grid--quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .charts-grid.trips-home-charts { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .page-heading .trips-actions { grid-column: 2; grid-row: 2; gap: var(--space-2); }
+  .trip-new-btn { padding: 7px 12px 7px 10px; font-size: var(--fs-small); }
+  .trip-delete-btn { padding: 7px; }
+  .trip-delete-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* icon only on phones */
+  .places { grid-template-columns: minmax(0, 1fr); padding: var(--space-4) var(--tile-gutter) var(--tile-gutter); }
+  .place__name { font-size: var(--fs-title); }
+  .place__meta, .place__figure.is-empty { font-size: var(--fs-small); }
+  .place__note { font-size: var(--fs-caption); }
+  .stats-grid.stats-grid--quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .budget-edit__input { font-size: var(--fs-figure); }
+  .trip-form { padding: var(--space-5) var(--space-4) var(--space-4); }
+  .trip-field__input { font-size: 16px; } /* 16px stops iOS zooming into the field */
+  .trip-date { font-size: var(--fs-body); }
+  .trip-form__foot .btn { flex: 1; padding: 11px 16px; }
+  .itinerary__head { padding-top: var(--space-6); }
+  .itinerary__title { font-size: var(--fs-heading); }
+  .itinerary__sub { font-size: var(--fs-small); }
+  .itinerary__days { grid-template-columns: minmax(0, 1fr); }
+  .itinerary-strip__list { grid-template-columns: minmax(0, 1fr); }
+  .itinerary-strip__sub { display: none; }
+  .itinerary-day__title { font-size: var(--fs-title); }
+  .itinerary-day__total { font-size: var(--fs-body); }
+  .itinerary-day__date { font-size: var(--fs-micro); }
+  .itinerary-day__quiet { font-size: var(--fs-small); }
+  .trip-tx__merchant, .trip-tx__amount { font-size: 13px; }
+  .trip-tx__meta { font-size: var(--fs-caption); }
+  .trip-sort__intro { font-size: var(--fs-small); }
+  /* One line of chips that scrolls sideways, rather than three rows per transaction. */
+  .trip-sort__choices { flex-wrap: nowrap; overflow-x: auto; padding-left: var(--tile-gutter); scrollbar-width: none; }
+  .trip-sort__choices::-webkit-scrollbar { display: none; }
+  .sub-chip { flex: none; }
+  .sub-chip { padding: 7px 12px 7px 9px; font-size: var(--fs-small); } /* a comfortable tap target */
+  /* The ledger: the dates and per-day columns step aside, and what's left scrolls inside its card. */
+  .trips-page .ledger-tile .table-scroll { overflow-x: auto; }
+  .trips-table :is(th, td):is(:nth-child(2), :nth-child(5)) { display: none; }
+  .trips-table thead th, .trips-table tbody :is(th, td) { padding-left: 8px; padding-right: 8px; }
+  .trips-table .ledger-table__target { width: auto; min-width: 0; }
+  .trips-table .ledger-table__flag { display: none; }
+  .trips-table .ledger-bar__gap { min-width: 0; }
 }
 
 /* ==========================================================================
@@ -4534,12 +4945,20 @@ html.month-transition::view-transition-new(month-label) { animation: 320ms var(-
 @keyframes month-label-out { to { opacity: 0; transform: translateX(calc(var(--month-step, 1) * -10px)); } }
 @keyframes month-label-in { from { opacity: 0; transform: translateX(calc(var(--month-step, 1) * 10px)); } }
 
-/* After a refresh, cards whose figure changed glow briefly. */
-.tile.is-changed { animation: changed-glow 1800ms ease-out; }
-@keyframes changed-glow {
-  0%, 25% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent), var(--shadow-1); }
-  100% { box-shadow: var(--shadow-1); }
+/* After a refresh, cards whose figure changed glow briefly. The ring is
+   drawn once on a pseudo-element and only its opacity animates, which
+   Safari runs on the GPU (animating the shadow itself repaints every frame). */
+.tile.is-changed { position: relative; }
+.tile.is-changed::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--hairline) * -1);
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent);
+  animation: changed-glow 1800ms ease-out both;
 }
+@keyframes changed-glow { 0%, 25% { opacity: 1; } 100% { opacity: 0; } }
 
 /* Ticks draw themselves in, like a pen stroke. */
 .draw-tick { stroke-dasharray: 1; stroke-dashoffset: 1; vector-effect: none; stroke-width: 3.4px; }

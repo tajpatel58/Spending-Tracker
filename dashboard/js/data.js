@@ -133,7 +133,8 @@ function applyDataBundle(bundle) {
  * moved there (in localStorage) is read once, moved across and removed.
  */
 async function readDataCache(email) {
-  const valid = (cached) => (cached && cached.user === email && cached.version === 1 ? cached : null);
+  // Version 2 added each transaction's subCategory: an older copy is skipped and fetched afresh.
+  const valid = (cached) => (cached && cached.user === email && cached.version === 2 ? cached : null);
   let stored = null;
   try { stored = await localCache.get(LEDGER_DATA_CACHE_KEY); } catch { /* IndexedDB unavailable */ }
   if (stored) return valid(stored);
@@ -148,7 +149,7 @@ async function readDataCache(email) {
 async function writeDataCache() {
   saveDataCache.timer = null;
   if (!dataStatus.user || localDataCleared) return;
-  const copy = { version: 1, user: dataStatus.user, syncedAt: dataStatus.syncedAt, ...currentDataBundle() };
+  const copy = { version: 2, user: dataStatus.user, syncedAt: dataStatus.syncedAt, ...currentDataBundle() };
   try {
     await localCache.set(LEDGER_DATA_CACHE_KEY, copy);
   } catch {
