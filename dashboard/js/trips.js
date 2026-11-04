@@ -26,15 +26,16 @@
  * ---------------------------------------------------------------------
  */
 
-import { initPageHeading, initUserMenu, signOut } from './auth.js';
+import { initPageHeading, initUserMenu, localDataCleared, signOut } from './auth.js';
 import { budgetEditHeader, budgetSliders, endBudgetEditHeader, endBudgetSliders } from './budget-sliders.js';
 import { fade, htmlTooltip } from './chart-kit.js';
 import { categoryIcon } from './category-icons.js';
-import { accountsReady, dataStatus, pageSession, refreshData, saveDataCache, TRANSACTIONS } from './data.js';
+import { accountsReady, pageSession, saveDataCache, TRANSACTIONS } from './data.js';
 import { openDatePicker } from './datepicker.js';
 import { cssVar, currency, currencyShort, escapeAttr, MINUS, moneyMarkup } from './format.js';
 import { motion } from './motion.js';
 import { finishLoading, people, showLoadError, spendOwnerColor } from './state.js';
+import { refreshIfStale } from './sync.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { showToast } from './toast.js';
 import { updateTransactionSubCategory } from './transactions-api.js';
@@ -115,6 +116,64 @@ const fromRow = (row) => {
 /** Every trip, earliest first. */
 const TRIPS = [];
 const sortTrips = () => TRIPS.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+
+// ---- This device's copy of the trips ------------------------------------
+// The page draws from it straight away, then checks Supabase in the background.
+const TRIPS_CACHE_KEY = 'ledger-trips'; // also cleared on sign-out (auth.js clearLocalData)
+
+/** A trip as a row of the `trips` table: what fromRow reads. */
+const toRow = (trip) => ({
+  id: trip.dbId,
+  location: trip.name,
+  start_date: trip.start,
+  end_date: trip.end,
+  budget: trip.total,
+  part_budgets: trip.budget,
+});
+
+/** The rows saved on this device, or null when there are none. */
+function savedTripRows() {
+  try {
+    const rows = JSON.parse(localStorage.getItem(TRIPS_CACHE_KEY));
+    return Array.isArray(rows) ? rows : null;
+  } catch { return null; }
+}
+
+/** Saves the trips as they are now, unless signing out has just wiped this device's data. */
+function saveTrips() {
+  if (localDataCleared) return;
+  try { localStorage.setItem(TRIPS_CACHE_KEY, JSON.stringify(TRIPS.map(toRow))); } catch { /* storage unavailable */ }
+}
+
+/** Replaces the trips with `rows` and tags their spending. */
+function applyTripRows(rows) {
+  TRIPS.splice(0, TRIPS.length, ...rows.map(fromRow));
+  sortTrips();
+  tagTransactions();
+}
+
+/** Counts edits to the trips, so a background check can't overwrite one made while it was under way. */
+let tripEdits = 0;
+
+/** Checks Supabase for changes to the saved trips, and redraws only if there are any. */
+async function refreshTrips() {
+  const editsAtStart = tripEdits;
+  let rows;
+  try {
+    rows = await fetchTrips();
+  } catch (error) {
+    console.error('[Ledger] Could not check for newer trips:', error); // the saved copy stays on show
+    return;
+  }
+  if (tripEdits !== editsAtStart) return;
+  const sameAs = (list) => JSON.stringify(list.map(fromRow));
+  if (sameAs(rows) === sameAs(TRIPS.map(toRow))) return;
+  applyTripRows(rows);
+  saveTrips();
+  if (!TRIPS.some((trip) => trip.id === view.trip)) view.trip = null; // the open trip was deleted elsewhere
+  syncStepper();
+  render();
+}
 
 /**
  * Gives every trip its spending: each Holiday transaction, not hidden,
@@ -398,6 +457,7 @@ function initBudgetEditing() {
   const open = () => {
     trip = TRIPS.find((t) => t.id === view.trip);
     if (!trip) return;
+    tripEdits += 1; // a redraw from a background check would close the editor
     const spentBy = tripModel(trip).byPart;
     const totalOnly = trip.total && !Object.keys(trip.budget).length;
     const showTotal = budgetEditHeader(section, totalOnly
@@ -431,6 +491,7 @@ function closeBudgetEditing() {
 
 /** Sets a trip's part budgets on the page and in Supabase, with Undo; puts them back if the save fails. */
 function setBudgets(trip, next) {
+  tripEdits += 1;
   const previous = { parts: trip.budget, total: trip.total ?? null };
   const nextTotal = Object.keys(next).length ? sum(Object.values(next)) : null;
   const apply = ({ parts, total }) => {
@@ -452,6 +513,7 @@ function setBudgets(trip, next) {
         try {
           await saving.catch(() => {}); // nothing to undo server-side if the save itself failed
           await updateTripBudgets(trip.dbId, previous.parts, previous.total);
+          saveTrips();
           showToast({ message: 'Change undone', tone: 'info', duration: 2500 });
         } catch (error) {
           console.error('[Ledger] Could not undo the budget:', error);
@@ -461,7 +523,7 @@ function setBudgets(trip, next) {
       },
     },
   });
-  saving.catch((error) => {
+  saving.then(saveTrips, (error) => {
     console.error('[Ledger] Could not save the budget:', error);
     apply(previous);
     showToast({ message: `Couldn’t save the budget — it’s been put back. ${describeError(error)}`, tone: 'error' });
@@ -1277,11 +1339,13 @@ function initNewTrip() {
 
     save.disabled = true;
     form.classList.add('is-uploading'); // shows the button's spinner (upload page styles)
+    tripEdits += 1;
     try {
       const trip = fromRow(await createTrip({ location: name, startDate: from, endDate: to }));
       TRIPS.push(trip);
       sortTrips();
       tagTransactions();
+      saveTrips();
       dialog.close();
       showToast({ message: `${trip.name} added to your trips` });
       openTrip(trip.id);
@@ -1328,9 +1392,11 @@ function initDeleteTrip() {
 
     confirm.disabled = true;
     form.classList.add('is-uploading');
+    tripEdits += 1;
     try {
       await deleteTrip(trip.dbId);
       TRIPS.splice(TRIPS.indexOf(trip), 1);
+      saveTrips();
       dialog.close();
       showToast({ message: `${trip.name} deleted` });
       view.trip = null; // the trip has gone, so there's nothing to slide away from
@@ -1466,12 +1532,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSubCategories();
   initBudgetEditing();
 
+  // The trips (Supabase `trips`) and the transactions they're tagged from: this
+  // device's copy of the trips straight away, otherwise they're waited for.
+  const saved = savedTripRows();
   try {
-    // The trips (Supabase `trips`) and the transactions they're tagged from.
-    const [rows] = await Promise.all([fetchTrips(), accountsReady]);
-    TRIPS.push(...rows.map(fromRow));
-    sortTrips();
-    tagTransactions();
+    if (saved) {
+      await accountsReady;
+      applyTripRows(saved);
+    } else {
+      const [rows] = await Promise.all([fetchTrips(), accountsReady]);
+      applyTripRows(rows);
+      saveTrips();
+    }
   } catch (error) {
     console.error('[Ledger] Failed to load trips:', error);
     if (error?.code || /trips/i.test(error?.message || '')) {
@@ -1493,5 +1565,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     tagTransactions();
     render();
   });
-  if (dataStatus.fromCache) refreshData().catch((error) => console.error('[Ledger] Refresh failed:', error));
+  refreshIfStale();
+  if (saved) refreshTrips();
 });

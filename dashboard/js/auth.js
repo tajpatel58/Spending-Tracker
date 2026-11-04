@@ -47,6 +47,7 @@ async function clearLocalData() {
   try {
     localStorage.removeItem(LEDGER_DATA_CACHE_KEY);
     localStorage.removeItem('ledger-monthly-budgets'); // the Overview's budgets (budget-editor.js)
+    localStorage.removeItem('ledger-trips'); // the Trips page's trips (trips.js)
   } catch { /* storage unavailable */ }
   await localCache.delete(LEDGER_DATA_CACHE_KEY).catch(() => { /* IndexedDB unavailable: nothing stored there */ });
 }

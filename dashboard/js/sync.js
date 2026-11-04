@@ -33,6 +33,16 @@ function updatedAgo(time) {
 const FRESH_FOR_MS = 5 * 60000;
 
 /**
+ * Drawn from a saved copy that isn't recent? Quietly check for anything newer,
+ * once the page has finished drawing in (comparing the data is main-thread work).
+ */
+export function refreshIfStale() {
+  if (dataStatus.fromCache && Date.now() - (dataStatus.syncedAt || 0) > FRESH_FOR_MS) {
+    afterEntrance(() => refreshData().catch((error) => console.error('[Ledger data] Background refresh failed:', error)));
+  }
+}
+
+/**
  * Wires up the control and starts a quiet background check. Call once the
  * page has rendered. `onChange` re-renders the page when new data arrives.
  */
@@ -78,11 +88,7 @@ export function initSync({ onChange }) {
 
   button.hidden = false;
   render();
-  // Drawn from a saved copy that isn't recent? Quietly check for anything newer,
-  // once the page has finished drawing in (comparing the data is main-thread work).
-  if (dataStatus.fromCache && Date.now() - (dataStatus.syncedAt || 0) > FRESH_FOR_MS) {
-    afterEntrance(() => refreshData().catch((error) => console.error('[Ledger data] Background refresh failed:', error)));
-  }
+  refreshIfStale();
 }
 
 /** Pulls fresh data on request and says how it went (Refresh button and pull-to-refresh). */
