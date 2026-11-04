@@ -80,4 +80,4 @@ transactions_db.upload_transactions_to_db(upsert_transactions_df,
 
 transactions_db.upload_transactions_to_db(upsert_transactions_metadata_df, 
                                        table_name="transactions_metadata",
-                                       exclude_columns=["manual_merchant", "manual_category", "manual_amount", "manual_date", "hidden"])
+                                       exclude_columns=["manual_merchant", "manual_category", "manual_amount", "manual_date", "hidden", "manual_sub_category"])
