@@ -1987,6 +1987,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 .table-scroll { overflow-x: auto; border-top: 1px solid var(--border); }
+/* The transactions table is the page's biggest layout job, and usually off
+   screen: the browser skips it until it's nearly in view. Chart tiles can't
+   do this, as Chart.js measures their contents. */
+.table-scroll--transactions { content-visibility: auto; contain-intrinsic-size: auto 1200px; }
 
 .tx-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 

@@ -25,6 +25,7 @@ import {
   storedSession,
   supabaseClient,
 } from './auth.js';
+import { remembered } from './format.js';
 import { fetchCalendarEvents, fetchTransactions } from './supabase-client.js';
 
 // ---- Categories (id, label, CSS var for color) -------------------------
@@ -310,7 +311,7 @@ export function refileTransaction(transaction, previousDate) {
 }
 
 /** Formats a month key like '2026-08' as "August 2026". */
-export const MONTH_LABEL = (key) => {
+export const MONTH_LABEL = remembered((key) => {
   const [y, m] = key.split('-').map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-};
+});

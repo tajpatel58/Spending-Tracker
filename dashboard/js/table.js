@@ -25,7 +25,7 @@ import {
 } from './data.js';
 import { openDatePicker } from './datepicker.js';
 import { renderMonthOptions } from './filters.js';
-import { currency, escapeAttr, formatDate } from './format.js';
+import { currency, escapeAttr, formatDate, remembered } from './format.js';
 import { scheduleRender } from './main.js';
 import { accountById, catById, getFilteredTransactions, isExpense, state } from './state.js';
 import { showToast } from './toast.js';
@@ -67,6 +67,9 @@ function dateButton(t, extraClass) {
     aria-haspopup="dialog" aria-expanded="false" title="${title}" aria-label="Date ${formatDate(t.date)}${edited ? `, moved from ${formatDate(t.originalDate)}` : ''}. Change date">${formatDate(t.date)}</button>`;
 }
 
+/** A date in full, e.g. "Thursday 8 October". */
+const longDate = remembered((iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }));
+
 /** Day heading label: "Today", "Yesterday", else e.g. "Thursday 8 October". */
 function dayHeading(iso) {
   const day = new Date(iso + 'T00:00:00');
@@ -75,7 +78,7 @@ function dayHeading(iso) {
   const diff = Math.round((today - day) / 86400000);
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
-  return day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  return longDate(iso);
 }
 
 // Every category as <option>s, built once. A row's select holds only its own
@@ -103,7 +106,7 @@ function sizeCategorySelects(table) {
     probe.className = 'category-select';
     probe.innerHTML = CATEGORY_OPTIONS;
     probe.style.cssText = 'position:absolute;visibility:hidden;width:auto';
-    table.parentElement.appendChild(probe);
+    table.closest('.table-tile').appendChild(probe); // outside .table-scroll, whose contents aren't laid out while off screen
     table.style.setProperty('--category-select-width', `${probe.getBoundingClientRect().width}px`);
     probe.remove();
   };
@@ -222,6 +225,8 @@ export function renderTable() {
       rows.push(transactionRow(t));
     });
     body.innerHTML = rows.join('');
+    // Roughly the table's height, assumed while it's off screen and not laid out, so the scrollbar stays honest.
+    body.closest('.table-scroll').style.containIntrinsicHeight = `auto ${rows.length * 60}px`;
     restoreTableFocus(body, focus);
   }
 
