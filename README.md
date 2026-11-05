@@ -173,8 +173,17 @@ trip's page has **Delete trip** (after a confirmation). A trip's spending
 is every transaction in the **Holiday** category dated within its start
 and end dates (inclusive; hidden transactions don't count) — so a flight
 booked months ahead only counts if its date is moved into the trip
-(change it from the transactions table). Which categories count is
-`TRIP_CATEGORIES` in `js/trips.js`.
+(change it from the transactions table). Which category counts is
+`TRIP_CATEGORY` in `js/trips.js`.
+
+A trip's plan is every **Holiday** calendar event dated within it, with
+its time, budget and sub-category. Each day lists its events in time order
+beside what's been spent; flights, stay and parking are kept out of the
+days, in **Essentials**. **Free to spend** is the budget minus everything
+allocated: what's been spent, what events still hold, and each essential's
+budget (set aside until the trip's over). Spending in an event's part on
+its day (any day, for an essential) counts against the event's budget, so
+it's never counted twice.
 
 A trip's budget is set part by part (flights, stay, food...) with the
 sliders behind the pencil on its **By part** tile. The parts are saved to

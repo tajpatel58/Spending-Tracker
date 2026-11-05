@@ -3782,11 +3782,38 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .hero-tile__link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
 .hero-tile__link:hover { text-decoration-color: currentColor; }
 
+/* Allocated and free: the budget as one bar with its key beneath, a colour
+   for each figure (the Calendar's forecast colours, with Holiday's violet
+   for plans). Solid is money that's gone or free; hatched is money spoken for. */
+.allocation { margin-top: var(--space-3); padding-bottom: var(--space-5); }
+.allocation__bar { position: relative; margin: var(--space-4) var(--tile-gutter) 0; }
+.allocation__track { display: flex; gap: 2px; height: 12px; overflow: hidden; border-radius: var(--radius-full); background: color-mix(in srgb, var(--text) 6%, transparent); }
+.allocation__slice { display: block; flex: 0 1 auto; min-width: 0; background: var(--slice); transform-origin: left center; animation: grow-x 700ms var(--ease-out) both; animation-delay: 150ms; }
+.allocation__slice.is-planned { background: repeating-linear-gradient(-45deg, var(--slice) 0 3px, color-mix(in srgb, var(--slice) 45%, transparent) 3px 5px); }
+.allocation__limit { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text-muted); box-shadow: 0 0 0 1.5px var(--surface); }
+.allocation__key { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin: var(--space-5) 0 0; padding: 0 var(--tile-gutter); list-style: none; }
+.allocation__item { display: flex; flex-direction: column; min-width: 0; }
+.allocation__item + .allocation__item { padding-left: var(--space-4); border-left: var(--hairline) solid var(--border); }
+.allocation__label { display: flex; align-items: center; gap: var(--space-2); font-size: 12.5px; font-weight: 500; color: var(--text-muted); }
+.allocation__swatch { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+.allocation__swatch.is-essentials { background: var(--forecast-fixed); }
+.allocation__swatch.is-spent { background: var(--forecast-spent); }
+.allocation__swatch.is-planned { background: repeating-linear-gradient(-45deg, var(--cat-holiday) 0 3px, color-mix(in srgb, var(--cat-holiday) 45%, transparent) 3px 5px); }
+.allocation__swatch.is-free { background: var(--forecast-projected); }
+.allocation__item.is-over .allocation__swatch { background: var(--rose); }
+.allocation__item.is-quiet .allocation__swatch { background: var(--border-strong); }
+.allocation__figure { margin-top: var(--space-2); font-family: var(--font-display); font-size: 24px; font-weight: 450; line-height: 1.15; letter-spacing: -0.015em; font-variant-numeric: lining-nums tabular-nums; }
+.allocation__note { margin-top: 3px; font-size: 12px; color: var(--text-faint); }
+.allocation__item.is-over :is(.allocation__label, .allocation__figure, .allocation__note) { color: var(--rose); }
+.allocation__item.is-quiet .allocation__figure { color: var(--text-faint); }
+.allocation__foot { margin: var(--space-4) var(--tile-gutter) 0; padding-top: var(--space-3); font-size: 12.5px; line-height: 1.5; color: var(--text-muted); border-top: var(--hairline) solid var(--border); }
+.allocation__foot[hidden] { display: none; }
+
 /* The itinerary: the trip day by day, as the page's centrepiece — a
-   serif heading, Essentials as a band on a faint gold wash, then a card
-   for each day: its number in the serif, its date in tracked capitals,
-   its total, and what was spent on it. Today wears a gold ring; days
-   still to come are drawn in outline. */
+   serif heading, Essentials as a band on a faint gold wash, then a row for
+   each day: its number and date down a rail, what's planned in time order,
+   and what's been spent beside it. Plans wear hollow rings and spending
+   filled discs, so one can't be taken for the other. Today wears a gold ring. */
 .itinerary { margin-bottom: var(--space-6); padding-bottom: var(--tile-gutter); }
 .itinerary__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); padding: var(--space-8) var(--tile-gutter) 0; }
 .itinerary__title { margin: 0; font-size: 28px; font-weight: 450; line-height: 1.15; letter-spacing: -0.02em; }
@@ -3800,32 +3827,54 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .itinerary-strip__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: 0; padding: 0; list-style: none; }
 .itinerary-strip .trip-tx { padding: 8px var(--space-4); }
 .itinerary-strip .trip-tx + .trip-tx { border-top: none; }
-.itinerary__days { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); margin: 0; padding: var(--space-5) var(--tile-gutter) 0; list-style: none; }
+.itinerary-strip__parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.essential { min-width: 0; padding: var(--space-1) 0 var(--space-2); border-top: var(--hairline) solid color-mix(in srgb, var(--gold) 20%, transparent); }
+.essential__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: var(--space-2) 0 var(--space-1); padding: 0 var(--space-4); font-size: 12.5px; font-weight: 500; color: var(--text-muted); }
+.essential__figure { font-family: var(--font-num); font-size: 11.5px; font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-faint); }
+.essential__list { margin: 0; padding: 0; list-style: none; }
+.essential .trip-tx, .essential .trip-event { padding-left: var(--space-4); padding-right: var(--space-4); }
+.essential .trip-tx { padding-top: 8px; padding-bottom: 8px; }
+.essential .trip-tx + .trip-tx { border-top: none; }
+.itinerary__days { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: var(--space-5) var(--tile-gutter) 0; list-style: none; }
 .itinerary-day {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1.15fr) minmax(0, 1fr);
   min-width: 0;
-  padding: var(--space-4) 0 var(--space-2);
   background: var(--surface-alt);
   border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-sm);
   animation: legend-in 420ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 40ms + 80ms);
 }
-.itinerary-day__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-4); }
+.itinerary-day__rail { padding: var(--space-4); }
 .itinerary-day__title { font-family: var(--font-display); font-size: 21px; font-weight: 450; letter-spacing: -0.015em; }
-.itinerary-day__total { font-family: var(--font-display); font-size: 16px; font-weight: 450; color: var(--text-muted); font-variant-numeric: lining-nums tabular-nums; }
-.itinerary-day__date { display: flex; align-items: center; gap: var(--space-2); min-height: 18px; margin: 3px 0 var(--space-3); padding: 0 var(--space-4); font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
+.itinerary-day__date { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--space-2); margin: 3px 0 0; font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
 .itinerary-day__date .ledger-table__flag { margin-left: 0; font-family: var(--font-body); }
-.itinerary-day__list { flex: 1; margin: 0; padding: 0; list-style: none; border-top: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent); }
-.itinerary-day .trip-tx { padding: 9px var(--space-4); }
-.itinerary-day__quiet { padding: var(--space-3) var(--space-4) var(--space-1); font-size: 12.5px; color: var(--text-faint); }
+.itinerary-day__free { margin: var(--space-3) 0 0; font-size: 12px; color: var(--text-muted); }
+.itinerary-day__col { min-width: 0; padding: var(--space-3) 0 var(--space-2); border-left: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent); }
+.itinerary-day__label { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin: 0 0 var(--space-1); padding: 2px var(--space-4) 0; font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
+.itinerary-day__label b { font-family: var(--font-display); font-size: 15px; font-weight: 450; letter-spacing: 0; color: var(--text); font-variant-numeric: lining-nums tabular-nums; }
+.itinerary-day__list { margin: 0; padding: 0; list-style: none; }
+.itinerary-day .trip-tx { padding: 8px var(--space-4); }
+.itinerary-day__quiet { padding: var(--space-2) var(--space-4); font-size: 12.5px; color: var(--text-faint); }
 .itinerary-day.is-today { background: var(--surface); border-color: color-mix(in srgb, var(--gold) 70%, transparent); box-shadow: 0 0 0 3px var(--gold-soft); }
-.itinerary-day:is(.is-future, .is-waiting) { background: transparent; border-style: dashed; border-color: var(--border-strong); }
-.itinerary-day:is(.is-future, .is-waiting) .itinerary-day__title { color: var(--text-faint); }
-.itinerary-day.is-waiting.is-today { border-style: solid; }
 
-/* Where it went: the parts across the full width, in two columns. */
+/* A planned event: its time, then a hollow ring (a line runs between the
+   rings of the day's events, like a route), its title and its budget. */
+.trip-event { position: relative; display: flex; align-items: center; gap: var(--space-3); padding: 8px var(--space-4); }
+.trip-event__time { flex: none; width: 42px; font-family: var(--font-num); font-size: 12px; font-weight: 500; line-height: 1.3; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.trip-event__day { display: block; font-size: 11px; font-weight: 400; color: var(--text-faint); white-space: nowrap; }
+.trip-event__ring { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: var(--avatar-color); background: var(--surface-alt); border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--avatar-color) 60%, transparent); }
+.is-today .trip-event__ring { background: var(--surface); }
+.itinerary-day .trip-event + .trip-event::before { content: ''; position: absolute; top: -9px; left: calc(var(--space-4) + 42px + var(--space-3) + 14px); height: 18px; border-left: var(--hairline) solid var(--border-strong); }
+.trip-event__budget { flex: none; font-family: var(--font-num); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-muted); }
+.trip-event__budget.is-unset { font-size: 12px; color: var(--amber); }
+.trip-event__paid { color: var(--accent); }
+
+/* What a part's events still hold: hatched in its colour, after what's spent. */
+.budget-item__plan { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(-45deg, var(--plan) 0 2px, color-mix(in srgb, var(--plan) 32%, transparent) 2px 4px); }
+
+/* The budget: the parts across the full width, in two columns. */
 .trip-parts { margin-bottom: var(--space-6); }
 .trip-parts .budget-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px var(--space-10); }
 
@@ -4081,8 +4130,25 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .stats-grid.trips-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats-grid.stats-grid--quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .charts-grid.trips-home-charts { grid-template-columns: minmax(0, 1fr); }
+  .allocation__key { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .allocation__item:nth-child(odd) { padding-left: 0; border-left: none; }
+  .itinerary-day { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .itinerary-day__rail { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-3); padding-bottom: var(--space-2); }
+  .itinerary-day__date, .itinerary-day__free { margin: 0; }
+  .itinerary-day__free { margin-left: auto; }
+  .itinerary-day__col { border-top: var(--hairline) solid color-mix(in srgb, var(--border) 70%, transparent); }
+  .itinerary-day__col.is-planned { border-left: none; }
 }
 @media (max-width: 560px) {
+  .allocation__figure { font-size: var(--fs-title); }
+  .allocation__label, .allocation__foot { font-size: var(--fs-small); }
+  .allocation__note { font-size: var(--fs-caption); }
+  /* One column: a day's plan, then what's spent (left out while there's nothing yet). */
+  .itinerary-day { grid-template-columns: minmax(0, 1fr); }
+  .itinerary-day__col.is-spent { border-left: none; }
+  .itinerary-day__col.is-quiet { display: none; }
+  .itinerary-strip__parts { grid-template-columns: minmax(0, 1fr); }
+  .trip-event__budget { font-size: 13px; }
   .page-heading .trips-actions { grid-column: 2; grid-row: 2; gap: var(--space-2); }
   .trip-new-btn { padding: 7px 12px 7px 10px; font-size: var(--fs-small); }
   .trip-delete-btn { padding: 7px; }
@@ -4096,14 +4162,13 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .trip-field__input { font-size: 16px; } /* 16px stops iOS zooming into the field */
   .trip-date { font-size: var(--fs-body); }
   .trip-form__foot .btn { flex: 1; padding: 11px 16px; }
-  .itinerary__head { padding-top: var(--space-6); }
+  .itinerary__head { flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); padding-top: var(--space-6); }
   .itinerary__title { font-size: var(--fs-heading); }
   .itinerary__sub { font-size: var(--fs-small); }
-  .itinerary__days { grid-template-columns: minmax(0, 1fr); }
   .itinerary-strip__list { grid-template-columns: minmax(0, 1fr); }
   .itinerary-strip__sub { display: none; }
   .itinerary-day__title { font-size: var(--fs-title); }
-  .itinerary-day__total { font-size: var(--fs-body); }
+  .itinerary-day__label b { font-size: var(--fs-body); }
   .itinerary-day__date { font-size: var(--fs-micro); }
   .itinerary-day__quiet { font-size: var(--fs-small); }
   .trip-tx__merchant, .trip-tx__amount { font-size: 13px; }

@@ -129,14 +129,16 @@ export async function fetchTransactions() {
 
 /**
  * Fetches the Google Calendar events synced into calendar_events, each
- * with the rough budget and category the LLM extracted.
+ * with the rough budget, category and (for a Holiday event) sub-category
+ * the LLM extracted.
  *
- * @returns {Promise<Array<Object>>} { id, date, title, budget, category }
+ * @returns {Promise<Array<Object>>} { id, date, startTime, title, budget, category, subCategory }
+ *   (startTime: 'HH:MM', or null for an all-day event; subCategory: e.g. 'food' — see trips.js)
  */
 export async function fetchCalendarEvents() {
   const { data, error } = await fetchAllRows((options) => supabaseClient
     .from('calendar_events')
-    .select('event_id, title, event_date, budget, category', options)
+    .select('event_id, title, event_date, start_time, budget, category, sub_category', options)
     .order('event_date', { ascending: true })
     .order('event_id', { ascending: true }));
 
@@ -148,8 +150,10 @@ export async function fetchCalendarEvents() {
   return data.map((row) => ({
     id: row.event_id,
     date: row.event_date,
+    startTime: row.start_time ? row.start_time.slice(0, 5) : null,
     title: row.title,
     budget: Number(row.budget) || 0,
     category: normalizeCategory(row.category) ?? 'other',
+    subCategory: row.sub_category ?? null,
   }));
 }

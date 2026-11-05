@@ -283,9 +283,20 @@
     <p class="section-eyebrow" id="trip-hero-eyebrow" aria-hidden="true">Financial summary</p>
     <section class="stats-grid stats-grid--quad" id="trip-stats" aria-label="Financial summary"></section>
 
+    <!-- How the budget is allocated: essentials, spent, planned and what's free (trips.js renderAllocation). -->
+    <section class="tile allocation" aria-labelledby="allocation-title">
+      <div class="tile__header">
+        <h2 id="allocation-title">Allocated and free</h2>
+        <span class="tile__meta" id="allocation-meta"></span>
+      </div>
+      <div class="allocation__bar" id="allocation-bar" role="img"></div>
+      <ul class="allocation__key" id="allocation-key"></ul>
+      <p class="allocation__foot" id="allocation-foot" hidden></p>
+    </section>
+
     <!-- The itinerary: the trip day by day, as the page's centrepiece —
-         Essentials (flights, parking) first, then a card for each day with
-         what was spent on it (trips.js renderItinerary). -->
+         Essentials (flights, stay, parking) first, then each day with its
+         events in time order beside what was spent (trips.js renderItinerary). -->
     <p class="section-eyebrow" aria-hidden="true">The itinerary</p>
     <section class="tile itinerary" aria-labelledby="itinerary-title">
       <div class="itinerary__head">
@@ -313,10 +324,10 @@
       </section>
     </div>
 
-    <!-- Where it went: each part of the trip (its sub-categories) as a bar.
-         The pencil turns the bars into gauges to drag, saved to the
+    <!-- The budget: each part of the trip (its sub-categories) as a bar of
+         what's spent and what its events still hold. The pencil turns the bars into gauges to drag, saved to the
          `trips` table's part_budgets (trips.js initBudgetEditing). -->
-    <p class="section-eyebrow" aria-hidden="true">Where it went</p>
+    <p class="section-eyebrow" aria-hidden="true">The budget</p>
     <section class="tile chart-tile trip-parts" aria-labelledby="trip-parts-title">
       <div class="tile__header">
         <div class="tile__heading">
@@ -330,7 +341,7 @@
           </button>
         </span>
       </div>
-      <ul class="budget-list" id="trip-budget" aria-label="Spending by part of the trip"></ul>
+      <ul class="budget-list" id="trip-budget" aria-label="Budget, spending and plans by part of the trip"></ul>
     </section>
   </div>
 

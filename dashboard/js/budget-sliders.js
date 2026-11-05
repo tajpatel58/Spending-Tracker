@@ -23,13 +23,14 @@ const listeners = new WeakMap();
 const unlisten = (list) => (listeners.get(list) || []).forEach(([type, fn]) => list.removeEventListener(type, fn));
 
 /**
- * Draws `rows` — [{ key, label, color, icon?, value, spent, fallback? }] —
+ * Draws `rows` — [{ key, label, color, icon?, value, spent, planned?, fallback? }] —
  * into `list` (a budget list) as gauges, and returns { values(),
  * set(values) }: the amounts as { key: pounds }, and a way to move every
  * knob at once (e.g. back to the defaults). Each gauge reaches at least
  * `minReach`, and twice its amount or its spending when that's more
  * (a row's `fallback`, its default, is noted while it's set otherwise);
- * typing past the end stretches it. `onInput(total)` runs on every
+ * typing past the end stretches it; a row's `planned`, what's earmarked for
+ * it already, heads its note. `onInput(total)` runs on every
  * change, for a live total; Enter in a field calls `onSubmit`, and
  * Escape anywhere in the list `onCancel`.
  */
@@ -91,7 +92,8 @@ export function budgetSliders(list, rows, { minReach = 1000, onInput = () => {},
     const note = item.querySelector('.budget-item__note');
     let text = !spent ? 'Nothing spent yet' : over ? `${currencyShort(spent - value)} over` : value - spent < 1 ? 'All spent' : `${currencyShort(value - spent)} left`;
     if (!value) text = spent ? `${currencyShort(spent)} spent · no budget` : 'No budget';
-    const { fallback } = byKey[key];
+    const { fallback, planned } = byKey[key];
+    if (planned) text = `${currencyShort(planned)} planned · ${text}`;
     note.textContent = fallback != null && value !== fallback ? `${text} · default ${currencyShort(fallback)}` : text;
     note.className = `budget-item__note${over && value > 0 ? ' is-negative' : ''}`;
   };

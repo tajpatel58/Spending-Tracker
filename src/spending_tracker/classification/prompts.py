@@ -16,6 +16,18 @@ CATEGORIES = [
     "other",
 ]
 
+# What a Holiday event's money is for: the same ids as HOLIDAY_SUB_CATEGORIES in dashboard/js/trips.js
+HOLIDAY_SUB_CATEGORIES = [
+    "flights",
+    "stay",
+    "food",
+    "activities",
+    "transport",
+    "parking",
+    "shopping",
+    "other",
+]
+
 
 def build_transaction_classification_prompt(
     merchant: str,
@@ -123,11 +135,20 @@ def build_calendar_event_extraction_prompt(event: dict) -> str:
     f"- {category}"
     for category in CATEGORIES
     )
+    sub_categories = "\n".join(
+    f"- {sub_category}"
+    for sub_category in HOLIDAY_SUB_CATEGORIES
+    )
 
 
     prompt = f"""You are extracting structured spending information from a Google Calendar event.
-        Valid Categories:
+        <categories>
         {categories}
+        </categories>
+
+        <holiday_sub_categories>
+        {sub_categories}
+        </holiday_sub_categories>
 
         <event>
         <title>{event["title"]}</title>
@@ -143,9 +164,13 @@ def build_calendar_event_extraction_prompt(event: dict) -> str:
         2. Choose exactly one category from the <categories> list that best describes what the money is being spent on.
         - You must use a category exactly as written in the list, with the same spelling and capitalisation.
         - Base the choice on what the event is, using both the title and description.
-        - If nothing fits well, choose the closest match and set "confidence" to "low".
+        - If the description says "Holiday" (e.g. "Holiday - Food - Budget £80"), the category must be "holiday", even if another category also fits.
+        - If nothing fits well, choose the closest match.
+        3. Choose the sub-category.
+        - If the category is "holiday", choose exactly one sub-category from the <holiday_sub_categories> list that best describes what the money is being spent on, using both the title and description. Use it exactly as written in the list, with the same spelling and capitalisation.
+        - If the category is not "holiday", the sub-category must be null.
 
         Respond with only a JSON object, with no preamble, explanation, or markdown fences:
-        {{"budget": <number>, "category": <string from the list>}}
+        {{"budget": <number>, "category": <string from the list>, "sub_category": <string from the list or null>}}
         """
     return prompt

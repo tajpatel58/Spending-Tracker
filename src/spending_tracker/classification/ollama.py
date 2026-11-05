@@ -159,4 +159,8 @@ def llm_extract_calendar_event(event: dict) -> dict:
             "Category must be a string."
         )
 
+    # A missing or unrecognised sub-category is left for "To sort" rather than failing the event
+    if extraction.get("sub_category") not in prompts.HOLIDAY_SUB_CATEGORIES:
+        extraction["sub_category"] = None
+
     return extraction

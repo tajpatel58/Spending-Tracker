@@ -4,7 +4,7 @@
  * Entry point for trips.html — the household's trips, from the Supabase
  * `trips` table (where and when), each with the spending that belongs
  * to it: every Holiday-category transaction dated within its dates
- * (tagTransactions), counted under its Holiday sub-category (flights,
+ * (tagTrips), counted under its Holiday sub-category (flights,
  * stay...). Spending without a sub-category is listed under "To sort" on
  * the trip's page, where choosing one saves it to Supabase.
  *
@@ -17,12 +17,16 @@
  * same widgets empty. "Plan a trip" saves a new trip, and a trip's page
  * can delete it.
  *
- * A trip's page opens on its financial summary (Budget, Spent and
- * Remaining), then the itinerary. The budget is set part by part with
- * sliders on the "By part" tile (the `trips` table's part_budgets
- * column), and the trip's Budget is their sum. A savings pot and local
- * currency (trip.pot, trip.fx) are drawn when a trip has them; trips
- * from Supabase don't yet.
+ * A trip also has its plan: every Holiday-tagged calendar event dated
+ * within it, with its time, budget and sub-category. A trip's page opens
+ * on its financial summary (Budget, Spent, Free to spend) and how the
+ * budget is allocated, then the itinerary: Essentials (flights, stay,
+ * parking) in a band of their own, then each day's events in time order
+ * beside what's been spent. The budget is set part by part with sliders
+ * on the "By part" tile (the `trips` table's part_budgets column), and
+ * the trip's Budget is their sum. A savings pot and local currency
+ * (trip.pot, trip.fx) are drawn when a trip has them; trips from Supabase
+ * don't yet.
  * ---------------------------------------------------------------------
  */
 
@@ -30,7 +34,7 @@ import { initPageHeading, initUserMenu, localDataCleared, signOut } from './auth
 import { budgetEditHeader, budgetSliders, endBudgetEditHeader, endBudgetSliders } from './budget-sliders.js';
 import { fade, htmlTooltip } from './chart-kit.js';
 import { categoryIcon } from './category-icons.js';
-import { accountsReady, pageSession, saveDataCache, TRANSACTIONS } from './data.js';
+import { accountsReady, CALENDAR_EVENTS, pageSession, saveDataCache, TRANSACTIONS } from './data.js';
 import { openDatePicker } from './datepicker.js';
 import { cssVar, currency, currencyShort, escapeAttr, MINUS, moneyMarkup } from './format.js';
 import { motion } from './motion.js';
@@ -77,16 +81,17 @@ const HOLIDAY_SUB_CATEGORIES = ['flights', 'stay', 'food', 'activities', 'transp
 const BOOKED_PARTS = new Set(['flights', 'stay']);
 
 /**
- * Parts listed under "Essentials" above the days in Every transaction,
- * rather than on the day they're dated, so each day lists what was done
- * and eaten that day.
+ * Parts listed under "Essentials" above the days, rather than on the day
+ * they're dated, so each day lists what was done and eaten that day. Their
+ * budgets are set aside in full until the trip's over: money for a flight
+ * not booked yet isn't free to spend.
  */
-const ESSENTIAL_PARTS = new Set(['flights', 'parking']);
+const ESSENTIAL_PARTS = new Set(['flights', 'stay', 'parking']);
 
 /** The parts a trip's budget is set by: the sub-categories. */
 const BUDGET_PARTS = HOLIDAY_SUB_CATEGORIES;
 
-/** The category whose transactions, dated within a trip, belong to it. */
+/** The category whose transactions and calendar events, dated within a trip, belong to it. */
 const TRIP_CATEGORY = 'holiday';
 
 /** A trip's part budgets from a row's part_budgets, as numbers in BUDGET_PARTS order (jsonb doesn't keep the order). */
@@ -94,7 +99,7 @@ const partBudgets = (stored) => Object.fromEntries(BUDGET_PARTS
   .filter((part) => Number(stored?.[part]) > 0)
   .map((part) => [part, Number(stored[part])]));
 
-/** A row of the Supabase `trips` table as a trip: where and when, with its spending tagged in by tagTransactions. */
+/** A row of the Supabase `trips` table as a trip: where and when, with its spending and events tagged in by tagTrips. */
 const fromRow = (row) => {
   const budget = partBudgets(row.part_budgets);
   return {
@@ -110,6 +115,7 @@ const fromRow = (row) => {
     budget, // per-part budgets, e.g. { flights: 420, stay: 900 }
     pot: null,
     txs: [],
+    events: [],
   };
 };
 
@@ -149,7 +155,7 @@ function saveTrips() {
 function applyTripRows(rows) {
   TRIPS.splice(0, TRIPS.length, ...rows.map(fromRow));
   sortTrips();
-  tagTransactions();
+  tagTrips();
 }
 
 /** Counts edits to the trips, so a background check can't overwrite one made while it was under way. */
@@ -180,11 +186,14 @@ async function refreshTrips() {
  * dated from the trip's first day to its last, earliest first, counted
  * under its sub-category (or 'unsorted' until it has one). A
  * transaction's date is its manual_date when one is set, otherwise the
- * bank's date (supabase-client.js fetchTransactions). Run again whenever
- * the trips or transactions change.
+ * bank's date (supabase-client.js fetchTransactions). And its plan: each
+ * Holiday calendar event in the same dates, in time order, an all-day
+ * event first on its day. Run again whenever the trips, transactions or
+ * events change.
  */
-function tagTransactions() {
+function tagTrips() {
   const tagged = Object.values(TRANSACTIONS).flat().filter((t) => !t.hidden && t.category === TRIP_CATEGORY);
+  const events = CALENDAR_EVENTS.filter((e) => e.category === TRIP_CATEGORY);
   TRIPS.forEach((trip) => {
     trip.txs = tagged
       .filter((t) => t.date >= trip.start && t.date <= trip.end)
@@ -196,6 +205,17 @@ function tagTransactions() {
         merchant: t.merchant,
         who: t.user || 'Unknown', // the account's owner (or the joint account)
         amount: Math.abs(t.amount),
+      }));
+    trip.events = events
+      .filter((e) => e.date >= trip.start && e.date <= trip.end)
+      .sort((x, y) => `${x.date} ${x.startTime || ''}`.localeCompare(`${y.date} ${y.startTime || ''}`))
+      .map((e) => ({
+        id: e.id,
+        date: e.date,
+        time: e.startTime,
+        title: e.title,
+        budget: e.budget,
+        part: HOLIDAY_SUB_CATEGORIES.includes(e.subCategory) ? e.subCategory : 'unsorted',
       }));
   });
 }
@@ -239,7 +259,32 @@ function dateRange(trip, month = 'long') {
 const sum = (values) => values.reduce((s, v) => s + v, 0);
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** Everything the page shows about one trip, worked out from its dates and tagged spending. */
+/**
+ * A trip's events with what's been spent against each: `paid`, from the
+ * spending in its part (on its day, unless it's an essential, often paid
+ * for on another day), the last event of those taking whatever's over; and
+ * `left`, what's still held for it, so spending and plan aren't counted
+ * twice. A finished event with spending against it holds nothing; one with
+ * none holds its budget (the payment may not have come through) until the
+ * trip's over. A transaction or event yet to be sorted is never paired up.
+ */
+function settleEvents(trip, status) {
+  const pairing = (item) => (ESSENTIAL_PARTS.has(item.part) ? item.part : `${item.part} ${item.date}`);
+  const unspent = {};
+  const lastEvent = {};
+  trip.txs.filter((t) => t.part !== 'unsorted').forEach((t) => { unspent[pairing(t)] = (unspent[pairing(t)] || 0) + t.amount; });
+  trip.events.forEach((e) => { lastEvent[pairing(e)] = e; });
+  return trip.events.map((e) => {
+    const key = pairing(e);
+    const available = e.part === 'unsorted' ? 0 : unspent[key] || 0;
+    const paid = lastEvent[key] === e ? available : Math.min(e.budget, available);
+    if (e.part !== 'unsorted') unspent[key] = available - paid;
+    const finished = status === 'done' || (e.date < TODAY && paid > 0);
+    return { ...e, paid, left: finished ? 0 : Math.max(0, e.budget - paid) };
+  });
+}
+
+/** Everything the page shows about one trip, worked out from its dates, tagged spending and events. */
 function tripModel(trip) {
   const status = TODAY < trip.start ? 'saving' : TODAY > trip.end ? 'done' : 'away';
   const days = daysBetween(trip.start, trip.end) + 1;
@@ -287,7 +332,30 @@ function tripModel(trip) {
     };
   }
 
-  return { trip, status, days, day, daysLeft, through, budget, spent, byPart, booked, dailyParts, dailyBudget, dailySpent, paid, pot };
+  // The plan: what events are budgeted at by part, and what they still hold.
+  const events = settleEvents(trip, status);
+  const plannedBy = {};
+  const heldBy = {};
+  events.forEach((e) => {
+    plannedBy[e.part] = (plannedBy[e.part] || 0) + e.budget;
+    heldBy[e.part] = (heldBy[e.part] || 0) + e.left;
+  });
+  const held = sum(events.map((e) => e.left));
+
+  // Allocated: what's gone, what events hold, and each essential's budget, set aside until the trip's over.
+  const essentialParts = [...ESSENTIAL_PARTS];
+  const essentialsPaid = sum(essentialParts.map((p) => byPart[p] || 0));
+  const essentialsHeld = sum(essentialParts.map((p) => heldBy[p] || 0));
+  const essentialsAside = status === 'done' ? 0 : sum(essentialParts.map((p) => Math.max((trip.budget[p] || 0) - (byPart[p] || 0), heldBy[p] || 0)));
+  const allocated = spent + held - essentialsHeld + essentialsAside;
+  const free = budget - allocated;
+  const daysToSpend = status === 'away' ? daysLeft : days; // over the whole trip before it, what's left of it while away
+  const freePerDay = status !== 'done' && free > 0 ? free / daysToSpend : 0;
+
+  return {
+    trip, status, days, day, daysLeft, through, budget, spent, byPart, booked, dailyParts, dailyBudget, dailySpent, paid, pot,
+    events, plannedBy, heldBy, held, essentialsPaid, essentialsAside, allocated, free, daysToSpend, freePerDay,
+  };
 }
 
 /** Totals by day of the trip, as [{ iso, total, txs }]. */
@@ -355,9 +423,10 @@ const editBudgetButton = (has) => `
 /**
  * The financial summary: four tiles across — the trip's Budget (from the
  * `trips` table, editable from its pencil), what's been Spent, what's
- * Remaining, and Each (who paid, and who owes whom). With no budget set,
- * Budget and Remaining show "Not set" and "—" in a quieter ink; with
- * nothing tagged yet, Spent and Each do.
+ * Free to spend once everything's allocated (renderAllocation), and Each
+ * (who paid, and who owes whom). With no budget set, Budget and Free to
+ * spend show "Not set" and "—" in a quieter ink; with nothing tagged yet,
+ * Spent and Each do.
  */
 function renderStats(m) {
   const { trip, status } = m;
@@ -366,8 +435,7 @@ function renderStats(m) {
   const everyone = people();
   const unsorted = trip.txs.filter((t) => t.part === 'unsorted').length;
   const perDay = m.through ? m.spent / m.through : 0;
-  const remaining = m.budget - m.spent;
-  const over = m.budget > 0 && remaining < 0;
+  const over = m.budget > 0 && m.free < 0;
 
   const budgetTile = m.budget
     ? smallTile({
@@ -399,41 +467,132 @@ function renderStats(m) {
     foot: tileFoot('Per day', trip.txs.length ? currencyShort(perDay) : '—'),
   });
 
-  let remainingTile;
+  let freeTile;
   if (!m.budget) {
-    remainingTile = smallTile({ label: 'Remaining', value: '—', valueClass: ' stat-tile__value--text', note: 'Set a budget to track it', foot: tileFoot('Per day', '—') });
+    freeTile = smallTile({ label: 'Free to spend', value: '—', valueClass: ' stat-tile__value--text', note: 'Set a budget to track it', foot: tileFoot('Per day', '—') });
   } else if (over) {
-    remainingTile = smallTile({
-      label: 'Over budget',
-      value: moneyMarkup(currencyShort(-remaining)),
+    const overSpent = m.allocated === m.spent; // nothing's still to come: it's already gone
+    freeTile = smallTile({
+      label: overSpent ? 'Over budget' : 'Over-allocated',
+      value: moneyMarkup(currencyShort(-m.free)),
       valueClass: ' is-negative',
-      note: `${Math.round((m.spent / m.budget) * 100)}% of the budget spent`,
+      note: overSpent ? `${Math.round((m.spent / m.budget) * 100)}% of the budget spent` : `${currencyShort(m.allocated)} allocated of ${currencyShort(m.budget)}`,
       tone: 'is-negative',
-      foot: tileFoot('Per day over', currencyShort(-remaining / m.days), 'is-negative'),
+      foot: tileFoot('Per day over', currencyShort(-m.free / m.days), 'is-negative'),
     });
   } else {
     const footByStatus = {
-      saving: tileFoot('Per day', currencyShort(remaining / m.days)),
-      away: tileFoot(`Per day, last ${plural(m.daysLeft, 'day')}`, currencyShort(remaining / m.daysLeft)),
-      done: tileFoot('Came in under by', currencyShort(remaining), 'is-positive'),
+      saving: tileFoot('Per day', currencyShort(m.freePerDay)),
+      away: tileFoot(`Per day, last ${plural(m.daysLeft, 'day')}`, currencyShort(m.freePerDay)),
+      done: tileFoot('Came in under by', currencyShort(m.free), 'is-positive'),
     };
-    remainingTile = smallTile({
-      label: 'Remaining',
-      value: moneyMarkup(currencyShort(remaining)),
-      note: { saving: `to spend · ${plural(daysBetween(TODAY, trip.start), 'day')} to go`, away: `left for the last ${plural(m.daysLeft, 'day')}`, done: 'under budget' }[status],
+    freeTile = smallTile({
+      label: status === 'done' ? 'Remaining' : 'Free to spend',
+      value: moneyMarkup(currencyShort(m.free)),
+      note: { saving: `after ${currencyShort(m.allocated)} allocated`, away: `after ${currencyShort(m.allocated)} allocated`, done: 'under budget' }[status],
       tone: status === 'done' ? 'is-positive' : '',
       foot: footByStatus[status],
     });
   }
 
   grid.className = 'stats-grid stats-grid--quad';
-  grid.innerHTML = [budgetTile, spentTile, remainingTile, peopleTile(m)].join('');
+  grid.innerHTML = [budgetTile, spentTile, freeTile, peopleTile(m)].join('');
   const tiles = grid.children;
   tiles[0].classList.add('budget-tile');
   tiles[0].classList.toggle('is-empty', !m.budget);
   tiles[1].classList.toggle('is-empty', !trip.txs.length);
   tiles[2].classList.toggle('is-empty', !m.budget);
   tiles[3].classList.toggle('is-empty', !trip.txs.length);
+}
+
+/** What each part needs to cover its events and spending, keeping any budget that's already more. */
+const budgetsToCover = (m) => Object.fromEntries(BUDGET_PARTS
+  .map((part) => [part, Math.max(m.trip.budget[part] || 0, m.plannedBy[part] || 0, m.byPart[part] || 0)])
+  .filter(([, amount]) => amount > 0));
+
+/** One slice of the allocation bar: `planned` slices are hatched, money not gone yet. */
+const allocationSlice = (amount, scale, color, planned = false) => (amount > 0
+  ? `<i class="allocation__slice${planned ? ' is-planned' : ''}" style="--slice:var(${color}); width:${(amount / scale) * 100}%"></i>`
+  : '');
+
+/**
+ * How the budget is allocated, as one bar with its key beneath: Essentials
+ * (paid, and set aside), what's been spent on the days, what the days'
+ * events still hold, and the rest, free to spend. Past the budget the bar
+ * runs on past a mark at the budget line and the last column turns rose.
+ * With no budget yet, it offers to set one from the events.
+ */
+function renderAllocation(m) {
+  const daysSpent = m.spent - m.essentialsPaid;
+  const daysHeld = m.allocated - m.essentialsPaid - m.essentialsAside - daysSpent;
+  const essentials = m.essentialsPaid + m.essentialsAside;
+  const scale = Math.max(m.budget, m.allocated) || 1;
+  const eventsUnpaid = m.events.filter((e) => !ESSENTIAL_PARTS.has(e.part) && e.left > 0).length;
+  const noBudget = m.events.filter((e) => !e.budget).length;
+  const done = m.status === 'done';
+
+  const bar = document.getElementById('allocation-bar');
+  bar.innerHTML = `
+    <span class="allocation__track">
+      ${allocationSlice(m.essentialsPaid, scale, '--forecast-fixed')}
+      ${allocationSlice(m.essentialsAside, scale, '--forecast-fixed', true)}
+      ${allocationSlice(daysSpent, scale, '--forecast-spent')}
+      ${allocationSlice(daysHeld, scale, '--cat-holiday', true)}
+      ${m.budget ? allocationSlice(m.free, scale, '--forecast-projected') : ''}
+    </span>
+    ${m.budget && m.free < 0 ? `<span class="allocation__limit" style="left:${(m.budget / scale) * 100}%"></span>` : ''}`;
+  bar.setAttribute('aria-label', `${currency(m.allocated)} allocated${m.budget ? ` of ${currency(m.budget)}` : ''}: essentials ${currency(essentials)}, spent ${currency(daysSpent)}, planned ${currency(daysHeld)}`);
+
+  const keyItem = ({ label, swatch, figure, note, tone = '' }) => `
+    <li class="allocation__item ${tone}">
+      <span class="allocation__label"><i class="allocation__swatch ${swatch}"></i>${label}</span>
+      <span class="allocation__figure">${figure}</span>
+      <span class="allocation__note">${note}</span>
+    </li>`;
+  const freeItem = () => {
+    if (!m.budget) return { label: 'Free to spend', figure: '—', note: 'Needs a budget', tone: 'is-quiet' };
+    if (m.free < 0) return { label: done ? 'Over budget' : 'Over-allocated', figure: currencyShort(-m.free), note: done ? 'Spent past the budget' : 'Trim a plan or raise the budget', tone: 'is-over' };
+    if (done) return { label: 'Left over', figure: currencyShort(m.free), note: 'Came in under budget' };
+    return { label: 'Free to spend', figure: currencyShort(m.free), note: m.free ? `About ${currencyShort(m.freePerDay)} a day · ${plural(m.daysToSpend, 'day')}${m.status === 'away' ? ' left' : ''}` : 'Everything’s allocated' };
+  };
+  document.getElementById('allocation-key').innerHTML = [
+    keyItem({
+      label: 'Essentials',
+      swatch: 'is-essentials',
+      figure: currencyShort(essentials),
+      note: done || !m.essentialsAside
+        ? `${currencyShort(m.essentialsPaid)} paid`
+        : `${currencyShort(m.essentialsPaid)} paid · ${currencyShort(m.essentialsAside)} set aside`,
+    }),
+    keyItem({
+      label: 'Spent on the days',
+      swatch: 'is-spent',
+      figure: currencyShort(daysSpent),
+      note: plural(m.trip.txs.filter((t) => !ESSENTIAL_PARTS.has(t.part)).length, 'transaction'),
+    }),
+    keyItem({
+      label: 'Planned on the days',
+      swatch: 'is-planned',
+      figure: currencyShort(daysHeld),
+      note: eventsUnpaid ? `${plural(eventsUnpaid, 'event')} not paid yet` : 'Nothing still to pay',
+    }),
+    keyItem({ swatch: 'is-free', ...freeItem() }),
+  ].join('');
+
+  document.getElementById('allocation-meta').textContent = m.budget
+    ? `${currencyShort(m.allocated)} of ${currencyShort(m.budget)} allocated`
+    : m.allocated ? `${currencyShort(m.allocated)} allocated` : '';
+
+  const toCover = sum(Object.values(budgetsToCover(m)));
+  const lines = [
+    !m.budget && toCover ? `Your plan comes to ${currencyShort(toCover)}. <button type="button" class="tile-link" data-budget-from-events>Use it as the budget</button>` : '',
+    !m.budget && !toCover ? '<button type="button" class="tile-link" data-edit-budget>Set a budget</button> to see what’s free to spend.' : '',
+    noBudget ? `${plural(noBudget, 'event')} ${noBudget === 1 ? 'has' : 'have'} no budget yet, so ${noBudget === 1 ? 'it isn’t' : 'they aren’t'} counted.` : '',
+    m.events.length && m.spent && !done ? 'Spending in the same part on the same day counts against an event’s plan, so nothing’s counted twice.' : '',
+  ].filter(Boolean);
+  const foot = document.getElementById('allocation-foot');
+  foot.hidden = !lines.length;
+  foot.innerHTML = lines.join(' ');
 }
 
 /**
@@ -458,18 +617,20 @@ function initBudgetEditing() {
     trip = TRIPS.find((t) => t.id === view.trip);
     if (!trip) return;
     tripEdits += 1; // a redraw from a background check would close the editor
-    const spentBy = tripModel(trip).byPart;
+    const m = tripModel(trip);
     const totalOnly = trip.total && !Object.keys(trip.budget).length;
-    const showTotal = budgetEditHeader(section, totalOnly
+    const short = BUDGET_PARTS.some((part) => (m.plannedBy[part] || 0) > (trip.budget[part] || 0));
+    const showTotal = budgetEditHeader(section, `${totalOnly
       ? `Was ${currencyShort(trip.total)} overall — split it across the parts`
-      : 'Drag each part, or type an amount. The trip’s budget is their total.');
+      : 'Drag each part, or type an amount. The trip’s budget is their total.'}${short ? ' <button type="button" class="tile-link" data-cover-events>Raise parts to cover your events</button>' : ''}`);
     sliders = budgetSliders(list, BUDGET_PARTS.map((part) => ({
       key: part,
       label: PARTS[part].label,
       icon: PARTS[part].icon,
       color: PARTS[part].color,
       value: trip.budget[part] || 0,
-      spent: spentBy[part] || 0,
+      spent: m.byPart[part] || 0,
+      planned: m.heldBy[part] || 0,
     })), { minReach: 2000, onInput: showTotal, onSubmit: save, onCancel: render });
     showTotal(sum(Object.values(sliders.values())));
     section.scrollIntoView({ behavior: motion.reduced() ? 'auto' : 'smooth', block: 'nearest' });
@@ -480,6 +641,11 @@ function initBudgetEditing() {
     if (event.target.closest('[data-edit-budget]')) open();
     else if (event.target.closest('[data-cancel-budget]')) render();
     else if (event.target.closest('[data-save-budget]')) save();
+    else if (event.target.closest('[data-cover-events]')) sliders.set(budgetsToCover(tripModel(trip)));
+    else if (event.target.closest('[data-budget-from-events]')) {
+      const current = TRIPS.find((t) => t.id === view.trip);
+      setBudgets(current, budgetsToCover(tripModel(current)));
+    }
   });
 }
 
@@ -534,7 +700,11 @@ function setBudgets(trip, next) {
 // THE PLAN
 // ============================================================
 
-/** The budget's parts as bars, like Overview's Budget vs Actual (with the part's icon). */
+/**
+ * The budget's parts as bars, like Overview's Budget vs Actual (with the
+ * part's icon): what's spent in the part's colour, what its events still
+ * hold hatched after it, and past the budget, rose stripes.
+ */
 function renderBudget(m) {
   const { trip, status } = m;
   const list = document.getElementById('trip-budget');
@@ -544,38 +714,31 @@ function renderBudget(m) {
 
   list.innerHTML = Object.entries(trip.budget).map(([part, budget], i) => {
     const info = PARTS[part];
-    const actual = m.byPart[part];
-    const booked = BOOKED_PARTS.has(part);
-    const percentage = Math.round((actual / budget) * 100);
-    const over = actual > budget;
-    const showPace = status === 'away' && !booked && !over;
+    const actual = m.byPart[part] || 0;
+    const held = m.heldBy[part] || 0;
+    const allocated = actual + held;
+    const essential = ESSENTIAL_PARTS.has(part);
+    const percentage = Math.round((allocated / budget) * 100);
+    const over = allocated > budget;
+    const showPace = status === 'away' && !essential && !over;
     const paceAmount = budget * pace;
     const ahead = showPace && actual > paceAmount;
 
-    const scale = Math.max(budget, actual);
+    const scale = Math.max(budget, allocated);
     const fillWidth = (Math.min(actual, budget) / scale) * 100;
+    const planWidth = (Math.min(held, Math.max(0, budget - actual)) / scale) * 100;
     const limitAt = (budget / scale) * 100;
-    const firstTx = trip.txs.find((t) => t.part === part);
+    const unspent = budget - allocated;
 
-    let status_ = over ? `${currencyShort(actual - budget)} over` : `${percentage}%`;
-    let note = '';
+    const so = [actual ? `${currencyShort(actual)} ${essential ? 'paid' : 'spent'}` : '', held ? `${currencyShort(held)} planned` : ''];
+    let rest = `${currencyShort(unspent)} ${essential ? 'to book' : 'free'}`;
     let tone = '';
-    if (status === 'saving') {
-      if (!actual) { status_ = 'To book'; note = `About ${currencyShort(budget)} · not booked yet`; }
-      else if (actual >= budget * 0.9) { note = `Booked ${shortDate(firstTx.date)} · ${currencyShort(budget - actual)} under plan`; tone = 'is-positive'; }
-      else note = `${currencyShort(actual)} paid ${shortDate(firstTx.date)} · about ${currencyShort(budget - actual)} to go`;
-    } else if (over) {
-      note = `${currencyShort(actual - budget)} over`;
-      tone = 'is-negative';
-    } else if (status === 'done' || booked) {
-      const under = budget - actual >= 1 ? `${currencyShort(budget - actual)} under` : 'on budget';
-      note = booked && firstTx ? `Booked ${shortDate(firstTx.date)} · ${under}` : `${currencyShort(budget - actual)} unspent`;
-      tone = status === 'done' ? 'is-positive' : '';
-    } else {
-      const perDay = `${currencyShort((budget - actual) / m.daysLeft)}/day left`;
-      note = ahead ? `${currencyShort(actual - paceAmount)} ahead of pace · ${perDay}` : perDay;
-      tone = ahead ? 'is-ahead' : '';
-    }
+    if (over) { rest = `${currencyShort(-unspent)} more than the budget`; tone = 'is-negative'; }
+    else if (status === 'done') { rest = unspent >= 1 ? `${currencyShort(unspent)} unspent` : 'On budget'; tone = 'is-positive'; }
+    else if (unspent < 1) rest = essential && !held ? 'Paid' : 'All allocated';
+    else if (status === 'away' && !essential) rest += ` · ${currencyShort(unspent / m.daysLeft)}/day left`;
+    if (ahead) { rest = `${currencyShort(actual - paceAmount)} ahead of pace · ${rest}`; tone = 'is-ahead'; }
+    const note = [...so, rest].filter(Boolean).join(' · ');
 
     return `
       <li class="budget-item${over ? ' is-over' : ''}${ahead ? ' is-ahead' : ''}" style="--i:${i}">
@@ -584,13 +747,14 @@ function renderBudget(m) {
             <span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}
           </span>
           <span class="budget-item__summary">
-            <span class="budget-item__amounts">${currencyShort(actual)} of ${currencyShort(budget)}</span>
-            <span class="budget-item__status">${status_}</span>
+            <span class="budget-item__amounts">${currencyShort(allocated)} of ${currencyShort(budget)}</span>
+            <span class="budget-item__status">${over ? `${currencyShort(-unspent)} over` : `${percentage}%`}</span>
           </span>
         </div>
-        <div class="budget-item__bar" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="${Math.max(100, percentage)}" aria-label="${info.label}: ${currencyShort(actual)} of ${currencyShort(budget)}">
+        <div class="budget-item__bar" role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="${Math.max(100, percentage)}" aria-label="${info.label}: ${currencyShort(actual)} spent and ${currencyShort(held)} planned of ${currencyShort(budget)}">
           <span class="budget-item__track">
             <span class="budget-item__fill" style="width:${fillWidth}%; background:${info.color}"></span>
+            ${planWidth ? `<span class="budget-item__plan" style="left:${fillWidth}%; width:${planWidth}%; --plan:${info.color}"></span>` : ''}
             ${over ? `<span class="budget-item__overflow" style="left:${limitAt}%; width:${100 - limitAt}%"></span>` : ''}
           </span>
           ${over ? `<span class="budget-item__limit" style="left:${limitAt}%"></span>` : ''}
@@ -598,53 +762,61 @@ function renderBudget(m) {
         </div>
         <p class="budget-item__note ${tone}">${note}</p>
       </li>`;
-  }).join('') + Object.keys(PARTS) // then what's been spent on parts without a budget (and what's still to sort)
-    .filter((part) => !trip.budget[part] && m.byPart[part])
-    .map((part, i) => unbudgetedRow(m, part, Object.keys(trip.budget).length + i, m.byPart[part]))
+  }).join('') + Object.keys(PARTS) // then the parts with spending or events but no budget (and what's still to sort)
+    .filter((part) => !trip.budget[part] && (m.byPart[part] || m.heldBy[part]))
+    .map((part, i) => unbudgetedRow(m, part, Object.keys(trip.budget).length + i))
     .join('');
 
   document.getElementById('trip-budget-meta').textContent = {
-    saving: `${currencyShort(m.booked)} booked of ${currencyShort(m.budget)}`,
+    saving: `${currencyShort(m.spent + m.held)} spent and planned`,
     away: `Day ${m.day} of ${m.days}`,
     done: `${currencyShort(m.spent)} of ${currencyShort(m.budget)}`,
   }[status];
 }
 
-/** A part without a budget: what it's spent, its bar as its share of the trip. */
-function unbudgetedRow(m, part, i, actual) {
+/** A part without a budget: what it's spent and has planned, its bar as its share of the trip. */
+function unbudgetedRow(m, part, i) {
   const info = PARTS[part];
-  const share = m.spent ? Math.round((actual / m.spent) * 100) : 0;
+  const actual = m.byPart[part] || 0;
+  const held = m.heldBy[part] || 0;
+  const whole = m.spent + m.held;
+  const share = (amount) => (whole ? (amount / whole) * 100 : 0);
+  const percent = Math.round(share(actual + held));
+  const details = [actual ? `${currencyShort(actual)} spent` : '', held ? `${currencyShort(held)} planned` : ''].filter(Boolean).join(' · ');
+  const sortHint = m.trip.txs.some((t) => t.part === 'unsorted') ? 'choose what each was for, above' : 'give each a sub-category in its calendar description';
   return `
-    <li class="budget-item${actual ? '' : ' is-empty'}" style="--i:${i}">
+    <li class="budget-item${actual || held ? '' : ' is-empty'}" style="--i:${i}">
       <div class="budget-item__header">
         <span class="budget-item__category trip-part" style="--avatar-color:${info.color}">
           <span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}
         </span>
         <span class="budget-item__summary">
-          <span class="budget-item__amounts">${actual ? currencyShort(actual) : `${currencyShort(0)} of —`}</span>
-          <span class="budget-item__status">${actual ? `${share}%` : '—'}</span>
+          <span class="budget-item__amounts">${actual || held ? currencyShort(actual + held) : `${currencyShort(0)} of —`}</span>
+          <span class="budget-item__status">${actual || held ? `${percent}%` : '—'}</span>
         </span>
       </div>
-      <div class="budget-item__bar" aria-label="${info.label}: ${currencyShort(actual)}, no budget set">
+      <div class="budget-item__bar" aria-label="${info.label}: ${currencyShort(actual)} spent and ${currencyShort(held)} planned, no budget set">
         <span class="budget-item__track">
-          ${actual ? `<span class="budget-item__fill" style="width:${share}%; background:${info.color}"></span>` : ''}
+          ${actual ? `<span class="budget-item__fill" style="width:${share(actual)}%; background:${info.color}"></span>` : ''}
+          ${held ? `<span class="budget-item__plan" style="left:${share(actual)}%; width:${share(held)}%; --plan:${info.color}"></span>` : ''}
         </span>
       </div>
-      <p class="budget-item__note${part === 'unsorted' ? ' is-ahead' : ''}">${part === 'unsorted' ? `${share}% of the trip · choose what each was for, above` : actual ? `${share}% of the trip` : BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing yet'}</p>
+      <p class="budget-item__note${part === 'unsorted' ? ' is-ahead' : ''}">${part === 'unsorted' ? `${details} · ${sortHint}` : details ? `${details} · no budget` : BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing yet'}</p>
     </li>`;
 }
 
 /**
- * Budget by part with no budget set yet: each part with spending, its
- * bar as its share of the trip, then the parts still waiting for a budget.
+ * Budget by part with no budget set yet: each part with spending or
+ * events, its bar as its share of the trip, then the parts still waiting
+ * for a budget.
  */
 function renderUnbudgeted(m, list) {
-  const spentParts = Object.keys(PARTS).filter((p) => m.byPart[p]);
+  const activeParts = Object.keys(PARTS).filter((p) => m.byPart[p] || m.heldBy[p]);
   list.innerHTML = [
-    ...spentParts.map((p, i) => unbudgetedRow(m, p, i, m.byPart[p])),
-    ...BUDGET_PARTS.filter((p) => !m.byPart[p]).map((p, i) => unbudgetedRow(m, p, spentParts.length + i, 0)),
+    ...activeParts.map((p, i) => unbudgetedRow(m, p, i)),
+    ...BUDGET_PARTS.filter((p) => !activeParts.includes(p)).map((p, i) => unbudgetedRow(m, p, activeParts.length + i)),
   ].join('');
-  document.getElementById('trip-budget-meta').textContent = m.spent ? `${currencyShort(m.spent)} in all` : '';
+  document.getElementById('trip-budget-meta').textContent = m.spent + m.held ? `${currencyShort(m.spent + m.held)} in all` : '';
 }
 
 // ============================================================
@@ -674,84 +846,154 @@ function subCategorySelect(t) {
   return `<select class="category-select trip-tx__sub" data-tx-id="${escapeAttr(t.id)}" aria-label="Sub-category for ${escapeAttr(t.merchant)}">${options}</select>`;
 }
 
-/** One day of the itinerary: its number in the serif, its date, its total, and what was spent on it. */
-function dayCard({ title, date = '', total = null, rows, flag = '', tone = '', i = 0 }) {
+/**
+ * A calendar event: its time (and its date, in Essentials), a hollow ring
+ * in its part's colour — it's a plan, where spending is a filled disc — its
+ * title, and the budget it's been given, with what's been spent against it
+ * (on a day; Essentials total theirs at the head of the column).
+ */
+function eventRow(m, e, { withDate = false } = {}) {
+  const info = PARTS[e.part];
+  const past = e.date < TODAY || m.status === 'done';
+  let state = '';
+  if (e.paid) state = `<span class="trip-event__paid">${currencyShort(e.paid)} spent</span>`;
+  else if (past && e.budget) state = m.status === 'done' ? 'No spending matched' : 'No spending matched yet';
+  const part = e.part === 'unsorted' ? 'No sub-category' : info.label;
+  // In Essentials the column names the part and totals what's paid, so a row only says it's a plan.
+  const meta = withDate ? 'Planned' : `${part}${state ? ` · ${state}` : ''}`;
   return `
-    <li class="itinerary-day ${tone}" style="--i:${i}">
-      <div class="itinerary-day__head">
-        <span class="itinerary-day__title">${title}</span>
-        ${total != null ? `<span class="itinerary-day__total">${currencyShort(total)}</span>` : ''}
-      </div>
-      <p class="itinerary-day__date">${date}${flag ? `<span class="ledger-table__flag">${flag}</span>` : ''}</p>
-      <ul class="itinerary-day__list">${rows}</ul>
+    <li class="trip-event">
+      <span class="trip-event__time">
+        ${withDate ? `<span class="trip-event__day">${shortDate(e.date)}</span>` : ''}
+        ${e.time || 'All day'}
+      </span>
+      <span class="trip-event__ring" style="--avatar-color:${info.color}" aria-hidden="true">${categoryIcon(info.icon)}</span>
+      <span class="trip-tx__main">
+        <span class="trip-tx__merchant">${escapeAttr(e.title)}</span>
+        <span class="trip-tx__meta">${meta}</span>
+      </span>
+      <span class="trip-event__budget${e.budget ? '' : ' is-unset'}">${e.budget ? currencyShort(e.budget) : 'No budget'}</span>
     </li>`;
 }
 
-/** A line in a day card with nothing on it ("Nothing spent", "Still to come"). */
+/** One side of a day: "Planned" or "Spent", its total, and its rows. */
+const dayColumn = ({ label, total, rows, kind, quiet = false }) => `
+  <div class="itinerary-day__col is-${kind}${quiet ? ' is-quiet' : ''}">
+    <p class="itinerary-day__label"><span>${label}</span>${total ? `<b>${currencyShort(total)}</b>` : ''}</p>
+    <ul class="itinerary-day__list">${rows}</ul>
+  </div>`;
+
+/** A line in a day with nothing on it ("Nothing planned", "Nothing spent"). */
 const quietRow = (text) => `<li class="itinerary-day__quiet">${text}</li>`;
 
-/** A band across the itinerary above the days: Essentials, or what was booked before the trip. */
-function itineraryStrip({ title, sub = '', total, rows }) {
+/**
+ * One day of the itinerary: its number in the serif, its date and what's
+ * free for it, then what's planned, in time order, beside what's been spent.
+ */
+function dayRow(m, d, i) {
+  const essential = (item) => ESSENTIAL_PARTS.has(item.part);
+  const events = m.events.filter((e) => e.date === d.iso && !essential(e));
+  const txs = d.txs.filter((t) => !essential(t));
+  const today = d.iso === TODAY;
+  const toCome = m.status === 'saving' || d.iso > TODAY;
+  return `
+    <li class="itinerary-day${today ? ' is-today' : ''}" style="--i:${i}">
+      <div class="itinerary-day__rail">
+        <span class="itinerary-day__title">Day ${i + 1}</span>
+        <p class="itinerary-day__date">${dayLabel(d.iso)}${today ? '<span class="ledger-table__flag">Today</span>' : ''}</p>
+        ${m.freePerDay && (toCome || today) ? `<p class="itinerary-day__free">About ${currencyShort(m.freePerDay)} free</p>` : ''}
+      </div>
+      ${dayColumn({
+        kind: 'planned',
+        label: 'Planned',
+        total: sum(events.map((e) => e.budget)),
+        rows: events.map((e) => eventRow(m, e)).join('') || quietRow('Nothing planned'),
+      })}
+      ${dayColumn({
+        kind: 'spent',
+        label: 'Spent',
+        total: sum(txs.map((t) => t.amount)),
+        rows: txs.map((t) => txRow(m, t)).join('') || quietRow(toCome ? 'Nothing yet' : 'Nothing spent'),
+        quiet: toCome && !txs.length,
+      })}
+    </li>`;
+}
+
+/** A band across the itinerary above the days, for what was booked before the trip. */
+function itineraryStrip({ title, total, rows }) {
   return `
     <div class="itinerary-strip">
       <div class="itinerary-strip__head">
         <span class="itinerary-strip__title">${title}</span>
-        ${sub ? `<span class="itinerary-strip__sub">${sub}</span>` : ''}
         <span class="itinerary-strip__total">${currencyShort(total)}</span>
       </div>
       <ul class="itinerary-strip__list">${rows}</ul>
     </div>`;
 }
 
-/** The itinerary's title line: the dates and length of the trip. */
-function itineraryHeading(m, meta) {
-  document.getElementById('itinerary-sub').textContent = `${dateRange(m.trip)} · ${plural(m.days, 'day')}`;
-  document.getElementById('itinerary-meta').textContent = meta;
+/**
+ * Essentials, as a band above the days: a column for each of flights, stay
+ * and parking with a budget, an event or spending, listing its events
+ * (dated, in time order) and then what's been paid.
+ */
+function essentialsBand(m) {
+  const { trip } = m;
+  const parts = [...ESSENTIAL_PARTS].filter((p) => trip.budget[p] || m.byPart[p] || m.events.some((e) => e.part === p));
+  if (!parts.length) return '';
+  const columns = parts.map((part) => {
+    const info = PARTS[part];
+    const paid = m.byPart[part] || 0;
+    const budget = trip.budget[part] || 0;
+    const events = m.events.filter((e) => e.part === part);
+    const txs = trip.txs.filter((t) => t.part === part && t.date >= trip.start);
+    const planned = m.plannedBy[part] || 0;
+    const ofBudget = budget ? ` of ${currencyShort(budget)}` : '';
+    let figure = budget ? `${currencyShort(budget)} set aside` : '';
+    if (paid) figure = `${currencyShort(paid)} paid${ofBudget}`;
+    else if (planned) figure = `${currencyShort(planned)} planned${ofBudget}`;
+    return `
+      <div class="essential">
+        <p class="essential__head">
+          <span class="trip-part" style="--avatar-color:${info.color}"><span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}</span>
+          <span class="essential__figure">${figure}</span>
+        </p>
+        <ul class="essential__list">
+          ${events.map((e) => eventRow(m, e, { withDate: true })).join('')}
+          ${txs.map((t) => txRow(m, t, { withDate: true })).join('')}
+          ${events.length || txs.length ? '' : quietRow(m.status === 'done' ? 'Nothing paid' : 'Nothing booked yet')}
+        </ul>
+      </div>`;
+  }).join('');
+  return `
+    <div class="itinerary-strip itinerary-strip--essentials">
+      <div class="itinerary-strip__head">
+        <span class="itinerary-strip__title">Essentials</span>
+        <span class="itinerary-strip__sub">Flights, stay and parking, kept out of the days</span>
+        <span class="itinerary-strip__total">${currencyShort(m.essentialsPaid + m.essentialsAside)}</span>
+      </div>
+      <div class="itinerary-strip__parts">${columns}</div>
+    </div>`;
 }
 
 /**
- * The itinerary: the trip day by day. Essentials (flights, parking) come
- * first as a band with each one's date, then a card for every day of the
- * trip with its total and what was spent on it — today picked out in
- * gold, days still to come faded.
+ * The itinerary: Essentials (flights, stay, parking) first as a band of
+ * their own, then every day of the trip: its events in time order beside
+ * what's been spent, today picked out in gold.
  */
 function renderItinerary(m) {
   const { trip } = m;
-  const essential = (t) => ESSENTIAL_PARTS.has(t.part);
   const before = trip.txs.filter((t) => t.date < trip.start);
-  const essentials = trip.txs.filter((t) => t.date >= trip.start && essential(t));
   document.getElementById('itinerary-strips').innerHTML = [
     before.length ? itineraryStrip({
       title: m.status === 'saving' ? 'Booked so far' : 'Booked before you went',
       total: sum(before.map((t) => t.amount)),
       rows: before.map((t) => txRow(m, t, { withDate: true })).join(''),
     }) : '',
-    essentials.length ? itineraryStrip({
-      title: 'Essentials',
-      sub: [...ESSENTIAL_PARTS].map((p) => PARTS[p].label).join(' & '),
-      total: sum(essentials.map((t) => t.amount)),
-      rows: essentials.map((t) => txRow(m, t, { withDate: true })).join(''),
-    }) : '',
+    essentialsBand(m),
   ].join('');
-
-  const perDayLeft = m.daysLeft ? (m.budget - m.spent) / m.daysLeft : 0;
-  document.getElementById('trip-days').innerHTML = tripDays(m).map((d, i) => {
-    const future = m.status === 'away' && i + 1 > m.day;
-    const today = d.iso === TODAY;
-    const txs = d.txs.filter((t) => !essential(t));
-    return dayCard({
-      i,
-      title: `Day ${i + 1}`,
-      date: dayLabel(d.iso),
-      total: future ? null : sum(txs.map((t) => t.amount)),
-      flag: today ? 'Today' : '',
-      tone: `${future ? 'is-future' : ''}${today ? ' is-today' : ''}`,
-      rows: future
-        ? quietRow(`Still to come${m.budget && perDayLeft > 0 ? ` · about ${currencyShort(perDayLeft)} to spend` : ''}`)
-        : txs.map((t) => txRow(m, t)).join('') || quietRow(m.status === 'saving' ? 'Nothing booked' : 'Nothing spent'),
-    });
-  }).join('');
-  itineraryHeading(m, `${plural(trip.txs.length, 'transaction')}${trip.fx ? ` · ${trip.fx.symbol}${trip.fx.rate} to the pound` : ''}`);
+  document.getElementById('trip-days').innerHTML = tripDays(m).map((d, i) => dayRow(m, d, i)).join('');
+  document.getElementById('itinerary-sub').textContent = `${dateRange(trip)} · ${plural(m.days, 'day')}`;
+  document.getElementById('itinerary-meta').textContent = `${plural(trip.events.length, 'event')} · ${plural(trip.txs.length, 'transaction')}${trip.fx ? ` · ${trip.fx.symbol}${trip.fx.rate} to the pound` : ''}`;
 }
 
 // ============================================================
@@ -801,7 +1043,7 @@ function setSubCategory(txId, next) {
   if (previous === next) return;
   const apply = (value) => {
     tx.subCategory = value;
-    tagTransactions();
+    tagTrips();
     render();
   };
 
@@ -1137,56 +1379,6 @@ function renderHomeCompare(models) {
   });
 }
 
-/**
- * A trip with nothing tagged yet (just saved): every widget of a trip's
- * page, laid out as it will be — the financial summary (its budget, if
- * set, and nothing spent), each part waiting, and each day of the
- * itinerary waiting for its spending.
- */
-function renderEmpty(m) {
-  const { status } = m;
-  renderStats(m);
-
-  // ---- By part: the budget's parts when it has them, otherwise every part, waiting ----
-  if (Object.keys(m.trip.budget).length) renderBudget(m);
-  else renderEmptyParts();
-
-  // ---- The itinerary: each day of the trip, waiting for its spending ----
-  document.getElementById('itinerary-strips').innerHTML = '';
-  document.getElementById('trip-days').innerHTML = tripDays(m).map((d, i) => dayCard({
-    i,
-    title: `Day ${i + 1}`,
-    date: dayLabel(d.iso),
-    flag: d.iso === TODAY ? 'Today' : '',
-    tone: `is-waiting${d.iso === TODAY ? ' is-today' : ''}`,
-    rows: quietRow(status === 'done' || (status === 'away' && i + 1 < m.day) ? 'Nothing tagged' : 'Nothing yet'),
-  })).join('');
-  itineraryHeading(m, 'Nothing tagged yet');
-}
-
-/** By part with no budget and nothing spent: every part, waiting. */
-function renderEmptyParts() {
-  const list = document.getElementById('trip-budget');
-  list.classList.remove('is-entering');
-  list.innerHTML = BUDGET_PARTS.map((part) => [part, PARTS[part]]).map(([part, info], i) => `
-    <li class="budget-item is-empty" style="--i:${i}">
-      <div class="budget-item__header">
-        <span class="budget-item__category trip-part" style="--avatar-color:${info.color}">
-          <span class="trip-part__icon" aria-hidden="true">${categoryIcon(info.icon)}</span>${info.label}
-        </span>
-        <span class="budget-item__summary">
-          <span class="budget-item__amounts">${currencyShort(0)} of —</span>
-          <span class="budget-item__status">—</span>
-        </span>
-      </div>
-      <div class="budget-item__bar" aria-label="${info.label}: no budget set">
-        <span class="budget-item__track"></span>
-      </div>
-      <p class="budget-item__note">${BOOKED_PARTS.has(part) ? 'Not booked yet' : 'Nothing yet'}</p>
-    </li>`).join('');
-  document.getElementById('trip-budget-meta').textContent = '';
-}
-
 // ============================================================
 // ALL TRIPS
 // ============================================================
@@ -1344,7 +1536,7 @@ function initNewTrip() {
       const trip = fromRow(await createTrip({ location: name, startDate: from, endDate: to }));
       TRIPS.push(trip);
       sortTrips();
-      tagTransactions();
+      tagTrips();
       saveTrips();
       dialog.close();
       showToast({ message: `${trip.name} added to your trips` });
@@ -1442,18 +1634,13 @@ function render() {
   }[m.status];
   document.getElementById('trip-subtitle').textContent = `${trip.place ? `${trip.place} · ` : ''}${dateRange(trip)} · ${state}`;
 
-  // A trip with nothing tagged yet shows every widget empty (renderEmpty).
+  // A trip with nothing tagged yet draws the same widgets, empty.
   closeBudgetEditing();
-  const empty = !trip.txs.length;
-  if (empty) {
-    document.getElementById('trip-sort-wrap').hidden = true;
-    renderEmpty(m);
-  } else {
-    renderToSort(m);
-    renderStats(m);
-    renderBudget(m);
-    renderItinerary(m);
-  }
+  renderToSort(m);
+  renderStats(m);
+  renderAllocation(m);
+  renderBudget(m);
+  renderItinerary(m);
   drawn = true;
 }
 
@@ -1562,7 +1749,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('ledger:theme-changed', render);
   // Drawn from this device's copy of the data: check for newer transactions, and re-tag when they arrive.
   document.addEventListener('ledger:data-changed', () => {
-    tagTransactions();
+    tagTrips();
     render();
   });
   refreshIfStale();
