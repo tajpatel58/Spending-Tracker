@@ -138,11 +138,11 @@
           <button type="button" class="month-stepper__btn" id="month-prev" aria-label="Previous month" title="Previous month">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <!-- The label shows the month; an invisible <select> on top of it opens the full month list. -->
-          <label class="month-stepper__label">
+          <!-- The label shows the month and opens the year + month picker (filters.js). -->
+          <button type="button" class="month-stepper__label month-stepper__open" id="month-button" aria-label="Jump to month" aria-haspopup="dialog" aria-expanded="false">
             <span id="month-label">—</span>
-            <select id="month-select" aria-label="Jump to month"></select>
-          </label>
+          </button>
+          <div class="month-picker" id="month-panel" role="dialog" aria-label="Choose month" hidden></div>
           <button type="button" class="month-stepper__btn" id="month-next" aria-label="Next month" title="Next month">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>

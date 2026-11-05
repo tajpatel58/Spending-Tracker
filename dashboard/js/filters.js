@@ -23,26 +23,58 @@ export const pageHooks = {
 };
 
 /**
- * Fills the month list from MONTHS (newest first) and updates the
- * ‹ Month › stepper's label and arrows. Re-run if MONTHS changes.
+ * Updates the ‹ Month › stepper's label and arrows, and the month picker
+ * if it's open. Re-run if MONTHS changes.
  */
 export function renderMonthOptions() {
-  const select = document.getElementById('month-select');
-  select.innerHTML = MONTHS.slice().reverse().map((m) =>
-    `<option value="${m.key}">${MONTH_LABEL(m.key)}</option>`
-  ).join('');
-  select.value = state.month;
-
   const index = MONTHS.findIndex((m) => m.key === state.month);
   document.getElementById('month-label').textContent = MONTH_LABEL(state.month);
   document.getElementById('month-prev').disabled = index <= 0;
   document.getElementById('month-next').disabled = index === -1 || index >= MONTHS.length - 1;
+  if (!document.getElementById('month-panel').hidden) renderMonthPicker();
+}
+
+let pickerYear = null; // 'YYYY' the month picker is showing; browsing years doesn't change the month
+
+/**
+ * Draws the month picker: the years with data (newest first) beside that
+ * year's twelve months, where months with no data can't be picked.
+ */
+function renderMonthPicker() {
+  const panel = document.getElementById('month-panel');
+  const available = new Set(MONTHS.map((m) => m.key));
+  const years = [...new Set(MONTHS.map((m) => m.key.slice(0, 4)))].reverse();
+  if (!years.includes(pickerYear)) pickerYear = state.month.slice(0, 4);
+  const months = Array.from({ length: 12 }, (_, i) => `${pickerYear}-${String(i + 1).padStart(2, '0')}`);
+
+  panel.innerHTML = `
+    <div class="month-picker__part">
+      <span class="month-picker__heading">Year</span>
+      <div class="month-picker__years">
+        ${years.map((year) => `
+          <button type="button" class="month-picker__year${year === pickerYear ? ' is-selected' : ''}" data-year="${year}" aria-pressed="${year === pickerYear}">${year}</button>`).join('')}
+      </div>
+    </div>
+    <div class="month-picker__part month-picker__part--months">
+      <span class="month-picker__heading">Month</span>
+      <div class="month-picker__months">
+        ${months.map((key) => `
+          <button type="button" class="month-picker__month${key === state.month ? ' is-selected' : ''}" data-month="${key}" aria-label="${MONTH_LABEL(key)}" aria-pressed="${key === state.month}"${available.has(key) ? '' : ' disabled'}>${MONTH_LABEL(key).slice(0, 3)}</button>`).join('')}
+      </div>
+    </div>`;
+  panel.querySelector('.month-picker__year.is-selected').scrollIntoView({ block: 'nearest' });
+}
+
+function closeMonthPicker() {
+  document.getElementById('month-panel').hidden = true;
+  document.getElementById('month-button').setAttribute('aria-expanded', 'false');
 }
 
 /**
  * Switches the dashboard to a month ('YYYY-MM'). The page slides the way you moved (motion.js).
  */
 export function setMonth(key) {
+  closeMonthPicker();
   if (!key || key === state.month) return;
   const direction = key > state.month ? 1 : -1;
   const update = () => {
@@ -55,19 +87,48 @@ export function setMonth(key) {
 
 /**
  * Wires up the ‹ Month › stepper: arrows step one month, clicking the
- * month name opens the full list, and ←/→ step months when you're not typing.
+ * month name opens the year + month picker, and ←/→ step months when
+ * you're not typing.
  */
 export function initMonthSelect() {
-  const select = document.getElementById('month-select');
+  const button = document.getElementById('month-button');
+  const panel = document.getElementById('month-panel');
   const step = (delta) => {
     const index = MONTHS.findIndex((m) => m.key === state.month);
     setMonth(MONTHS[index + delta]?.key);
   };
   renderMonthOptions();
-  select.addEventListener('change', () => setMonth(select.value));
+  button.addEventListener('click', () => {
+    if (!panel.hidden) { closeMonthPicker(); return; }
+    pickerYear = state.month.slice(0, 4);
+    panel.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    renderMonthPicker();
+    panel.querySelector('.month-picker__month.is-selected')?.focus({ preventScroll: true });
+  });
+  panel.addEventListener('click', (event) => {
+    const year = event.target.closest('[data-year]');
+    const month = event.target.closest('[data-month]');
+    if (year) {
+      pickerYear = year.dataset.year;
+      renderMonthPicker();
+      panel.querySelector('.month-picker__year.is-selected').focus({ preventScroll: true });
+    } else if (month) {
+      button.focus({ preventScroll: true });
+      setMonth(month.dataset.month);
+    }
+  });
+  // In the capture phase: the other menus' buttons stop their clicks reaching the document.
+  document.addEventListener('click', (event) => {
+    if (!panel.contains(event.target) && !button.contains(event.target)) closeMonthPicker();
+  }, true);
   document.getElementById('month-prev').addEventListener('click', () => step(-1));
   document.getElementById('month-next').addEventListener('click', () => step(1));
   document.addEventListener('keydown', (event) => {
+    if (!panel.hidden) {
+      if (event.key === 'Escape') { closeMonthPicker(); button.focus({ preventScroll: true }); }
+      return;
+    }
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.target.closest('input, select, textarea, [contenteditable="true"]')) return;
     if (event.key === 'ArrowLeft') step(-1);
