@@ -32,6 +32,8 @@
   --radius-md: 24px;
   --radius-full: 999px;
   --hairline: 1px; /* 0.5px on high-density screens, below */
+  /* Every control (steppers, filters, search, icon buttons, the nav) is a glass pill of this height. */
+  --control-h: 38px; /* 34px on phones, below */
   /* Inner gutter of every card: headers, chart bodies, table cells and
      chips all start and end on it, so edges line up down the page. */
   --tile-gutter: 28px; /* 16px on phones, below */
@@ -92,6 +94,7 @@
   --glass-bar: rgba(255, 255, 255, 0.68); /* the top bar: content scrolls under it */
   --glass-hover: rgba(255, 255, 255, 0.82);
   --glass-pill: #FFFFFF; /* the raised, current choice in a segmented control */
+  --control-shine: inset 0 1px 0 rgba(255, 255, 255, 0.55); /* a control's top edge catching the light */
   --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 38%);
   --scrim: rgba(38, 50, 44, 0.28);
   /* Ambient light: the wide, soft base wash, then firmer orbs the glass refracts. */
@@ -141,6 +144,8 @@
   --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 4px rgba(30, 48, 40, 0.06), 0 16px 36px -10px rgba(30, 48, 40, 0.2);
   --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(30, 48, 40, 0.08), 0 32px 64px -16px rgba(30, 48, 40, 0.32);
   --tile-border: rgba(255, 255, 255, 0.72);
+  /* The glass's edge catching the light: brightest top-left, a faint return at the far corner. */
+  --rim: linear-gradient(to bottom right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.62) 30%, rgba(255, 255, 255, 0.2) 68%, rgba(255, 255, 255, 0.5));
   --scrollbar: rgba(28, 44, 36, 0.22);
 
   /* Calendar heat scale — one green, light to deep as spend rises.
@@ -166,6 +171,7 @@
   --glass-bar: rgba(20, 26, 24, 0.66);
   --glass-hover: rgba(255, 255, 255, 0.13);
   --glass-pill: rgba(255, 255, 255, 0.16);
+  --control-shine: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 38%);
   --scrim: rgba(3, 6, 5, 0.58);
   --ambient-wash:
@@ -205,6 +211,7 @@
   --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 6px rgba(0, 0, 0, 0.3), 0 14px 32px rgba(0, 0, 0, 0.45);
   --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3), 0 28px 60px rgba(0, 0, 0, 0.6);
   --tile-border: rgba(255, 255, 255, 0.1);
+  --rim: linear-gradient(to bottom right, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.13) 30%, rgba(255, 255, 255, 0.05) 68%, rgba(255, 255, 255, 0.12));
   --scrollbar: rgba(255, 255, 255, 0.2);
 
   /* Calendar heat scale — the same green, stepped up from the dark surface.
@@ -243,6 +250,7 @@
 @media (max-width: 560px) {
   :root {
     --tile-gutter: 16px;
+    --control-h: 34px;
     --fs-scale: 1;
     --fs-trim: 0.85; /* the greeting and the widgets' money figures: a step quieter than the scale */
     --fs-micro: calc(10.5px * var(--fs-scale));    /* tracked capitals: eyebrows, labels, table heads, tab bar */
@@ -287,6 +295,7 @@
   :root, [data-theme="light"] { --glass-control: #FFFFFF; --glass-1: #F7F8F4; --glass-2: #FBFBF8; --glass-3: #FBFBF8; --glass-bar: #FBFBF8; }
   [data-theme="dark"] { --glass-control: #232A27; --glass-1: #161C1A; --glass-2: #1B2220; --glass-3: #1F2624; --glass-bar: #1F2624; }
   :root { --backdrop-card: none; --backdrop-bar: none; --backdrop-float: none; }
+  :root, [data-theme="light"], [data-theme="dark"] { --rim: linear-gradient(var(--tile-border), var(--tile-border)); } /* an even edge */
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root, [data-theme="light"] { --glass-2: rgba(250, 251, 248, 0.92); --glass-3: rgba(250, 251, 248, 0.98); --glass-bar: rgba(250, 251, 248, 0.94); }
@@ -578,17 +587,20 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   position: relative;
   display: flex;
   align-items: center;
-  height: 36px;
+  height: var(--control-h);
   background: var(--glass-control);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--control-shine);
+  transition: border-color var(--transition);
 }
+.month-stepper:hover { border-color: var(--gold); }
 
 .month-stepper__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  width: 34px;
   height: 100%;
   padding: 0;
   color: var(--text-muted);
@@ -597,8 +609,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--transition), background var(--transition);
 }
-.month-stepper__btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
-.month-stepper__btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.month-stepper__btn:first-child { border-radius: var(--radius-full) 0 0 var(--radius-full); }
+.month-stepper__btn:last-child { border-radius: 0 var(--radius-full) var(--radius-full) 0; }
 .month-stepper__btn:hover:not(:disabled) { color: var(--text); background: var(--surface-alt); }
 .month-stepper__btn:disabled { color: var(--border-strong); cursor: default; }
 .month-stepper__btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: -2px; }
@@ -694,19 +706,23 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .month-picker__year.is-selected,
 .month-picker__year.is-selected:hover { font-weight: 500; color: var(--gold-strong); background: var(--gold-soft); border-color: transparent; }
 .month-picker__month.is-selected,
-.month-picker__month.is-selected:hover { font-weight: 500; color: #fff; background: var(--accent); border-color: var(--accent); }
-[data-theme="dark"] .month-picker__month.is-selected { color: var(--bg); } /* dark mode's green is too light for white text */
+.month-picker__month.is-selected:hover { font-weight: 500; color: #fff; background: var(--gold); border-color: var(--gold); }
+[data-theme="dark"] .month-picker__month.is-selected { color: var(--bg); } /* dark mode's gold is too light for white text */
 .month-picker__month:disabled,
 .month-picker__month:disabled:hover { color: var(--text-faint); background: none; border-color: transparent; opacity: 0.45; cursor: default; }
 
 .field--search {
   position: relative;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0 10px;
+  height: var(--control-h);
+  background: var(--glass-control);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--control-shine);
+  padding: 0 14px;
   width: 240px;
+  transition: border-color var(--transition);
 }
+.field--search:hover, .field--search:focus-within { border-color: var(--gold); }
 
 .field--search .field__icon { color: var(--text-faint); flex-shrink: 0; }
 
@@ -714,7 +730,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: none;
   background: transparent;
   outline: none;
-  padding: 8px 8px;
+  height: 100%;
+  padding: 0 8px;
   width: 100%;
   color: var(--text);
   font-family: var(--font-body);
@@ -756,10 +773,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text);
+  height: var(--control-h);
   background: var(--glass-control);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--control-shine);
+  padding: 0 14px;
   cursor: pointer;
   transition: border-color var(--transition);
   white-space: nowrap;
@@ -960,7 +979,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   text-align: left;
   background: none;
   border: none;
-  color: var(--accent);
+  color: var(--gold-strong);
   font-size: 12px;
   font-weight: 500;
   padding: 8px 8px;
@@ -981,15 +1000,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   align-items: center;
   gap: 8px;
   max-width: 220px;
-  min-height: 36px;
-  padding: 4px 10px 4px 4px;
+  height: var(--control-h);
+  padding: 0 12px 0 4px;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   background: var(--glass-control);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--control-shine);
   cursor: pointer;
   transition: border-color var(--transition);
 }
@@ -1132,11 +1152,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
+  width: var(--control-h);
+  height: var(--control-h);
+  border-radius: var(--radius-full);
+  border: var(--hairline) solid var(--border-strong);
   background: var(--glass-control);
+  box-shadow: var(--control-shine);
   color: var(--text-muted);
   cursor: pointer;
   transition: border-color var(--transition), color var(--transition), background var(--transition);
@@ -1256,8 +1277,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* Summary cards rise a little under the pointer. Tables and the calendar stay
    still: they're worked in, and a moving target is harder to click. */
 @media (hover: hover) {
-  .stat-tile:hover, .chart-tile:hover { transform: translateY(-2px); border-color: var(--border-strong); box-shadow: var(--shadow-hover); }
-  [data-theme="light"] .stat-tile:hover, [data-theme="light"] .chart-tile:hover { border-color: #fff; }
+  .stat-tile:hover, .chart-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
 }
 
 .tile__header {
@@ -1302,7 +1322,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font: inherit;
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--gold-strong);
   background: none;
   border: none;
   cursor: pointer;
@@ -2022,7 +2042,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--gold-strong);
   background: none;
   border: none;
   cursor: pointer;
@@ -2094,10 +2114,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .table-controls { display: flex; align-items: center; gap: 8px; }
 
 /* Category / user filters (transactions table) */
-.table-filter .multiselect__button { height: 36px; padding: 0 12px; }
+.table-filter .multiselect__button { padding: 0 14px; }
 .table-filter__icon { color: var(--text-faint); }
 .table-filter.is-filtered .multiselect__button { border-color: var(--gold); }
-.table-filter.is-filtered .table-filter__icon { color: var(--accent); }
+.table-filter.is-filtered .table-filter__icon { color: var(--gold-strong); }
 .table-filter__count {
   display: none; /* shown on phones, where the label is hidden */
   min-width: 18px;
@@ -2108,9 +2128,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   line-height: 18px;
   text-align: center;
   color: #fff;
-  background: var(--accent);
+  background: var(--gold);
   border-radius: var(--radius-full);
 }
+[data-theme="dark"] .table-filter__count { color: var(--bg); } /* dark mode's gold is too light for white text */
 .table-filter__count[hidden] { display: none; }
 .table-filter.is-open .multiselect__button .table-filter__icon { transform: none; } /* only the caret flips */
 .table-filter__panel { left: auto; right: 0; min-width: 230px; }
@@ -2131,7 +2152,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--gold-strong);
   background: none;
   border: none;
   cursor: pointer;
@@ -2411,10 +2432,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 
 .hide-button {
-  border: 1px solid var(--gold);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  height: var(--control-h);
+  border: var(--hairline) solid var(--gold);
+  padding: 0 14px;
+  border-radius: var(--radius-full);
   background: var(--glass-control);
+  box-shadow: var(--control-shine);
   color: var(--gold);
   cursor: pointer;
   font-family: var(--font-body);
@@ -2479,13 +2502,13 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font: inherit;
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--gold-strong);
   background: var(--glass-control);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-full);
   cursor: pointer;
 }
-.empty-state__action:hover { border-color: var(--accent); }
+.empty-state__action:hover { border-color: var(--gold); }
 .empty-state__action[hidden] { display: none; }
 
 .table-tile__footer {
@@ -3101,7 +3124,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 .btn--ghost { background: var(--glass-control); color: var(--text-muted); }
-.btn--ghost:hover { color: var(--text); border-color: var(--accent); }
+.btn--ghost:hover { color: var(--text); border-color: var(--gold); }
 .btn--primary { background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0)), var(--accent); border-color: var(--accent); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
 [data-theme="dark"] .btn--primary { color: var(--bg); }
 .btn--primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
@@ -3232,7 +3255,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .datepicker__day:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 0; }
 .datepicker__day.is-today { font-weight: 600; }
 .datepicker__day.is-selected,
-.datepicker__day.is-selected:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+.datepicker__day.is-selected:hover { color: #fff; background: var(--gold); border-color: var(--gold); }
+[data-theme="dark"] .datepicker__day.is-selected { color: var(--bg); } /* dark mode's gold is too light for white text */
 /* Before the earliest allowed date (a trip's end can't come before its start). */
 .datepicker__day:disabled { color: var(--text-faint); opacity: 0.45; cursor: default; }
 .datepicker__day:disabled:hover { background: none; border-color: transparent; }
@@ -3255,6 +3279,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 .datepicker__day.is-selected.is-original::after { background: #fff; }
+[data-theme="dark"] .datepicker__day.is-selected.is-original::after { background: var(--bg); }
 
 .datepicker__footer {
   display: flex;
@@ -3275,7 +3300,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   padding: 4px 8px;
   font: inherit;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--gold-strong);
   background: none;
   border: none;
   border-radius: var(--radius-xs);
@@ -3294,11 +3319,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
    (on desktop) a highlight that glides to whichever tab you hover. Moving
    between pages slides the pill across (see "Page transitions"). */
 .view-nav {
-  --nav-pad: 4px;
+  --nav-pad: 3px;
   position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
+  height: var(--control-h);
   padding: var(--nav-pad);
   background: var(--glass-well);
   border: var(--hairline) solid var(--border);
@@ -3311,7 +3337,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 15px 7px 13px;
+  height: 100%;
+  padding: 0 15px 0 13px;
   font-size: 13.5px;
   font-weight: 500;
   letter-spacing: -0.005em;
@@ -4544,7 +4571,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 @media (min-width: 561px) and (max-width: 1200px) {
   .topbar__inner { gap: 20px; }
-  .view-nav__link:not(.is-active) { padding: 7px 10px; }
+  .view-nav__link:not(.is-active) { padding: 0 10px; }
   .view-nav__link:not(.is-active) span {
     position: absolute;
     width: 1px;
@@ -4558,7 +4585,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .brand__name { display: none; }
 }
 @media (min-width: 561px) and (max-width: 900px) {
-  .view-nav__link.is-active { padding: 7px 10px; }
+  .view-nav__link.is-active { padding: 0 10px; }
+  /* The top bar is tight at these widths: controls give back a little padding. */
+  .topbar .multiselect__button, .hide-button { padding: 0 12px; }
+  .month-stepper__btn { width: 32px; }
+  .user-menu__button { padding-right: 10px; }
   .view-nav__link.is-active span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
@@ -4585,6 +4616,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
      the bottom of the screen, within thumb reach (like a native app). */
   .view-nav {
     --nav-pad: 5px;
+    height: auto; /* a tab bar, not a control */
     position: fixed;
     z-index: 30;
     left: calc(12px + env(safe-area-inset-left));
@@ -4604,7 +4636,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
     box-shadow: var(--shadow-3);
     view-transition-name: tabbar; /* held still while the page cross-fades */
   }
-  .view-nav__link { flex-direction: column; justify-content: center; gap: 3px; padding: 7px 0 6px; font-size: var(--fs-micro); font-weight: 500; letter-spacing: 0.01em; border-radius: 19px; }
+  .view-nav__link { flex-direction: column; justify-content: center; gap: 3px; height: auto; padding: 7px 0 6px; font-size: var(--fs-micro); font-weight: 500; letter-spacing: 0.01em; border-radius: 19px; }
   .view-nav__icon { width: 20px; height: 20px; }
   /* The keyboard is up on the Assistant: the bar steps aside. */
   .keyboard-open .view-nav { display: none; }
@@ -4651,7 +4683,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .chat-page .topbar { top: 0; } /* the Assistant scrolls inside the page */
   .topbar__actions { grid-area: actions; gap: 2px; }
   .topbar__filters { grid-area: filters; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .topbar__controls .hide-button { grid-area: hide; min-height: 40px; }
+  .topbar__controls .hide-button { grid-area: hide; }
 
   .topbar__filters .multiselect,
   .topbar__filters .month-stepper,
@@ -4664,11 +4696,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .month-picker { --cell: 42px; }
   .month-picker__year, .month-picker__month { font-size: var(--fs-body); }
 
-  .topbar__actions .icon-btn { border-color: transparent; background: transparent; }
+  .topbar__actions .icon-btn { border-color: transparent; background: transparent; box-shadow: none; }
   .topbar__actions .icon-btn:hover { border-color: transparent; background: var(--surface-alt); }
   .user-menu__button,
   .user-menu__button:hover,
-  .user-menu.is-open .user-menu__button { padding: 4px; border-color: transparent; background: transparent; }
+  .user-menu.is-open .user-menu__button { padding: 4px; border-color: transparent; background: transparent; box-shadow: none; }
   .user-menu__button svg, .user-menu__name { display: none; }
 
   /* Transactions: search fills the header row, chips scroll sideways in one line. */
@@ -4760,17 +4792,15 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .brand { gap: 8px; }
   .brand__svg { width: 24px; height: 24px; }
   .brand__name { font-size: 13px; } /* the wordmark: sized as artwork, not text */
-  .icon-btn { width: 34px; height: 34px; }
   .topbar__actions .icon-btn svg { width: 18px; height: 18px; }
   .user-menu__button,
   .user-menu__button:hover,
-  .user-menu.is-open .user-menu__button { padding: 4px; min-height: 0; }
+  .user-menu.is-open .user-menu__button { height: auto; padding: 4px; }
   .user-menu__avatar { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
-  .multiselect__button { min-height: 34px; padding-top: 6px; padding-bottom: 6px; font-size: var(--fs-body); }
-  .month-stepper { height: 34px; }
+  .multiselect__button { font-size: var(--fs-body); }
   .month-stepper__label { font-size: var(--fs-body); }
   .month-stepper__btn { width: 30px; }
-  .topbar__controls .hide-button { min-height: 34px; padding: 6px 12px; font-size: var(--fs-body); }
+  .topbar__controls .hide-button { padding: 0 12px; font-size: var(--fs-body); }
 
   .container { padding-top: 16px; }
   .page-heading { margin: 0 0 20px; }
@@ -4865,8 +4895,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
   .table-tile__header { padding: var(--space-3) var(--tile-gutter) 10px; }
   .table-tile__header h2 { font-size: var(--fs-title); }
-  .field--search input { padding: 6px 8px; font-size: var(--fs-body); }
-  .table-filter .multiselect__button { height: 32px; padding: 0 8px; gap: 6px; }
+  .field--search { padding: 0 10px 0 12px; }
+  .field--search input { padding: 0 2px 0 6px; font-size: var(--fs-body); }
+  .table-filter .multiselect__button { padding: 0 10px; gap: 6px; }
   .chip { padding: 4px 10px 4px 8px; font-size: var(--fs-small); }
   .active-filters__search, .active-filters__clear { font-size: var(--fs-small); }
   .tx-table thead th { padding: 8px; font-size: var(--fs-micro); }
@@ -5518,6 +5549,67 @@ html.theme-transition::view-transition-old(root) { z-index: 1; }
 html.theme-transition::view-transition-new(root) { z-index: 2; }
 html.theme-transition:active-view-transition .topbar { view-transition-name: none; }
 html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
+
+/* The glass rim: a hairline ring in --rim, drawn on a pseudo-element because a
+   border can't be both a gradient and rounded. The mask cuts out everything
+   inside the ring. It sits exactly where the border was, so nothing moves.
+   Browsers without masks keep the flat --tile-border. Cards use ::before (their
+   ::after is the refresh glow); the rest use ::after (the top bar's ::before is
+   its blur). */
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  .tile,
+  .topbar,
+  .month-picker,
+  .multiselect__panel,
+  .account-picker.multiselect__panel,
+  .user-menu__panel,
+  .datepicker { border-color: transparent; }
+  .tile { position: relative; }
+
+  .tile::before,
+  .topbar::after,
+  .month-picker::after,
+  .multiselect__panel::after,
+  .user-menu__panel::after,
+  .datepicker::after,
+  .view-nav::after {
+    content: '';
+    position: absolute;
+    inset: calc(var(--hairline) * -1);
+    padding: var(--hairline);
+    border-radius: inherit;
+    background: var(--rim);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Cards rest a little below full brightness, and light up under the pointer. The headline card is always lit. */
+  .tile::before { opacity: 0.8; transition: opacity var(--transition-lift); }
+  .hero-tile::before { opacity: 1; }
+  @media (hover: hover) {
+    .stat-tile:hover::before, .chart-tile:hover::before { opacity: 1; }
+  }
+  /* Editing budgets: the gold border takes over from the rim. */
+  .tile.is-editing::before { opacity: 0; }
+
+  @media (max-width: 560px) {
+    /* The bar hangs from the top of the screen: only its lower edge shows. */
+    .topbar::after { inset: 0 0 calc(var(--hairline) * -1); padding: 0 0 var(--hairline); }
+    /* The floating tab bar gets the rim. */
+    .view-nav { border-color: transparent; }
+    /* These dropdowns scroll on phones, and a rim would scroll away with the content. */
+    .multiselect__panel,
+    .account-picker.multiselect__panel { border-color: var(--tile-border); }
+    .multiselect__panel::after { content: none; }
+  }
+  /* On wider screens the nav is a well set into the top bar, not a surface of its own. */
+  @media (min-width: 561px) {
+    .view-nav::after { content: none; }
+  }
+}
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
