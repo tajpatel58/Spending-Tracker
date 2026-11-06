@@ -19,10 +19,10 @@
  *
  * A trip also has its plan: every Holiday-tagged calendar event dated
  * within it, with its time, budget and sub-category. A trip's page opens
- * on its financial summary (Budget, Spent, Free to spend) and how the
- * budget is allocated, then the itinerary: Essentials (flights, stay,
- * parking) in a band of their own, then each day's events in time order
- * beside what's been spent. The budget is set part by part with sliders
+ * on its financial summary (Budget, Spent, Free to spend), how the budget
+ * is allocated and the budget by part, then the itinerary: Essentials
+ * (flights, stay, parking) in a band of their own, then each day's events
+ * in time order beside what's been spent. The budget is set part by part with sliders
  * on the "By part" tile (the `trips` table's part_budgets column), and
  * the trip's Budget is their sum, with what's booked standing in for a
  * booked flight or stay's estimate. A savings pot and local currency
@@ -820,7 +820,7 @@ function unbudgetedRow(m, part, i) {
   const share = (amount) => (whole ? (amount / whole) * 100 : 0);
   const percent = Math.round(share(actual + held));
   const details = [actual ? `${currencyShort(actual)} spent` : '', held ? `${currencyShort(held)} planned` : ''].filter(Boolean).join(' · ');
-  const sortHint = m.trip.txs.some((t) => t.part === 'unsorted') ? 'choose what each was for, above' : 'give each a sub-category in its calendar description';
+  const sortHint = m.trip.txs.some((t) => t.part === 'unsorted') ? 'choose what each was for, below' : 'give each a sub-category in its calendar description';
   return `
     <li class="budget-item${actual || held ? '' : ' is-empty'}" style="--i:${i}">
       <div class="budget-item__header">
