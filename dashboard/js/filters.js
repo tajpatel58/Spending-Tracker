@@ -206,10 +206,10 @@ export function initSwipeStep(step, canStep) {
 }
 
 /**
- * The account picker in the header: a small "wallet". Each person is a
- * section (their name as a gold label — tap it to include or leave out
- * all their accounts), and each account is a row with a little
- * card, the bank and its number, and a gold check when it's included.
+ * The account picker in the header: a plain list. "All accounts" comes
+ * first (tap it to include or leave out everything), then each person's
+ * name as a quiet label (tap it for all of theirs) above their accounts,
+ * each with a gold tick when it's included.
  * Keeps `state.activeAccounts` in sync and redraws the page on each change.
  */
 export function initAccountFilter() {
@@ -220,14 +220,9 @@ export function initAccountFilter() {
   panel.classList.add('account-picker');
   panel.setAttribute('role', 'dialog');
 
-  // A small stacked-cards glyph before the button's label.
-  if (!button.querySelector('.account-picker__glyph')) {
-    button.insertAdjacentHTML('afterbegin', '<span class="account-picker__glyph" aria-hidden="true"><i></i><i></i></span>');
-  }
-
-  const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 8.3l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const DASH = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 8h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  const CHECK = '<svg class="account-picker__check" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor"/></svg>';
   const isOn = (id) => state.activeAccounts.has(id);
+  const allOn = () => state.activeAccounts.size === ACCOUNTS.length;
 
   const updateLabel = () => {
     const count = state.activeAccounts.size;
@@ -237,37 +232,24 @@ export function initAccountFilter() {
   };
 
   const render = () => {
-    const shown = state.activeAccounts.size;
     panel.innerHTML = `
-      <div class="account-picker__head">
-        <span class="account-picker__title">Accounts</span>
-        <span class="account-picker__links">
-          <button type="button" data-all>Select all</button>
-          <button type="button" data-none>Clear</button>
-        </span>
-      </div>
+      <button type="button" class="account-picker__row account-picker__all${allOn() ? ' is-on' : ''}" data-all aria-pressed="${allOn()}">
+        <span class="account-picker__bank">All accounts</span>${CHECK}
+      </button>
       ${ACCOUNT_GROUPS.map((group) => {
         const on = group.accounts.filter((a) => isOn(a.id)).length;
-        const mark = on === group.accounts.length ? 'is-on' : on ? 'is-some' : '';
         return `
         <section class="account-picker__group">
-          <button type="button" class="account-picker__person ${mark}" data-group="${escapeAttr(group.id)}"
-            aria-pressed="${on === group.accounts.length ? 'true' : on ? 'mixed' : 'false'}">
-            <span class="account-picker__name">${escapeAttr(group.label)}</span>
-            <span class="account-picker__check">${on && on < group.accounts.length ? DASH : CHECK}</span>
-          </button>
+          <button type="button" class="account-picker__person" data-group="${escapeAttr(group.id)}" title="Include or leave out all of ${escapeAttr(group.label)}’s accounts"
+            aria-pressed="${on === group.accounts.length ? 'true' : on ? 'mixed' : 'false'}">${escapeAttr(group.label)}</button>
           ${group.accounts.map((account) => `
-            <button type="button" class="account-picker__account${isOn(account.id) ? ' is-on' : ''}" data-account="${escapeAttr(account.id)}" aria-pressed="${isOn(account.id)}">
-              <span class="account-picker__card" aria-hidden="true"></span>
-              <span class="account-picker__meta">
-                <span class="account-picker__bank">${escapeAttr(account.bank)}</span>
-                <span class="account-picker__number">${escapeAttr(account.label)}</span>
-              </span>
-              <span class="account-picker__check">${CHECK}</span>
+            <button type="button" class="account-picker__row${isOn(account.id) ? ' is-on' : ''}" data-account="${escapeAttr(account.id)}" aria-pressed="${isOn(account.id)}">
+              <span class="account-picker__bank">${escapeAttr(account.bank)}</span>
+              <span class="account-picker__number">${escapeAttr(account.label)}</span>
+              ${CHECK}
             </button>`).join('')}
         </section>`;
-      }).join('')}
-      <div class="account-picker__foot">${shown} of ${ACCOUNTS.length} account${ACCOUNTS.length === 1 ? '' : 's'} shown</div>`;
+      }).join('')}`;
   };
 
   const apply = () => { render(); updateLabel(); pageHooks.renderAll(); };
@@ -286,9 +268,7 @@ export function initAccountFilter() {
     const target = event.target.closest('button');
     if (!target) return;
     if (target.hasAttribute('data-all')) {
-      state.activeAccounts = new Set(ACCOUNTS.map((a) => a.id));
-    } else if (target.hasAttribute('data-none')) {
-      state.activeAccounts.clear();
+      state.activeAccounts = new Set(allOn() ? [] : ACCOUNTS.map((a) => a.id));
     } else if (target.dataset.account) {
       const id = target.dataset.account;
       isOn(id) ? state.activeAccounts.delete(id) : state.activeAccounts.add(id);
@@ -301,7 +281,7 @@ export function initAccountFilter() {
     // Keep keyboard focus on the same control after the redraw.
     const key = target.dataset.account ? `[data-account="${CSS.escape(target.dataset.account)}"]`
       : target.dataset.group ? `[data-group="${CSS.escape(target.dataset.group)}"]`
-      : target.hasAttribute('data-all') ? '[data-all]' : '[data-none]';
+      : '[data-all]';
     panel.querySelector(key)?.focus();
   });
 
