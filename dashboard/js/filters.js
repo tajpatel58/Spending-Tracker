@@ -10,6 +10,7 @@
 import { ACCOUNT_GROUPS, ACCOUNTS, CATEGORIES, MONTH_LABEL, MONTHS } from './data.js';
 import { escapeAttr } from './format.js';
 import { motion } from './motion.js';
+import { asSheet } from './sheet.js';
 import { spendOwnerColor, spendOwners, state } from './state.js';
 
 /**
@@ -97,6 +98,7 @@ export function initMonthSelect() {
     const index = MONTHS.findIndex((m) => m.key === state.month);
     setMonth(MONTHS[index + delta]?.key);
   };
+  asSheet(panel, closeMonthPicker);
   renderMonthOptions();
   button.addEventListener('click', () => {
     if (!panel.hidden) { closeMonthPicker(); return; }
@@ -130,7 +132,7 @@ export function initMonthSelect() {
       return;
     }
     if (event.altKey || event.ctrlKey || event.metaKey) return;
-    if (event.target.closest('input, select, textarea, [contenteditable="true"]')) return;
+    if (event.target.closest('input, select, textarea, [contenteditable="true"], .category-select')) return;
     if (event.key === 'ArrowLeft') step(-1);
     if (event.key === 'ArrowRight') step(1);
   });
@@ -270,6 +272,7 @@ export function initAccountFilter() {
 
   const apply = () => { render(); updateLabel(); pageHooks.renderAll(); };
   const close = () => { panel.hidden = true; wrap.classList.remove('is-open'); button.setAttribute('aria-expanded', 'false'); };
+  asSheet(panel, close);
 
   button.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -358,6 +361,7 @@ function initTableFilter(filter) {
   const wrap = document.getElementById(filter.id);
   const button = wrap.querySelector('.multiselect__button');
   const panel = wrap.querySelector('.multiselect__panel');
+  filter.panel = panel; // kept here: on phones it moves out of `wrap` while it's open (sheet.js)
 
   panel.innerHTML = `
     <button type="button" class="multiselect__clear" data-clear>Clear selection</button>
@@ -372,6 +376,8 @@ function initTableFilter(filter) {
       `).join('')}
     </div>
   `;
+
+  asSheet(panel, closeTableFilters);
 
   button.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -401,7 +407,7 @@ function initTableFilter(filter) {
 function closeTableFilters() {
   TABLE_FILTERS.forEach((filter) => {
     const wrap = document.getElementById(filter.id);
-    wrap.querySelector('.multiselect__panel').hidden = true;
+    filter.panel.hidden = true;
     wrap.classList.remove('is-open');
     wrap.querySelector('.multiselect__button').setAttribute('aria-expanded', 'false');
   });
@@ -450,7 +456,7 @@ export function syncTableFilters() {
   TABLE_FILTERS.forEach((filter) => {
     const wrap = document.getElementById(filter.id);
     const selected = filter.items().filter((item) => state[filter.key].has(item.id));
-    wrap.querySelectorAll('input[type="checkbox"]').forEach((box) => { box.checked = state[filter.key].has(box.value); });
+    filter.panel.querySelectorAll('input[type="checkbox"]').forEach((box) => { box.checked = state[filter.key].has(box.value); });
     wrap.querySelector('.table-filter__label').textContent =
       !selected.length ? filter.all : selected.length === 1 ? selected[0].label : `${selected.length} ${filter.noun}`;
     const count = wrap.querySelector('.table-filter__count');

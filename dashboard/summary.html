@@ -138,19 +138,14 @@
 
         <!-- How far back the page looks (summary.js initPeriod); remembered on this device.
              A ‹ 12 months › stepper like Overview's month: the arrows step between
-             6 months, 12 months and All, and an invisible <select> on the label opens the list. -->
+             6 months, 12 months and All, and the label opens the list. -->
         <div class="month-stepper" role="group" aria-label="Period">
           <button type="button" class="month-stepper__btn" id="period-prev" aria-label="Shorter period" title="Shorter period">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <label class="month-stepper__label">
+          <button type="button" class="month-stepper__label month-stepper__open" id="period-button" aria-label="Choose period" aria-haspopup="listbox" aria-expanded="false">
             <span id="period-label">12 months</span>
-            <select id="period-select" aria-label="Choose period">
-              <option value="6">6 months</option>
-              <option value="12">12 months</option>
-              <option value="all">All</option>
-            </select>
-          </label>
+          </button>
           <button type="button" class="month-stepper__btn" id="period-next" aria-label="Longer period" title="Longer period">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>

@@ -147,6 +147,7 @@ function initPullToRefresh() {
 
   window.addEventListener('touchstart', (e) => {
     if (busy || window.scrollY > 0 || e.touches.length !== 1) return;
+    if (document.documentElement.classList.contains('has-sheet')) return; // dragging a sheet isn't pulling the page
     startY = e.touches[0].clientY;
   }, { passive: true });
 

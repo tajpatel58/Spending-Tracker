@@ -127,15 +127,14 @@
     <div class="topbar__controls">
       <div class="topbar__filters">
         <!-- Which trip the page shows (trips.js initTripStepper): an ‹ All trips › stepper
-             like Overview's month, with an invisible <select> on the label. -->
+             like Overview's month, whose label opens the list of trips. -->
         <div class="month-stepper" role="group" aria-label="Trip">
           <button type="button" class="month-stepper__btn" id="trip-prev" aria-label="Earlier trip" title="Earlier trip">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <label class="month-stepper__label">
+          <button type="button" class="month-stepper__label month-stepper__open" id="trip-button" aria-label="Choose trip" aria-haspopup="listbox" aria-expanded="false">
             <span id="trip-label">All trips</span>
-            <select id="trip-select" aria-label="Choose trip"></select>
-          </label>
+          </button>
           <button type="button" class="month-stepper__btn" id="trip-next" aria-label="Later trip" title="Later trip">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>

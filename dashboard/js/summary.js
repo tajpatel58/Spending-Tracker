@@ -38,6 +38,7 @@ import {
   sumAbs,
 } from './forecast.js';
 import { cssVar, currency, currencyShort, escapeAttr, MINUS, moneyMarkup } from './format.js';
+import { openMenu } from './menu.js';
 import { motion } from './motion.js';
 import {
   accountById,
@@ -56,6 +57,7 @@ import { initTheme, toggleTheme } from './theme.js';
 const TARGET = MONTHLY_SAVINGS_TARGET;
 const PERIOD_KEY = 'ledger-summary-period';
 const PERIODS = ['6', '12', 'all'];
+const PERIOD_LABELS = { 6: '6 months', 12: '12 months', all: 'All' };
 
 const view = {
   period: (() => { try { return PERIODS.includes(localStorage.getItem(PERIOD_KEY)) ? localStorage.getItem(PERIOD_KEY) : '12'; } catch { return '12'; } })(),
@@ -812,11 +814,9 @@ function renderAll() {
  * The page slides the way you moved (motion.js).
  */
 function initPeriod() {
-  const select = document.getElementById('period-select');
   const sync = () => {
     const index = PERIODS.indexOf(view.period);
-    document.getElementById('period-label').textContent = select.options[index].textContent;
-    select.value = view.period;
+    document.getElementById('period-label').textContent = PERIOD_LABELS[view.period];
     document.getElementById('period-prev').disabled = index <= 0;
     document.getElementById('period-next').disabled = index >= PERIODS.length - 1;
   };
@@ -833,7 +833,13 @@ function initPeriod() {
   const step = (delta) => choose(PERIODS[PERIODS.indexOf(view.period) + delta]);
   const canStep = (delta) => Boolean(PERIODS[PERIODS.indexOf(view.period) + delta]);
 
-  select.addEventListener('change', () => choose(select.value));
+  document.getElementById('period-button').addEventListener('click', (event) => openMenu({
+    anchor: event.currentTarget,
+    label: 'Period',
+    value: view.period,
+    items: PERIODS.map((period) => ({ value: period, label: PERIOD_LABELS[period] })),
+    onSelect: choose,
+  }));
   document.getElementById('period-prev').addEventListener('click', () => step(-1));
   document.getElementById('period-next').addEventListener('click', () => step(1));
   document.addEventListener('keydown', (event) => {

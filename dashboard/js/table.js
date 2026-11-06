@@ -27,6 +27,7 @@ import { openDatePicker } from './datepicker.js';
 import { renderMonthOptions } from './filters.js';
 import { currency, escapeAttr, formatDate, remembered } from './format.js';
 import { scheduleRender } from './main.js';
+import { openMenu } from './menu.js';
 import { accountById, catById, getFilteredTransactions, isExpense, state } from './state.js';
 import { showToast } from './toast.js';
 import {
@@ -81,44 +82,13 @@ function dayHeading(iso) {
   return longDate(iso);
 }
 
-// Every category as <option>s, built once. A row's select holds only its own
-// category until it's pressed or focused (fillCategorySelect), so a month's
-// table isn't rebuilt with fifteen options per row on every search keystroke.
-const CATEGORY_OPTIONS = CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join('');
-
-/** Gives a row's category select the full list, still showing its category, just before it opens. */
-function fillCategorySelect(select) {
-  if (select.options.length > 1) return;
-  const current = select.value;
-  select.innerHTML = CATEGORY_OPTIONS;
-  select.value = current;
-}
-
-/**
- * A select is as wide as its longest option, so with only its own category
- * a row's would size to that one. The full list's width is measured once
- * (again when the fonts arrive) and set on the table, keeping every
- * select, and its chevron, where the full list puts them.
- */
-function sizeCategorySelects(table) {
-  const measure = () => {
-    const probe = document.createElement('select');
-    probe.className = 'category-select';
-    probe.innerHTML = CATEGORY_OPTIONS;
-    probe.style.cssText = 'position:absolute;visibility:hidden;width:auto';
-    table.closest('.table-tile').appendChild(probe); // outside .table-scroll, whose contents aren't laid out while off screen
-    table.style.setProperty('--category-select-width', `${probe.getBoundingClientRect().width}px`);
-    probe.remove();
-  };
-  measure();
-  document.fonts?.ready.then(measure);
-}
+// Every category as a menu item, built once.
+const CATEGORY_ITEMS = CATEGORIES.map((c) => ({ value: c.id, label: c.label, color: c.color, icon: categoryIcon(c.id) }));
 
 /** One transaction row. */
 function transactionRow(t) {
   const cat = catById[t.category];
   const acc = accountById[t.account];
-  const options = `<option value="${t.category}" selected>${cat.label}</option>`;
   const selected = state.selectedTransactionIds.has(t.id);
   const amount = t.amount.toFixed(2);
   return `
@@ -141,7 +111,7 @@ function transactionRow(t) {
             <span class="category-badge">
               <span class="category-badge__dot" style="background:${cat.color}"></span>
               <span class="category-badge__label">${cat.label}</span>
-              <select class="category-select" data-tx-id="${t.id}" aria-label="Change category for ${escapeAttr(t.merchant)}">${options}</select>
+              <button type="button" class="category-select" data-tx-id="${t.id}" aria-haspopup="listbox" aria-expanded="false" aria-label="Change category for ${escapeAttr(t.merchant)}, currently ${cat.label}">${cat.label}</button>
             </span>
           </td>
           <td class="tx-table__amount">
@@ -253,12 +223,36 @@ function updateHideButton() {
  */
 export function initTableEditing() {
   const body = document.getElementById('tx-table-body');
-  sizeCategorySelects(body.closest('table'));
 
-  // The full category list goes in just before a select opens: pressed (mouse or touch) or reached by keyboard.
-  const fill = (e) => { if (e.target.classList?.contains('category-select')) fillCategorySelect(e.target); };
-  body.addEventListener('pointerdown', fill);
-  body.addEventListener('focusin', fill);
+  /** Moves a transaction to another category (with Undo). */
+  const changeCategory = (txId, next) => {
+    const tx = (TRANSACTIONS[state.month] || []).find((t) => t.id === txId);
+    if (!tx || tx.category === next) return;
+    const previous = tx.category;
+    const rerender = () => scheduleRender('stats', 'category', 'user', 'budget', 'table');
+    editWithUndo({
+      apply: () => { tx.category = next; rerender(); },
+      revert: () => { tx.category = previous; rerender(); },
+      save: () => updateTransactionCategory(txId, next),
+      unsave: () => updateTransactionCategory(txId, previous),
+      message: `Moved ${tx.merchant} to ${catById[next].label}`,
+    });
+  };
+
+  body.addEventListener('click', (e) => {
+    const button = e.target.closest('.category-select');
+    if (!button) return;
+    const { txId } = button.dataset;
+    const tx = (TRANSACTIONS[state.month] || []).find((t) => t.id === txId);
+    if (!tx) return;
+    openMenu({
+      anchor: button,
+      label: `Category for ${tx.merchant}`,
+      value: tx.category,
+      items: CATEGORY_ITEMS,
+      onSelect: (next) => changeCategory(txId, next),
+    });
+  });
 
   body.addEventListener('change', async (e) => {
     const target = e.target;
@@ -284,20 +278,7 @@ export function initTableEditing() {
     const tx = monthTxs.find((t) => t.id === txId);
     if (!tx) return;
 
-    if (target.classList.contains('category-select')) {
-      const previous = tx.category;
-      const next = target.value;
-      if (previous === next) return;
-      const rerender = () => scheduleRender('stats', 'category', 'user', 'budget', 'table');
-      editWithUndo({
-        apply: () => { tx.category = next; rerender(); },
-        revert: () => { tx.category = previous; rerender(); },
-        save: () => updateTransactionCategory(txId, next),
-        unsave: () => updateTransactionCategory(txId, previous),
-        message: `Moved ${tx.merchant} to ${catById[next].label}`,
-      });
-
-    } else if (target.classList.contains('merchant-input')) {
+    if (target.classList.contains('merchant-input')) {
       const previous = tx.merchant;
       const next = target.value.trim();
       if (!next || previous === next) { target.value = previous; return; }

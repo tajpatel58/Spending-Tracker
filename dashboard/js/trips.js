@@ -39,6 +39,7 @@ import { categoryIcon } from './category-icons.js';
 import { accountsReady, CALENDAR_EVENTS, pageSession, saveDataCache, TRANSACTIONS } from './data.js';
 import { openDatePicker } from './datepicker.js';
 import { cssVar, currency, currencyShort, escapeAttr, MINUS, moneyMarkup } from './format.js';
+import { openMenu } from './menu.js';
 import { motion } from './motion.js';
 import { finishLoading, people, showLoadError, spendOwnerColor } from './state.js';
 import { refreshIfStale } from './sync.js';
@@ -877,11 +878,10 @@ function txRow(m, t, { withDate = false } = {}) {
     </li>`;
 }
 
-/** A transaction's sub-category as a quiet dropdown (like the transactions table's category), to change it. */
+/** A transaction's sub-category as a quiet button (like the transactions table's category), which opens the menu to change it. */
 function subCategorySelect(t) {
-  const options = [...HOLIDAY_SUB_CATEGORIES, 'unsorted']
-    .map((id) => `<option value="${id}"${id === t.part ? ' selected' : ''}>${PARTS[id].label}</option>`).join('');
-  return `<select class="category-select trip-tx__sub" data-tx-id="${escapeAttr(t.id)}" aria-label="Sub-category for ${escapeAttr(t.merchant)}">${options}</select>`;
+  const part = PARTS[t.part] ? t.part : 'unsorted';
+  return `<button type="button" class="category-select trip-tx__sub" data-tx-id="${escapeAttr(t.id)}" data-part="${part}" data-merchant="${escapeAttr(t.merchant)}" aria-haspopup="listbox" aria-expanded="false" aria-label="Sub-category for ${escapeAttr(t.merchant)}, currently ${PARTS[part].label}">${PARTS[part].label}</button>`;
 }
 
 /**
@@ -1274,9 +1274,17 @@ function initSubCategories() {
     const chip = event.target.closest('.sub-chip');
     if (chip) setSubCategory(chip.dataset.txId, chip.dataset.sub);
   });
-  document.querySelector('.itinerary').addEventListener('change', (event) => {
-    const select = event.target.closest('.trip-tx__sub');
-    if (select) setSubCategory(select.dataset.txId, select.value === 'unsorted' ? null : select.value);
+  document.querySelector('.itinerary').addEventListener('click', (event) => {
+    const button = event.target.closest('.trip-tx__sub');
+    if (!button) return;
+    const { txId, part, merchant } = button.dataset;
+    openMenu({
+      anchor: button,
+      label: `Sub-category for ${merchant}`,
+      value: part,
+      items: [...HOLIDAY_SUB_CATEGORIES, 'unsorted'].map((id) => ({ value: id, label: PARTS[id].label, color: PARTS[id].color, icon: categoryIcon(PARTS[id].icon) })),
+      onSelect: (next) => setSubCategory(txId, next === 'unsorted' ? null : next),
+    });
   });
 }
 
@@ -1841,11 +1849,8 @@ const stops = () => [null, ...TRIPS.map((t) => t.id)];
 
 /** Brings the ‹ All trips › stepper in line with the open view (and the list of trips). */
 function syncStepper() {
-  const select = document.getElementById('trip-select');
-  select.innerHTML = `<option value="">All trips</option>${TRIPS.map((t) => `<option value="${t.id}">${escapeAttr(t.name)}</option>`).join('')}`;
   const index = stops().indexOf(view.trip);
   document.getElementById('trip-label').textContent = view.trip ? TRIPS.find((t) => t.id === view.trip).name : 'All trips';
-  select.value = view.trip || '';
   document.getElementById('trip-prev').disabled = index <= 0;
   document.getElementById('trip-next').disabled = index >= stops().length - 1;
 }
@@ -1868,18 +1873,23 @@ function openTrip(id) {
  * The place cards and the ledger's rows open their trip too.
  */
 function initTripStepper() {
-  const select = document.getElementById('trip-select');
   const step = (delta) => {
     const index = stops().indexOf(view.trip) + delta;
     if (index >= 0 && index < stops().length) openTrip(stops()[index]);
   };
 
-  select.addEventListener('change', () => openTrip(select.value || null));
+  document.getElementById('trip-button').addEventListener('click', (event) => openMenu({
+    anchor: event.currentTarget,
+    label: 'Trip',
+    value: view.trip || '',
+    items: [{ value: '', label: 'All trips' }, ...TRIPS.map((t) => ({ value: t.id, label: t.name }))],
+    onSelect: (id) => openTrip(id || null),
+  }));
   document.getElementById('trip-prev').addEventListener('click', () => step(-1));
   document.getElementById('trip-next').addEventListener('click', () => step(1));
   document.addEventListener('keydown', (event) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
-    if (event.target.closest('input, select, textarea, [contenteditable="true"], dialog[open]')) return;
+    if (event.target.closest('input, select, textarea, [contenteditable="true"], dialog[open], .category-select')) return;
     if (event.key === 'ArrowLeft') step(-1);
     if (event.key === 'ArrowRight') step(1);
   });
