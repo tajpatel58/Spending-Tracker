@@ -678,7 +678,10 @@ export function renderPaceChart(pace) {
   const keep = state.paceWithoutFixed ? isVariableExpense : isExpense;
   // (The tooltip says which target; the legend keeps one wording so the switch beside it never shifts.)
   const targetLabel = state.paceWithoutFixed ? 'Everyday target' : 'Target pace';
-  const thisMonth = runningTotals(month, keep).map((value, i) => (i < loaded ? value : null));
+  const running = runningTotals(month, keep);
+  // The line stops at the last loaded day, but ends on everything spent this month:
+  // a payment re-dated past that day (manual_date) is still in the tile's headline figure.
+  const thisMonth = running.map((value, i) => (i < loaded - 1 ? value : i === loaded - 1 ? running[days - 1] : null));
   const prevKey = shiftMonth(month, -1);
   const prev = TRANSACTIONS[prevKey]?.length ? runningTotals(prevKey, keep) : null;
   // Day 31 against a 30-day month compares with its last day.
