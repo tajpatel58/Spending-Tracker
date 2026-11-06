@@ -22,7 +22,8 @@
  * on its financial summary (Budget, Spent, Free to spend), how the budget
  * is allocated and the budget by part, then the itinerary: Essentials
  * (flights, stay, parking) in a band of their own, then each day's events
- * in time order beside what's been spent. The budget is set part by part with sliders
+ * in time order beside what's been spent, folded into weeks to unfold. The
+ * budget is set part by part with sliders
  * on the "By part" tile (the `trips` table's part_budgets column), and
  * the trip's Budget is their sum, with what's booked standing in for a
  * booked flight or stay's estimate. A savings pot and local currency
@@ -923,18 +924,25 @@ const dayColumn = ({ label, total, rows, kind, quiet = false }) => `
 /** A line in a day with nothing on it ("Nothing planned", "Nothing spent"). */
 const quietRow = (text) => `<li class="itinerary-day__quiet">${text}</li>`;
 
+/** What a day of the itinerary lists: its events and spending, essentials aside (they have their own band). */
+function dayItems(m, d) {
+  const essential = (item) => ESSENTIAL_PARTS.has(item.part);
+  return {
+    events: m.events.filter((e) => e.date === d.iso && !essential(e)),
+    txs: d.txs.filter((t) => !essential(t)),
+  };
+}
+
 /**
  * One day of the itinerary: its number in the serif, its date and what's
  * free for it, then what's planned, in time order, beside what's been spent.
  */
-function dayRow(m, d, i) {
-  const essential = (item) => ESSENTIAL_PARTS.has(item.part);
-  const events = m.events.filter((e) => e.date === d.iso && !essential(e));
-  const txs = d.txs.filter((t) => !essential(t));
+function dayRow(m, d, i, stagger = i) {
+  const { events, txs } = dayItems(m, d);
   const today = d.iso === TODAY;
   const toCome = m.status === 'saving' || d.iso > TODAY;
   return `
-    <li class="itinerary-day${today ? ' is-today' : ''}" style="--i:${i}">
+    <li class="itinerary-day${today ? ' is-today' : ''}${events.length || txs.length ? '' : ' is-bare'}" data-day-row="${d.iso}" style="--i:${stagger}">
       <div class="itinerary-day__rail">
         <span class="itinerary-day__title">Day ${i + 1}</span>
         <p class="itinerary-day__date">${dayLabel(d.iso)}${today ? '<span class="ledger-table__flag">Today</span>' : ''}</p>
@@ -1013,10 +1021,157 @@ function essentialsBand(m) {
     </div>`;
 }
 
+/** Days in a week of a trip: weeks count from its first day, so a week is any seven days in a row. */
+const WEEK_LENGTH = 7;
+
+/** "Days" or "Weeks" (remembered on this device), and which weeks are open on each trip. */
+const itineraryView = {
+  allDays: (() => { try { return localStorage.getItem('ledger-trip-days-view') === 'days'; } catch { return false; } })(),
+  open: new Map(), // trip id -> Set of week numbers; kept while redrawing, so filing a transaction doesn't fold its week
+};
+
+/** The open weeks of a trip: to begin with, the week you're in while away, otherwise none. */
+function openWeeks(m) {
+  if (!itineraryView.open.has(m.trip.id)) {
+    itineraryView.open.set(m.trip.id, new Set(m.status === 'away' ? [Math.floor((m.day - 1) / WEEK_LENGTH)] : []));
+  }
+  return itineraryView.open.get(m.trip.id);
+}
+
+/** A trip's days as weeks: [[day, ...], ...], the last one possibly short. */
+const tripWeeks = (days) => Array.from(
+  { length: Math.ceil(days.length / WEEK_LENGTH) },
+  (_, w) => days.slice(w * WEEK_LENGTH, (w + 1) * WEEK_LENGTH),
+);
+
+/** "1–7 Mar", or "28 Mar – 3 Apr" across months. */
+const weekRange = (days) => dateRange({ start: days[0].iso, end: days[days.length - 1].iso }, 'short').replace(/ \d{4}$/, '');
+
+/**
+ * A day in a week's overview, tapped to go to it: its weekday and date, and
+ * what's on it — a filled disc and what's been spent, otherwise a hollow ring
+ * and what's planned (as in the itinerary, so a plan can't pass for spending).
+ */
+function weekDayCell(m, d) {
+  const { events, txs } = dayItems(m, d);
+  const planned = sum(events.map((e) => e.budget));
+  const spent = sum(txs.map((t) => t.amount));
+  const kind = spent ? 'is-spent' : events.length ? 'is-planned' : 'is-empty';
+  const date = parse(d.iso);
+  const said = [spent ? `${currencyShort(spent)} spent` : '', planned ? `${currencyShort(planned)} planned` : ''].filter(Boolean).join(', ') || 'nothing on';
+  return `
+    <button type="button" class="week-day ${kind}${d.iso === TODAY ? ' is-today' : ''}" data-day="${d.iso}" aria-label="${dayLabel(d.iso)}: ${said}. Go to this day">
+      <span class="week-day__name">${date.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+      <span class="week-day__date">${date.getDate()}</span>
+      <span class="week-day__mark" aria-hidden="true"></span>
+      <span class="week-day__figure">${spent ? currencyShort(spent) : planned ? currencyShort(planned) : ''}</span>
+    </button>`;
+}
+
+/**
+ * A week of a trip, as one row to read at a glance: its dates, its seven
+ * days, and what's planned and spent across them. Its row unfolds the week's
+ * days in place; tapping a day does too, and goes to that day.
+ */
+function weekRow(m, days, w, open) {
+  const items = days.map((d) => dayItems(m, d));
+  const planned = sum(items.flatMap((item) => item.events.map((e) => e.budget)));
+  const spent = sum(items.flatMap((item) => item.txs.map((t) => t.amount)));
+  const current = days.some((d) => d.iso === TODAY);
+  const panel = `trip-week-${w}`;
+  const total = (kind, label, amount) => `
+    <span class="itinerary-week__total ${kind}${amount ? '' : ' is-none'}">
+      <i class="week-day__mark" aria-hidden="true"></i>${label}<b>${amount ? currencyShort(amount) : '—'}</b>
+    </span>`;
+  return `
+    <li class="itinerary-week${open ? ' is-open' : ''}${current ? ' is-current' : ''}" data-week="${w}" style="--i:${w}">
+      <div class="itinerary-week__head">
+        <button type="button" class="itinerary-week__toggle" aria-expanded="${open}" aria-controls="${panel}">
+          <span class="itinerary-day__title">Week ${w + 1}</span>
+          <span class="itinerary-day__date">${weekRange(days)}${current ? '<span class="ledger-table__flag">This week</span>' : ''}</span>
+        </button>
+        <div class="itinerary-week__days-strip"${m.days < WEEK_LENGTH ? ` style="--days:${m.days}"` : ''}>${days.map((d) => weekDayCell(m, d)).join('')}</div>
+        <div class="itinerary-week__totals">${total('is-planned', 'Planned', planned)}${total('is-spent', 'Spent', spent)}</div>
+        <span class="itinerary-week__chevron" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
+      <div class="itinerary-week__panel" id="${panel}"${open ? '' : ' inert'}>
+        <ol class="itinerary-week__list">${days.map((d, i) => dayRow(m, d, w * WEEK_LENGTH + i, i)).join('')}</ol>
+      </div>
+    </li>`;
+}
+
+/** Every day of a trip in one list, with each week's dates between them to keep your place. */
+const allDayRows = (m, days) => tripWeeks(days).map((week, w) => `
+  <li class="itinerary-week-label"><span>Week ${w + 1}</span>${weekRange(week)}</li>
+  ${week.map((d, i) => dayRow(m, d, w * WEEK_LENGTH + i)).join('')}`).join('');
+
+/** The days: as weeks to unfold (a short trip is a single week) or, on the switch, all of them. */
+function renderDays(m) {
+  const days = tripDays(m);
+  const weeks = tripWeeks(days);
+  const byWeek = !itineraryView.allDays;
+  document.getElementById('itinerary-view').setAttribute('aria-checked', String(itineraryView.allDays));
+  document.getElementById('itinerary-title').textContent = byWeek && weeks.length > 1 ? 'Week by week' : 'Day by day';
+  const open = openWeeks(m);
+  document.getElementById('trip-days').innerHTML = byWeek
+    ? weeks.map((week, w) => weekRow(m, week, w, open.has(w))).join('')
+    : allDayRows(m, days);
+}
+
+/** Folds or unfolds a week in place, so it animates rather than the whole itinerary redrawing. */
+function setWeekOpen(trip, week, open) {
+  const set = openWeeks({ trip, status: null });
+  if (open) set.add(Number(week.dataset.week));
+  else set.delete(Number(week.dataset.week));
+  week.classList.toggle('is-open', open);
+  week.querySelector('.itinerary-week__toggle').setAttribute('aria-expanded', String(open));
+  week.querySelector('.itinerary-week__panel').inert = !open;
+}
+
+/** Goes to a day in its week, unfolding it first, and marks it briefly so the eye lands on it. */
+function goToDay(trip, cell) {
+  const week = cell.closest('.itinerary-week');
+  const wasOpen = week.classList.contains('is-open');
+  setWeekOpen(trip, week, true);
+  const row = week.querySelector(`[data-day-row="${cell.dataset.day}"]`);
+  setTimeout(() => {
+    row.scrollIntoView({ behavior: motion.reduced() ? 'auto' : 'smooth', block: 'center' });
+    row.tabIndex = -1;
+    row.focus({ preventScroll: true });
+    row.classList.add('is-landed');
+    setTimeout(() => row.classList.remove('is-landed'), 1400);
+  }, wasOpen || motion.reduced() ? 0 : 300); // once it's unfolded, when the day's position is settled
+}
+
+/** The Weeks/Days switch, unfolding a week from its row, and going to a day from its cell. */
+function initItinerary() {
+  const toggle = document.getElementById('itinerary-view');
+  toggle.addEventListener('click', (event) => {
+    const picked = event.target.closest('[data-mode]')?.dataset.mode;
+    const allDays = picked ? picked === 'days' : !itineraryView.allDays;
+    if (allDays === itineraryView.allDays) return;
+    itineraryView.allDays = allDays;
+    try { localStorage.setItem('ledger-trip-days-view', allDays ? 'days' : 'weeks'); } catch { /* storage unavailable */ }
+    renderDays(tripModel(TRIPS.find((t) => t.id === view.trip)));
+  });
+  document.getElementById('trip-days').addEventListener('click', (event) => {
+    const trip = TRIPS.find((t) => t.id === view.trip);
+    const cell = event.target.closest('.week-day');
+    const button = event.target.closest('.itinerary-week__toggle');
+    if (cell) goToDay(trip, cell);
+    else if (button) {
+      const week = button.closest('.itinerary-week');
+      setWeekOpen(trip, week, !week.classList.contains('is-open'));
+    }
+  });
+}
+
 /**
  * The itinerary: Essentials (flights, stay, parking) first as a band of
- * their own, then every day of the trip: its events in time order beside
- * what's been spent, today picked out in gold.
+ * their own, then the trip's days (renderDays): each with its events in time
+ * order beside what's been spent, today picked out in gold.
  */
 function renderItinerary(m) {
   const { trip } = m;
@@ -1029,7 +1184,7 @@ function renderItinerary(m) {
     }) : '',
     essentialsBand(m),
   ].join('');
-  document.getElementById('trip-days').innerHTML = tripDays(m).map((d, i) => dayRow(m, d, i)).join('');
+  renderDays(m);
   document.getElementById('itinerary-sub').textContent = `${dateRange(trip)} · ${plural(m.days, 'day')}`;
   document.getElementById('itinerary-meta').textContent = `${plural(trip.events.length, 'event')} · ${plural(trip.txs.length, 'transaction')}${trip.fx ? ` · ${trip.fx.symbol}${trip.fx.rate} to the pound` : ''}`;
 }
@@ -1756,6 +1911,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDeleteTrip();
   initSubCategories();
   initBudgetEditing();
+  initItinerary();
 
   // The trips (Supabase `trips`) and the transactions they're tagged from: this
   // device's copy of the trips straight away, otherwise they're waited for.

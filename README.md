@@ -185,6 +185,12 @@ budget (set aside until the trip's over). Spending in an event's part on
 its day (any day, for an essential) counts against the event's budget, so
 it's never counted twice.
 
+A trip opens folded into weeks: a row per seven days from its start (so a
+short trip is a single row), showing each day and what's planned and spent. A
+row unfolds its days in place, and a day takes you straight to it. The
+**Weeks / Days** switch shows every day instead, and is remembered on the
+device.
+
 A trip's budget is set part by part (flights, stay, food...) with the
 sliders behind the pencil on its **By part** tile. The parts are saved to
 `part_budgets` (e.g. `{"flights": 420, "stay": 900}`), and `budget` is

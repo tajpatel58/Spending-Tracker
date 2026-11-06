@@ -324,7 +324,15 @@
           <h2 class="itinerary__title" id="itinerary-title">Day by day</h2>
           <p class="itinerary__sub" id="itinerary-sub"></p>
         </div>
-        <span class="tile__meta" id="itinerary-meta"></span>
+        <span class="itinerary__controls">
+          <span class="tile__meta" id="itinerary-meta"></span>
+          <!-- A trip opens folded into weeks; this switches to every day (trips.js initItinerary). -->
+          <button type="button" class="switch switch--between" id="itinerary-view" role="switch" aria-checked="false" aria-label="Show every day">
+            <span class="switch__label" data-mode="weeks">Weeks</span>
+            <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+            <span class="switch__label" data-mode="days">Days</span>
+          </button>
+        </span>
       </div>
       <div id="itinerary-strips"></div>
       <ol class="itinerary__days" id="trip-days"></ol>

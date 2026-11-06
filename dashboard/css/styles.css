@@ -1231,7 +1231,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 .switch.switch--between .switch__label:hover { color: var(--text-muted); }
 .switch.switch--between[aria-checked="false"] [data-mode="spending"],
-.switch.switch--between[aria-checked="true"] [data-mode="savings"] { color: var(--text); }
+.switch.switch--between[aria-checked="true"] [data-mode="savings"],
+.switch.switch--between[aria-checked="false"] [data-mode="weeks"],
+.switch.switch--between[aria-checked="true"] [data-mode="days"] { color: var(--text); }
 .switch.switch--between .switch__track,
 .switch.switch--between[aria-checked="true"] .switch__track {
   width: 32px;
@@ -3937,6 +3939,117 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .itinerary-day .trip-tx { padding: 8px var(--space-4); }
 .itinerary-day__quiet { padding: var(--space-2) var(--space-4); font-size: 12.5px; color: var(--text-faint); }
 .itinerary-day.is-today { background: var(--surface); border-color: color-mix(in srgb, var(--gold) 70%, transparent); box-shadow: 0 0 0 3px var(--gold-soft); }
+.itinerary-day { scroll-margin-top: 96px; transition: box-shadow 400ms ease, border-color 400ms ease; }
+.itinerary-day:focus { outline: none; }
+.itinerary-day.is-landed { border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); }
+
+/* A trip's weeks: each as a row to read at a glance — its dates,
+   its days and what's planned and spent — which unfolds its days in place.
+   The toggle's ::after stretches over the row, so all of it opens the week,
+   and the day cells sit above that to go to their own day. */
+.itinerary__controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2) var(--space-5); }
+.itinerary-week {
+  min-width: 0;
+  background: var(--surface-alt);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 200ms ease;
+  animation: legend-in 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 50ms + 80ms);
+}
+.itinerary-week.is-current { border-color: color-mix(in srgb, var(--gold) 55%, transparent); }
+.itinerary-week__head {
+  position: relative;
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr) 112px 28px;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+.itinerary-week__toggle { display: flex; flex-direction: column; align-items: flex-start; padding: 0; color: inherit; text-align: left; background: none; border: none; cursor: pointer; }
+.itinerary-week__toggle::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-sm); transition: background 160ms ease; }
+.itinerary-week__toggle:focus-visible { outline: none; }
+.itinerary-week__toggle:focus-visible::after { box-shadow: inset 0 0 0 1.5px var(--ring); }
+/* Seven columns, so a longer trip's weeks line up (even a short last one); a trip under a week spreads its days across the row. */
+.itinerary-week__days-strip { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(var(--days, 7), minmax(0, 1fr)); gap: 4px; pointer-events: none; }
+.itinerary-week__totals { display: flex; flex-direction: column; gap: 5px; }
+.itinerary-week__total { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+.itinerary-week__total b { margin-left: auto; font-family: var(--font-display); font-size: 15px; font-weight: 450; color: var(--text); font-variant-numeric: lining-nums tabular-nums; }
+.itinerary-week__total.is-none b { color: var(--text-faint); }
+/* Looks like the row's button, but clicks pass through it to the toggle's ::after beneath. Without that,
+   the icon's rotation (a transform, so it paints above the ::after) would swallow the click that closes the week. */
+.itinerary-week__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: 50%;
+  pointer-events: none;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.itinerary-week__chevron svg { transition: transform 280ms var(--ease-out); }
+.itinerary-week.is-open .itinerary-week__chevron svg { transform: rotate(180deg); }
+
+/* A day in a week's row. Its mark is the itinerary's language: a filled disc for spending, a hollow ring for a plan. */
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 7px 2px 6px;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 160ms ease;
+}
+.week-day:focus-visible { outline: none; box-shadow: inset 0 0 0 1.5px var(--ring); }
+.week-day__name { font-size: 10.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); }
+.week-day__date { font-family: var(--font-display); font-size: 17px; font-weight: 450; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+.week-day__mark { flex: none; width: 7px; height: 7px; margin: 2px 0; border-radius: 50%; }
+.is-spent > .week-day__mark { background: var(--forecast-spent); }
+.is-planned > .week-day__mark { box-shadow: inset 0 0 0 1.5px var(--cat-holiday); }
+.week-day__figure { min-height: 15px; font-family: var(--font-num); font-size: 11.5px; line-height: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-muted); }
+.week-day.is-spent .week-day__figure { color: var(--text); }
+.week-day.is-empty .week-day__date { color: var(--text-muted); }
+.week-day.is-today { background: var(--surface); box-shadow: inset 0 0 0 var(--hairline) var(--gold), 0 0 0 3px var(--gold-soft); }
+
+@media (hover: hover) {
+  .itinerary-week__toggle:hover::after { background: color-mix(in srgb, var(--text) 3%, transparent); }
+  .itinerary-week__head:has(.itinerary-week__toggle:hover) .itinerary-week__chevron { color: var(--text); border-color: var(--gold); }
+  .week-day:hover { background: color-mix(in srgb, var(--gold) 12%, transparent); }
+}
+
+/* The week's days, unfolding: the height eases open (0fr to 1fr), and each day rises in as it does. */
+.itinerary-week__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 300ms var(--ease-out); }
+.itinerary-week.is-open .itinerary-week__panel { grid-template-rows: 1fr; }
+.itinerary-week__list { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; margin: 0; padding: 0 var(--space-3); list-style: none; overflow: hidden; visibility: hidden; transition: padding 300ms var(--ease-out), visibility 0s linear 300ms; }
+.itinerary-week.is-open .itinerary-week__list { padding-top: var(--space-1); padding-bottom: var(--space-3); visibility: visible; transition: padding 300ms var(--ease-out), visibility 0s; }
+.itinerary-week:not(.is-open) .itinerary-day { animation: none; }
+.itinerary-week .itinerary-day { flex: none; background: var(--surface); }
+.itinerary-week .trip-event__ring { background: var(--surface); }
+.itinerary-week .itinerary-day.is-today { margin: 4px; }
+
+/* A day with nothing on it is one slim line. (The extra class outranks the phone rules further down.) */
+.itinerary-day.itinerary-day.is-bare { display: block; }
+.itinerary-day.is-bare .itinerary-day__col { display: none; }
+.itinerary-day.is-bare .itinerary-day__rail { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-3); padding: var(--space-2) var(--space-4); }
+.itinerary-day.is-bare .itinerary-day__title { font-size: 15px; color: var(--text-muted); }
+.itinerary-day.is-bare .itinerary-day__date,
+.itinerary-day.is-bare .itinerary-day__free { margin: 0; }
+.itinerary-day.is-bare .itinerary-day__free { margin-left: auto; }
+
+/* Every day of a trip: each week's dates between them. */
+.itinerary-week-label { display: flex; align-items: baseline; gap: var(--space-2); padding-top: var(--space-3); font-size: 12.5px; color: var(--text-muted); }
+.itinerary-week-label:first-child { padding-top: 0; }
+.itinerary-week-label span { font-family: var(--font-display); font-size: 17px; font-weight: 450; letter-spacing: -0.01em; color: var(--text); }
 
 /* A planned event: its time, then a hollow ring (a line runs between the
    rings of the day's events, like a route), its title and its budget. */
@@ -4211,6 +4324,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .charts-grid.trips-home-charts { grid-template-columns: minmax(0, 1fr); }
   .allocation__key { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .allocation__item:nth-child(odd) { padding-left: 0; border-left: none; }
+  /* A week: its title and totals across the top, its days beneath at full width. */
+  .itinerary-week__head { grid-template-columns: minmax(0, 1fr) auto 28px; gap: var(--space-2) var(--space-3); }
+  .itinerary-week__days-strip { grid-column: 1 / -1; grid-row: 2; }
+  .itinerary-week__totals { flex-direction: row; gap: var(--space-4); }
+  .itinerary-week__total b { margin-left: 2px; }
   .itinerary-day { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .itinerary-day__rail { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-3); padding-bottom: var(--space-2); }
   .itinerary-day__date, .itinerary-day__free { margin: 0; }
@@ -4247,6 +4365,21 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .itinerary-strip__list { grid-template-columns: minmax(0, 1fr); }
   .itinerary-strip__sub { display: none; }
   .itinerary-day__title { font-size: var(--fs-title); }
+  /* Too narrow for seven figures: each day keeps its date and mark, and the week's totals carry the money. */
+  .week-day__figure { display: none; }
+  .week-day__name { font-size: var(--fs-micro); letter-spacing: 0.04em; }
+  .week-day__date { font-size: var(--fs-lead); }
+  .week-day { padding: 7px 0 5px; }
+  /* A week stacks: its title and dates, its days, then its totals. */
+  .itinerary-week__head { grid-template-columns: minmax(0, 1fr) 28px; padding: var(--space-3); }
+  .itinerary-week__toggle { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-2); grid-column: 1; grid-row: 1; }
+  .itinerary-week__chevron { grid-column: 2; grid-row: 1; }
+  .itinerary-week__totals { grid-column: 1 / -1; grid-row: 3; gap: var(--space-5); }
+  .itinerary-week__total { font-size: var(--fs-caption); }
+  .itinerary-week__total b { font-size: var(--fs-body); }
+  .itinerary-week-label { font-size: var(--fs-small); }
+  .itinerary-week-label span { font-size: var(--fs-title); }
+  .itinerary-week__list { padding-left: var(--space-2); padding-right: var(--space-2); }
   .itinerary-day__label b { font-size: var(--fs-body); }
   .itinerary-day__date { font-size: var(--fs-micro); }
   .itinerary-day__quiet { font-size: var(--fs-small); }
