@@ -270,6 +270,9 @@ export const motion = (() => {
     nav.addEventListener('pointerleave', () => nav.classList.remove('is-hovering'));
   }
 
+  // iOS Safari only applies :active (the press styles) once a page listens for touches.
+  document.addEventListener('touchstart', () => {}, { passive: true });
+
   document.addEventListener('DOMContentLoaded', navGlide);
   document.addEventListener('DOMContentLoaded', watchFigures);
   document.addEventListener('DOMContentLoaded', watchHeader);

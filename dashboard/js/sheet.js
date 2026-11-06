@@ -54,6 +54,9 @@ function present(panel, close) {
     presented.set(panel, { marker, timer: 0 });
   }
   current = { panel, close };
+  // The page recedes from the middle of what's on screen, not the middle of the whole page.
+  const main = document.querySelector('main');
+  if (main) document.documentElement.style.setProperty('--sheet-origin', `${window.innerHeight / 2 - main.getBoundingClientRect().top}px`);
   document.documentElement.classList.add('has-sheet');
   showScrim();
 }

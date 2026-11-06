@@ -28,6 +28,7 @@ import { renderMonthOptions } from './filters.js';
 import { currency, escapeAttr, formatDate, remembered } from './format.js';
 import { scheduleRender } from './main.js';
 import { openMenu } from './menu.js';
+import { closeOpenRow, initRowSwipe } from './row-swipe.js';
 import { accountById, catById, getFilteredTransactions, isExpense, state } from './state.js';
 import { showToast } from './toast.js';
 import {
@@ -85,6 +86,9 @@ function dayHeading(iso) {
 // Every category as a menu item, built once.
 const CATEGORY_ITEMS = CATEGORIES.map((c) => ({ value: c.id, label: c.label, color: c.color, icon: categoryIcon(c.id) }));
 
+// Phones: rows read as plain text, and the one being edited (from its Edit action) has its fields switched on.
+let editingRowId = null;
+
 /** One transaction row. */
 function transactionRow(t) {
   const cat = catById[t.category];
@@ -92,7 +96,7 @@ function transactionRow(t) {
   const selected = state.selectedTransactionIds.has(t.id);
   const amount = t.amount.toFixed(2);
   return `
-        <tr class="${selected ? 'is-selected' : ''}">
+        <tr class="${selected ? 'is-selected' : ''}${t.id === editingRowId ? ' is-editing' : ''}">
           <td class="tx-table__select">
             <label class="tx-avatar" style="--avatar-color:${cat.color}" title="Select to hide">
               <input type="checkbox" class="hide-checkbox" data-tx-id="${t.id}" ${selected ? 'checked' : ''} aria-label="Select ${escapeAttr(t.merchant)} to hide">
@@ -113,6 +117,11 @@ function transactionRow(t) {
               <span class="category-badge__label">${cat.label}</span>
               <button type="button" class="category-select" data-tx-id="${t.id}" aria-haspopup="listbox" aria-expanded="false" aria-label="Change category for ${escapeAttr(t.merchant)}, currently ${cat.label}">${cat.label}</button>
             </span>
+          </td>
+          <!-- Before the amount: the table pads its last cell, so this (hidden on larger screens) mustn't be it. -->
+          <td class="tx-table__swipe">
+            <button type="button" class="tx-swipe tx-swipe--edit" data-swipe="edit" data-row="${t.id}" aria-label="Edit ${escapeAttr(t.merchant)}">Edit</button>
+            <button type="button" class="tx-swipe tx-swipe--hide" data-swipe="hide" data-row="${t.id}" aria-label="Hide ${escapeAttr(t.merchant)}">Hide</button>
           </td>
           <td class="tx-table__amount">
             <!-- The typeset amount ("−£60.72"); the number field sits over it
@@ -223,6 +232,48 @@ function updateHideButton() {
  */
 export function initTableEditing() {
   const body = document.getElementById('tx-table-body');
+  initRowSwipe(body);
+
+  /** Hides transactions (with Undo). Looked up on each call (one pass over the data), so an undo after a sync still finds them. */
+  const hideWithUndo = (ids) => {
+    const chosen = new Set(ids);
+    const setHidden = (hidden) => Object.values(TRANSACTIONS).forEach((transactions) => {
+      transactions.forEach((transaction) => { if (chosen.has(transaction.id)) transaction.hidden = hidden; });
+    });
+    editWithUndo({
+      apply: () => { setHidden(true); ids.forEach((id) => state.selectedTransactionIds.delete(id)); scheduleRender(); },
+      revert: () => { setHidden(false); scheduleRender(); },
+      save: () => hideTransactions(ids),
+      unsave: () => unhideTransactions(ids),
+      message: `${ids.length} transaction${ids.length === 1 ? '' : 's'} hidden`,
+      failMessage: "Couldn't hide those transactions",
+    });
+  };
+
+  // A row's swipe actions (row-swipe.js): Edit switches its fields on, Hide hides it.
+  body.addEventListener('click', (e) => {
+    const action = e.target.closest('[data-swipe]');
+    if (!action) return;
+    const row = action.closest('tr');
+    closeOpenRow();
+    if (action.dataset.swipe === 'hide') { hideWithUndo([action.dataset.row]); return; }
+    editingRowId = action.dataset.row;
+    row.classList.add('is-editing');
+    const merchant = row.querySelector('.merchant-input');
+    merchant.focus({ preventScroll: true });
+    merchant.setSelectionRange(merchant.value.length, merchant.value.length);
+  });
+  body.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('tr.is-editing')) e.target.blur();
+  });
+  // Leaving the row switches its fields back off. A tick later, as saving rebuilds the table and puts focus back.
+  body.addEventListener('focusout', () => {
+    setTimeout(() => {
+      if (!editingRowId || document.activeElement?.closest('tr.is-editing')) return;
+      editingRowId = null;
+      body.querySelector('tr.is-editing')?.classList.remove('is-editing');
+    });
+  });
 
   /** Moves a transaction to another category (with Undo). */
   const changeCategory = (txId, next) => {
@@ -318,23 +369,9 @@ export function initTableEditing() {
     });
   });
 
-  document.getElementById('hide-selected-button').addEventListener('click', (e) => {
+  document.getElementById('hide-selected-button').addEventListener('click', () => {
     const selectedIds = [...state.selectedTransactionIds];
-    if (!selectedIds.length) return;
-    // Looked up on each call (one pass over the data), so an undo after a sync still finds them.
-    const selected = new Set(selectedIds);
-    const setHidden = (hidden) => Object.values(TRANSACTIONS).forEach((transactions) => {
-      transactions.forEach((transaction) => { if (selected.has(transaction.id)) transaction.hidden = hidden; });
-    });
-
-    editWithUndo({
-      apply: () => { setHidden(true); state.selectedTransactionIds.clear(); scheduleRender(); },
-      revert: () => { setHidden(false); scheduleRender(); },
-      save: () => hideTransactions(selectedIds),
-      unsave: () => unhideTransactions(selectedIds),
-      message: `${selectedIds.length} transaction${selectedIds.length === 1 ? '' : 's'} hidden`,
-      failMessage: "Couldn't hide those transactions",
-    });
+    if (selectedIds.length) hideWithUndo(selectedIds);
   });
 }
 

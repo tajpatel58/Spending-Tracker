@@ -31,6 +31,7 @@
   try {
     var t = localStorage.getItem('ledger-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', t);
+    if (t === 'dark') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#101614');
     if (!sessionStorage.getItem('ledger-launched') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       document.documentElement.classList.add('is-launching');
       sessionStorage.setItem('ledger-launched', '1');

@@ -46,6 +46,7 @@ import {
   showLoadError,
   state,
 } from './state.js';
+import { asSheet, isPhone } from './sheet.js';
 import { initSync } from './sync.js';
 import { initTheme, toggleTheme } from './theme.js';
 
@@ -485,11 +486,19 @@ function initCalendarInteractions() {
   const grid = document.getElementById('calendar-days');
   const tooltip = document.getElementById('calendar-tooltip');
 
+  // Phones: the selected day's details open as a sheet when a day is tapped (they'd
+  // otherwise sit below the whole month). Larger screens keep them beside the calendar.
+  const dayColumn = document.querySelector('.day-column');
+  dayColumn.hidden = isPhone();
+  asSheet(dayColumn, () => { dayColumn.hidden = true; });
+  window.matchMedia('(max-width: 560px)').addEventListener('change', (event) => { dayColumn.hidden = event.matches; });
+
   grid.addEventListener('click', (e) => {
     const cell = e.target.closest('.calendar__day');
     if (!cell) return;
     calendarView.selectedDate = cell.dataset.date;
     renderAll();
+    if (isPhone()) dayColumn.hidden = false;
   });
 
   grid.addEventListener('mouseover', (e) => {

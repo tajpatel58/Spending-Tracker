@@ -15,11 +15,11 @@ export function initTheme() {
   syncThemeColor();
 }
 
-/** Matches the browser / iPhone status-bar colour to the page background. */
+/** Matches the browser / iPhone status-bar colour to the top bar. */
 function syncThemeColor() {
   const meta = document.querySelector('meta[name="theme-color"]');
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  if (meta && bg) meta.setAttribute('content', bg);
+  const colour = getComputedStyle(document.documentElement).getPropertyValue('--status-bar').trim();
+  if (meta && colour) meta.setAttribute('content', colour);
 }
 
 /** Switches between light and dark theme and redraws the charts to match. */

@@ -18,7 +18,8 @@
 import { escapeAttr } from './format.js';
 import { asSheet, isPhone } from './sheet.js';
 
-const GAP = 6;        // px between the menu and its button
+const GRID_FROM = 9;   // on phones, lists this long sit in two columns
+const GAP = 6;       // px between the menu and its button
 const EDGE = 8;        // px kept clear of the screen's edges
 
 const CHECK = '<svg class="menu__check" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor"/></svg>';
@@ -69,6 +70,7 @@ export function openMenu({ anchor, label, value, items, onSelect }) {
 
   const menu = ensureElement();
   const phone = isPhone();
+  menu.classList.toggle('menu--grid', phone && items.length >= GRID_FROM);
   menu.innerHTML = `
     ${phone ? `<p class="menu__title">${escapeAttr(label)}</p>` : ''}
     <ul class="menu__list" role="listbox" tabindex="-1" aria-label="${escapeAttr(label)}">

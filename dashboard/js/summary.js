@@ -528,6 +528,24 @@ function renderLedger({ months, full, totals }) {
     </tr>` : '';
 }
 
+/**
+ * Summary's tables scroll sideways inside their cards on phones: says whether
+ * there's more to the right (a fade) and whether they've been scrolled (an
+ * edge on the pinned column). See .table-scroll in styles.css.
+ */
+function initTableEdges() {
+  document.querySelectorAll('.table-scroll').forEach((scroller) => {
+    const update = () => {
+      scroller.classList.toggle('has-more', scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1);
+      scroller.classList.toggle('is-scrolled', scroller.scrollLeft > 0);
+    };
+    scroller.addEventListener('scroll', update, { passive: true });
+    new ResizeObserver(update).observe(scroller);
+    [...scroller.children].forEach((child) => new ResizeObserver(update).observe(child)); // a redraw can change the table's width
+    update();
+  });
+}
+
 function initLedger() {
   const body = document.getElementById('sum-ledger-body');
   body.addEventListener('click', (event) => {
@@ -877,6 +895,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLedger();
 
     renderAll();
+    initTableEdges();
     finishLoading();
     // The charts hold theme colours, so they redraw when light/dark changes (theme.js).
     document.addEventListener('ledger:theme-changed', renderAll);

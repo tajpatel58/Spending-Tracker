@@ -59,6 +59,7 @@
   --backdrop-bar: blur(var(--blur-md)) saturate(165%);
   --backdrop-float: blur(var(--blur-lg)) saturate(170%);
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* quick start, soft landing — used for all entrances */
+  --ease-sheet: cubic-bezier(0.16, 0.84, 0.24, 1); /* a sheet arriving: fast, then a long settle */
 
   /* Category palette — consistent across themes */
   --cat-groceries: #D97706;
@@ -93,7 +94,7 @@
      < 3 (menus, dialogs: solid enough to read over anything). */
   --glass-well: rgba(255, 255, 255, 0.34);
   --glass-control: rgba(255, 255, 255, 0.6);
-  --glass-1: rgba(255, 255, 255, 0.56);
+  --glass-1: rgba(255, 255, 255, 0.35);
   --glass-2: rgba(255, 255, 255, 0.72);
   --glass-3: rgba(250, 251, 248, 0.86);
   --glass-bar: rgba(255, 255, 255, 0.68); /* the top bar: content scrolls under it */
@@ -151,6 +152,7 @@
   --tile-border: rgba(255, 255, 255, 0.72);
   /* The glass's edge catching the light: brightest top-left, a faint return at the far corner. */
   --rim: linear-gradient(to bottom right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.62) 30%, rgba(255, 255, 255, 0.2) 68%, rgba(255, 255, 255, 0.5));
+  --status-bar: #F8F9F6; /* the top bar's colour, so the phone's status bar runs into it (theme.js) */
   --scrollbar: rgba(28, 44, 36, 0.22);
 
   /* Calendar heat scale — one green, light to deep as spend rises.
@@ -170,8 +172,8 @@
 
   --glass-well: rgba(0, 0, 0, 0.18);
   --glass-control: rgba(255, 255, 255, 0.07);
-  /* Cards: a dark tint, mostly opaque, so text and charts have a steady backing rather than the glow behind them. */
-  --glass-1: rgba(22, 28, 26, 0.9);
+  /* Cards: a dark tint, rather than a white film, so text and charts stay crisp over the glow behind them. */
+  --glass-1: rgba(22, 28, 26, 0.35);
   --glass-2: rgba(28, 35, 32, 0.82);
   --glass-3: rgba(26, 33, 30, 0.86);
   --glass-bar: rgba(20, 26, 24, 0.66);
@@ -218,6 +220,7 @@
   --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3), 0 28px 60px rgba(0, 0, 0, 0.6);
   --tile-border: rgba(255, 255, 255, 0.1);
   --rim: linear-gradient(to bottom right, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.13) 30%, rgba(255, 255, 255, 0.05) 68%, rgba(255, 255, 255, 0.12));
+  --status-bar: #101614;
   --scrollbar: rgba(255, 255, 255, 0.2);
 
   /* Calendar heat scale — the same green, stepped up from the dark surface.
@@ -484,7 +487,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar) padding-box; border-radius: var(--radius-full); border: 2px solid transparent; }
-::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--gold) 45%, var(--scrollbar)) padding-box; }
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--gold) 45%, var(--scrollbar)) padding-box; }
+}
 
 .container {
   max-width: 1240px;
@@ -582,7 +587,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   background-position: right 12px center;
 }
 
-.field--select select:hover { border-color: var(--gold); }
+@media (hover: hover) {
+  .field--select select:hover { border-color: var(--gold); }
+}
 
 .field__label { position: absolute; left: -9999px; }
 
@@ -600,7 +607,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   box-shadow: var(--control-shine);
   transition: border-color var(--transition);
 }
-.month-stepper:hover { border-color: var(--gold); }
+@media (hover: hover) {
+  .month-stepper:hover { border-color: var(--gold); }
+}
 
 .month-stepper__btn {
   display: inline-flex;
@@ -617,7 +626,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 .month-stepper__btn:first-child { border-radius: var(--radius-full) 0 0 var(--radius-full); }
 .month-stepper__btn:last-child { border-radius: 0 var(--radius-full) var(--radius-full) 0; }
-.month-stepper__btn:hover:not(:disabled) { color: var(--text); background: var(--surface-alt); }
+@media (hover: hover) {
+  .month-stepper__btn:hover:not(:disabled) { color: var(--text); background: var(--surface-alt); }
+}
 .month-stepper__btn:disabled { color: var(--border-strong); cursor: default; }
 .month-stepper__btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: -2px; }
 
@@ -632,7 +643,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   color: var(--text);
   cursor: pointer;
 }
-.month-stepper__label:hover { color: var(--gold); }
+@media (hover: hover) {
+  .month-stepper__label:hover { color: var(--gold); }
+}
 
 .month-stepper__open { height: 100%; font-family: inherit; background: none; border: none; }
 .month-stepper__open[aria-expanded="true"] { color: var(--gold); }
@@ -696,17 +709,23 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
-.month-picker__year:hover,
-.month-picker__month:hover { background: var(--surface-alt); border-color: var(--border); }
+@media (hover: hover) { .month-picker__year:hover,
+.month-picker__month:hover { background: var(--surface-alt); border-color: var(--border); } }
 .month-picker__year:focus-visible,
 .month-picker__month:focus-visible { outline: 1.5px solid var(--ring); outline-offset: -1.5px; }
-.month-picker__year.is-selected,
-.month-picker__year.is-selected:hover { font-weight: 500; color: var(--gold-strong); background: var(--gold-soft); border-color: transparent; }
-.month-picker__month.is-selected,
-.month-picker__month.is-selected:hover { font-weight: 500; color: #fff; background: var(--gold); border-color: var(--gold); }
+.month-picker__year.is-selected { font-weight: 500; color: var(--gold-strong); background: var(--gold-soft); border-color: transparent; }
+@media (hover: hover) {
+  .month-picker__year.is-selected:hover { font-weight: 500; color: var(--gold-strong); background: var(--gold-soft); border-color: transparent; }
+}
+.month-picker__month.is-selected { font-weight: 500; color: #fff; background: var(--gold); border-color: var(--gold); }
+@media (hover: hover) {
+  .month-picker__month.is-selected:hover { font-weight: 500; color: #fff; background: var(--gold); border-color: var(--gold); }
+}
 [data-theme="dark"] .month-picker__month.is-selected { color: var(--bg); } /* dark mode's gold is too light for white text */
-.month-picker__month:disabled,
-.month-picker__month:disabled:hover { color: var(--text-faint); background: none; border-color: transparent; opacity: 0.45; cursor: default; }
+.month-picker__month:disabled { color: var(--text-faint); background: none; border-color: transparent; opacity: 0.45; cursor: default; }
+@media (hover: hover) {
+  .month-picker__month:disabled:hover { color: var(--text-faint); background: none; border-color: transparent; opacity: 0.45; cursor: default; }
+}
 
 .field--search {
   position: relative;
@@ -719,7 +738,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   width: 240px;
   transition: border-color var(--transition);
 }
-.field--search:hover, .field--search:focus-within { border-color: var(--gold); }
+.field--search:focus-within { border-color: var(--gold); }
+@media (hover: hover) {
+  .field--search:hover { border-color: var(--gold); }
+}
 
 .field--search .field__icon { color: var(--text-faint); flex-shrink: 0; }
 
@@ -753,7 +775,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
-.field__clear:hover { color: var(--text); background: var(--border-strong); }
+@media (hover: hover) {
+  .field__clear:hover { color: var(--text); background: var(--border-strong); }
+}
 .field__clear[hidden] { display: none; }
 
 /* ==========================================================================
@@ -781,7 +805,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   white-space: nowrap;
 }
 
-.multiselect__button:hover { border-color: var(--gold); }
+@media (hover: hover) {
+  .multiselect__button:hover { border-color: var(--gold); }
+}
 .multiselect__button svg { color: var(--text-faint); flex-shrink: 0; transition: transform var(--transition); }
 .multiselect.is-open .multiselect__button svg { transform: rotate(180deg); }
 .multiselect.is-open .multiselect__button { border-color: var(--gold); }
@@ -814,7 +840,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: background var(--transition);
 }
 
-.multiselect__option:hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .multiselect__option:hover { background: var(--surface-alt); }
+}
 .multiselect__option input { accent-color: var(--gold); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
 
 .multiselect__divider { height: 1px; background: var(--border); margin: 4px 2px; }
@@ -847,7 +875,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
-.account-picker__row:hover { color: var(--text); background: var(--surface-alt); }
+@media (hover: hover) {
+  .account-picker__row:hover { color: var(--text); background: var(--surface-alt); }
+}
 .account-picker__row.is-on { color: var(--text); }
 .account-picker__row:focus-visible,
 .account-picker__person:focus-visible { outline: 1.5px solid var(--ring); outline-offset: -2px; }
@@ -876,7 +906,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--transition);
 }
-.account-picker__person:hover { color: var(--gold-strong); }
+@media (hover: hover) {
+  .account-picker__person:hover { color: var(--gold-strong); }
+}
 
 .multiselect__clear {
   width: 100%;
@@ -891,7 +923,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-xs);
 }
 
-.multiselect__clear:hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .multiselect__clear:hover { background: var(--surface-alt); }
+}
 
 /* ==========================================================================
    User menu
@@ -918,8 +952,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: border-color var(--transition);
 }
 
-.user-menu__button:hover,
 .user-menu.is-open .user-menu__button { border-color: var(--gold); }
+@media (hover: hover) {
+  .user-menu__button:hover { border-color: var(--gold); }
+}
 .user-menu__button svg { color: var(--text-faint); flex-shrink: 0; transition: transform var(--transition); }
 .user-menu.is-open .user-menu__button svg { transform: rotate(180deg); }
 
@@ -1012,7 +1048,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--transition), background var(--transition);
 }
-.theme-switch button:hover { color: var(--text); }
+@media (hover: hover) {
+  .theme-switch button:hover { color: var(--text); }
+}
 .theme-switch button[aria-pressed="true"] { color: var(--surface); background: var(--text); }
 
 .user-menu__signout {
@@ -1031,7 +1069,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
 }
 
-.user-menu__signout:hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .user-menu__signout:hover { background: var(--surface-alt); }
+}
 
 /* Which build this is (filled in at deploy by scripts/dashboard/build.mjs):
    a quiet band at the foot of the menu, like the account picker's. */
@@ -1067,18 +1107,24 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: border-color var(--transition), color var(--transition), background var(--transition);
 }
 
-.icon-btn:hover { color: var(--text); border-color: var(--gold); }
+@media (hover: hover) {
+  .icon-btn:hover { color: var(--text); border-color: var(--gold); }
+}
 .icon-btn[hidden] { display: none; }
 
 .icon-btn--ghost { border-color: transparent; background: transparent; width: 30px; height: 30px; }
-.icon-btn--ghost:hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .icon-btn--ghost:hover { background: var(--surface-alt); }
+}
 
 .icon-btn--accent {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
-.icon-btn--accent:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+@media (hover: hover) {
+  .icon-btn--accent:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+}
 
 /* Theme toggle icon swap */
 .icon--moon { display: none; }
@@ -1109,7 +1155,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .sync-status[hidden] { display: none; }
-.sync-status:hover { color: var(--text); border-color: var(--border-strong); }
+@media (hover: hover) {
+  .sync-status:hover { color: var(--text); border-color: var(--border-strong); }
+}
 .sync-status:active { transform: scale(0.97); }
 .sync-status:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
 .sync-status__icon { color: var(--text); }
@@ -1214,7 +1262,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   align-self: center;
   transition: color var(--motion-fast) var(--ease-out), background-color var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
-.tile__back:hover { color: var(--text); background: var(--surface-alt); }
+@media (hover: hover) {
+  .tile__back:hover { color: var(--text); background: var(--surface-alt); }
+}
 .tile__back:active { transform: scale(0.94); }
 .tile__back[hidden], .tile__action[hidden], .tile__meta[hidden] { display: none; }
 .tile__action {
@@ -1232,7 +1282,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
 }
 .tile__action svg { transition: transform var(--motion-base) var(--ease-out); }
-.tile__action:hover svg { transform: translateX(2px); }
+@media (hover: hover) {
+  .tile__action:hover svg { transform: translateX(2px); }
+}
 .chart-tile.is-drilled .tile__header { align-items: center; }
 
 /* "SPENDING ( ●) SAVINGS" (By User): the pill switch with a word either
@@ -1253,7 +1305,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   color: var(--text-faint);
   transition: color var(--motion-base) var(--ease-out);
 }
-.switch.switch--between .switch__label:hover { color: var(--text-muted); }
+@media (hover: hover) {
+  .switch.switch--between .switch__label:hover { color: var(--text-muted); }
+}
 .switch.switch--between[aria-checked="false"] [data-mode="spending"],
 .switch.switch--between[aria-checked="true"] [data-mode="savings"],
 .switch.switch--between[aria-checked="false"] [data-mode="weeks"],
@@ -1400,7 +1454,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: none;
   cursor: pointer;
 }
-.switch:hover { color: var(--text); }
+@media (hover: hover) {
+  .switch:hover { color: var(--text); }
+}
 .switch:focus-visible { outline: none; }
 .switch:focus-visible .switch__track { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--ring); }
 .switch__track {
@@ -1487,7 +1543,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: width 500ms var(--ease-out), background-color var(--motion-base) var(--ease-out);
 }
 .budget-strip__over { position: absolute; inset: 0 0 0 auto; background: var(--rose); border-radius: 0 2px 2px 0; }
-.budget-strip:hover .budget-strip__fill { filter: brightness(1.08); }
+@media (hover: hover) {
+  .budget-strip:hover .budget-strip__fill { filter: brightness(1.08); }
+}
 .budget-strip:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 3px; border-radius: 3px; }
 .is-loading .budget-strip { visibility: hidden; }
 /* The groups over budget, in place of the note and sparkline: two
@@ -1792,9 +1850,13 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
 }
-.budget-edit-btn:hover { color: var(--text); border-color: var(--border-strong); }
+@media (hover: hover) {
+  .budget-edit-btn:hover { color: var(--text); border-color: var(--border-strong); }
+}
 .budget-edit-btn--save { color: var(--gold-strong); background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
-.budget-edit-btn--save:hover { color: var(--gold-strong); border-color: var(--gold); }
+@media (hover: hover) {
+  .budget-edit-btn--save:hover { color: var(--gold-strong); border-color: var(--gold); }
+}
 .budget-edit-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
 
 /* Each bar as a gauge: what's spent in its colour, the budget a soft
@@ -1830,8 +1892,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .budget-gauge__bar input[type="range"]:focus { outline: none; }
 /* Set by what's booked: no knob to drag, and its amount reads as a figure rather than a field. */
 .budget-gauge.is-locked .budget-gauge__bar input[type="range"] { visibility: hidden; }
-.budget-gauge.is-locked .budget-gauge__amount,
-.budget-gauge.is-locked .budget-gauge__amount:hover { border-bottom-color: transparent; }
+.budget-gauge.is-locked .budget-gauge__amount { border-bottom-color: transparent; }
+@media (hover: hover) {
+  .budget-gauge.is-locked .budget-gauge__amount:hover { border-bottom-color: transparent; }
+}
 .budget-gauge.is-locked .budget-gauge__amount input { -webkit-text-fill-color: currentColor; opacity: 1; }
 .budget-gauge__bar input[type="range"]::-webkit-slider-runnable-track { height: 16px; background: none; }
 .budget-gauge__bar input[type="range"]::-moz-range-track { height: 16px; background: none; }
@@ -1855,8 +1919,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
   transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
-.budget-gauge__bar input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.12); }
-.budget-gauge__bar input[type="range"]:hover::-moz-range-thumb { transform: scale(1.12); }
+@media (hover: hover) {
+  .budget-gauge__bar input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.12); }
+  .budget-gauge__bar input[type="range"]:hover::-moz-range-thumb { transform: scale(1.12); }
+}
 .budget-gauge__bar input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.2); box-shadow: 0 0 0 5px var(--gold-soft), 0 1px 3px rgb(0 0 0 / 0.18); }
 .budget-gauge__bar input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); box-shadow: 0 0 0 5px var(--gold-soft), 0 1px 3px rgb(0 0 0 / 0.18); }
 .budget-gauge__bar input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--gold-soft), 0 0 0 5px var(--gold); }
@@ -1864,7 +1930,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 /* "£312 of £400": the budget is a figure to type into, on a fine dashed gold rule. */
 .budget-gauge__amount { display: inline-flex; align-items: baseline; font-weight: 500; color: var(--text); border-bottom: 1px dashed color-mix(in srgb, var(--gold) 65%, transparent); transition: border-color var(--motion-fast) var(--ease-out); }
-.budget-gauge__amount:hover { border-bottom-color: var(--gold); }
+@media (hover: hover) {
+  .budget-gauge__amount:hover { border-bottom-color: var(--gold); }
+}
 .budget-gauge__amount:focus-within { border-bottom: 1px solid var(--gold); }
 .budget-gauge__amount input {
   min-width: 1.25ch;
@@ -1942,7 +2010,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: none;
   cursor: pointer;
 }
-.legend__toggle button:hover { text-decoration: underline; text-underline-offset: 3px; }
+@media (hover: hover) {
+  .legend__toggle button:hover { text-decoration: underline; text-underline-offset: 3px; }
+}
 
 .legend__swatch {
   width: 8px;
@@ -2038,8 +2108,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .active-filters[hidden] { display: none; }
 .chip--removable { gap: 8px; padding-right: 10px; color: var(--text); }
 .chip--removable svg { color: var(--text-faint); transition: color var(--transition); }
-.chip--removable:hover { border-color: var(--border-strong); background: var(--surface-alt); }
-.chip--removable:hover svg { color: var(--text); }
+@media (hover: hover) {
+  .chip--removable:hover { border-color: var(--border-strong); background: var(--surface-alt); }
+  .chip--removable:hover svg { color: var(--text); }
+}
 .active-filters__search { font-size: 12px; color: var(--text-muted); padding: 0 2px; white-space: nowrap; }
 .active-filters__clear {
   flex: none;
@@ -2052,12 +2124,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: none;
   cursor: pointer;
 }
-.active-filters__clear:hover { text-decoration: underline; text-underline-offset: 3px; }
+@media (hover: hover) {
+  .active-filters__clear:hover { text-decoration: underline; text-underline-offset: 3px; }
+}
 
-.icon-btn--clear-filter:hover {
-  color: var(--rose);
-  border-color: var(--rose);
-  background: var(--rose-soft);
+@media (hover: hover) {
+  .icon-btn--clear-filter:hover {
+    color: var(--rose);
+    border-color: var(--rose);
+    background: var(--rose-soft);
+  }
 }
 
 .chip-row {
@@ -2084,7 +2160,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 .chip__dot { width: 7px; height: 7px; border-radius: 2px; }
 
-.chip:hover { border-color: var(--gold); color: var(--text); }
+@media (hover: hover) {
+  .chip:hover { border-color: var(--gold); color: var(--text); }
+}
 
 .chip.is-active {
   background: var(--gold-soft);
@@ -2117,7 +2195,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   user-select: none;
 }
 
-.tx-table thead th:hover { color: var(--text-muted); }
+@media (hover: hover) {
+  .tx-table thead th:hover { color: var(--text-muted); }
+}
 
 .tx-table thead th::after { content: ''; margin-left: 4px; }
 .tx-table thead th.is-sorted::after { content: '↓'; }
@@ -2147,7 +2227,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 .tx-table tbody tr:last-child td { border-bottom: none; }
-.tx-table tbody tr:not(.tx-group):hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .tx-table tbody tr:not(.tx-group):hover { background: var(--surface-alt); }
+}
 .tx-table tbody tr.is-selected { background: color-mix(in srgb, var(--rose) 7%, transparent); }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -2219,7 +2301,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: all var(--transition);
 }
 
-.merchant-input:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+@media (hover: hover) {
+  .merchant-input:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+}
 .merchant-input:focus { background: var(--surface-alt); border-color: var(--ring); outline: none; }
 
 .tx-table__account {
@@ -2227,6 +2311,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-size: 12.5px;
   white-space: nowrap;
 }
+
+/* A row's swipe actions: phones only (see Responsive). */
+.tx-table__swipe { display: none; }
 
 /* The date, repeated inside the account cell for the phone layout (see Responsive). */
 .tx-table__meta-date { display: none; }
@@ -2263,10 +2350,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   background-position: right 4px center;
 }
 
-.category-select:hover {
-  color: var(--text);
-  background-color: var(--surface-alt);
-  border-color: var(--border-strong);
+@media (hover: hover) {
+  .category-select:hover {
+    color: var(--text);
+    background-color: var(--surface-alt);
+    border-color: var(--border-strong);
+  }
 }
 
 .category-select:focus-visible,
@@ -2294,7 +2383,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: all var(--transition);
 }
 
-.amount-edit:hover, .amount-edit:focus-within { background: var(--surface-alt); border-color: var(--border-strong); }
+.amount-edit:focus-within { background: var(--surface-alt); border-color: var(--border-strong); }
+@media (hover: hover) {
+  .amount-edit:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+}
 .amount-edit:focus-within { border-color: var(--ring); }
 
 .amount-display { font-size: 13px; letter-spacing: -0.005em; color: var(--text); }
@@ -2343,10 +2435,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
-.hide-button:hover {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: var(--surface);
+@media (hover: hover) {
+  .hide-button:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--surface);
+  }
 }
 
 .hide-button:disabled {
@@ -2404,7 +2498,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-full);
   cursor: pointer;
 }
-.empty-state__action:hover { border-color: var(--gold); }
+@media (hover: hover) {
+  .empty-state__action:hover { border-color: var(--gold); }
+}
 .empty-state__action[hidden] { display: none; }
 
 .table-tile__footer {
@@ -2543,7 +2639,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: box-shadow var(--transition), background var(--transition), transform var(--transition);
 }
-.google-btn:hover { background: #F8F9FA; box-shadow: 0 2px 8px rgba(20, 23, 31, 0.12); }
+@media (hover: hover) {
+  .google-btn:hover { background: #F8F9FA; box-shadow: 0 2px 8px rgba(20, 23, 31, 0.12); }
+}
 .google-btn:active { background: #F1F3F4; }
 .google-btn:disabled { opacity: 0.65; cursor: wait; }
 .google-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
@@ -2754,7 +2852,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-xs);
   transition: color var(--transition), background var(--transition), box-shadow var(--transition);
 }
-.choice-group .choice:hover { color: var(--text); }
+@media (hover: hover) {
+  .choice-group .choice:hover { color: var(--text); }
+}
 .choice-group .choice:has(input:checked) {
   color: var(--text);
   background: var(--glass-hover);
@@ -2777,7 +2877,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-sm);
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
-.account-choice:hover { border-color: var(--border-strong); }
+@media (hover: hover) {
+  .account-choice:hover { border-color: var(--border-strong); }
+}
 .account-choice:has(input:checked) {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px var(--gold-soft);
@@ -2820,7 +2922,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: border-color var(--motion-base) var(--ease-out), background var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
 }
 .dropzone[hidden] { display: none; }
-.dropzone:hover, .dropzone:has(input:focus-visible) { border-color: var(--ring); }
+.dropzone:has(input:focus-visible) { border-color: var(--ring); }
+@media (hover: hover) {
+  .dropzone:hover { border-color: var(--ring); }
+}
 .dropzone:has(input:focus-visible) { outline: 1.5px solid var(--gold-soft); outline-offset: 2px; }
 .is-dragging-file .dropzone {
   border-style: solid;
@@ -2841,7 +2946,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   box-shadow: var(--shadow-1);
   transition: transform var(--motion-base) var(--ease-out);
 }
-.dropzone:hover .dropzone__icon, .is-dragging-file .dropzone__icon { transform: translateY(-2px); }
+.is-dragging-file .dropzone__icon { transform: translateY(-2px); }
+@media (hover: hover) {
+  .dropzone:hover .dropzone__icon { transform: translateY(-2px); }
+}
 .dropzone__title { font-size: 14px; font-weight: 500; }
 .dropzone__link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .dropzone__touch { display: none; }
@@ -2897,7 +3005,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--transition), background var(--transition);
 }
-.file-card__remove:hover { color: var(--text); background: var(--glass-hover); }
+@media (hover: hover) {
+  .file-card__remove:hover { color: var(--text); background: var(--glass-hover); }
+}
 .is-uploading .file-card__remove { visibility: hidden; }
 
 /* Checks against the bank's format. */
@@ -2970,7 +3080,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: background var(--transition);
 }
-.statement-row:hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .statement-row:hover { background: var(--surface-alt); }
+}
 .statement-row.is-selected { background: var(--accent-soft); }
 .statement-row__text { display: flex; flex-direction: column; min-width: 0; }
 .statement-row__bank { font-size: 13.5px; font-weight: 500; }
@@ -3020,12 +3132,18 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 .btn--ghost { background: var(--glass-control); color: var(--text-muted); }
-.btn--ghost:hover { color: var(--text); border-color: var(--gold); }
+@media (hover: hover) {
+  .btn--ghost:hover { color: var(--text); border-color: var(--gold); }
+}
 .btn--primary { background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0)), var(--accent); border-color: var(--accent); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
 [data-theme="dark"] .btn--primary { color: var(--bg); }
-.btn--primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+@media (hover: hover) {
+  .btn--primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+}
 .btn--danger { background: var(--rose); border-color: var(--rose); color: #fff; }
-.btn--danger:hover { background: color-mix(in srgb, var(--rose) 85%, #000); border-color: color-mix(in srgb, var(--rose) 85%, #000); }
+@media (hover: hover) {
+  .btn--danger:hover { background: color-mix(in srgb, var(--rose) 85%, #000); border-color: color-mix(in srgb, var(--rose) 85%, #000); }
+}
 [data-theme="dark"] .btn--danger { color: var(--bg); }
 .btn:disabled { opacity: 0.6; cursor: wait; }
 
@@ -3045,8 +3163,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: background var(--transition), border-color var(--transition), color var(--motion-base) var(--ease-out);
 }
 
-.date-button:hover,
 .date-button[aria-expanded="true"] { background: var(--surface-alt); border-color: var(--border-strong); }
+@media (hover: hover) {
+  .date-button:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+}
 .date-button:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
 
 /* A moved date keeps the normal date styling; a small, muted accent dot marks the override.
@@ -3113,10 +3233,14 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
 }
 
-.datepicker__nav:hover { color: var(--text); background: var(--surface-alt); border-color: var(--border); }
+@media (hover: hover) {
+  .datepicker__nav:hover { color: var(--text); background: var(--surface-alt); border-color: var(--border); }
+}
 
 .datepicker__close { color: var(--rose); }
-.datepicker__close:hover { background: var(--rose-soft); }
+@media (hover: hover) {
+  .datepicker__close:hover { background: var(--rose-soft); }
+}
 .datepicker__nav:focus-visible,
 .datepicker__close:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 0; }
 
@@ -3147,15 +3271,21 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
 }
 
-.datepicker__day:hover { background: var(--surface-alt); border-color: var(--border); }
+@media (hover: hover) {
+  .datepicker__day:hover { background: var(--surface-alt); border-color: var(--border); }
+}
 .datepicker__day:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 0; }
 .datepicker__day.is-today { font-weight: 600; }
-.datepicker__day.is-selected,
-.datepicker__day.is-selected:hover { color: #fff; background: var(--gold); border-color: var(--gold); }
+.datepicker__day.is-selected { color: #fff; background: var(--gold); border-color: var(--gold); }
+@media (hover: hover) {
+  .datepicker__day.is-selected:hover { color: #fff; background: var(--gold); border-color: var(--gold); }
+}
 [data-theme="dark"] .datepicker__day.is-selected { color: var(--bg); } /* dark mode's gold is too light for white text */
 /* Before the earliest allowed date (a trip's end can't come before its start). */
 .datepicker__day:disabled { color: var(--text-faint); opacity: 0.45; cursor: default; }
-.datepicker__day:disabled:hover { background: none; border-color: transparent; }
+@media (hover: hover) {
+  .datepicker__day:disabled:hover { background: none; border-color: transparent; }
+}
 
 /* The bank's original date carries a small dot underneath. */
 .datepicker__day.is-original::after,
@@ -3203,7 +3333,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
 }
 
-.datepicker__reset:hover { background: var(--accent-soft); }
+@media (hover: hover) {
+  .datepicker__reset:hover { background: var(--accent-soft); }
+}
 
 
 /* ==========================================================================
@@ -3245,7 +3377,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   -webkit-tap-highlight-color: transparent;
 }
 .view-nav__link[hidden] { display: none; }
-.view-nav__link:hover { color: var(--text); }
+@media (hover: hover) {
+  .view-nav__link:hover { color: var(--text); }
+}
 .view-nav__link:active { transform: scale(0.97); }
 .view-nav__link:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
 
@@ -3260,9 +3394,13 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 .view-nav__icon { display: block; width: 15px; height: 15px; flex: none; opacity: 0.75; transition: color var(--motion-base) var(--ease-out), opacity var(--motion-base) var(--ease-out); }
-.view-nav__link:hover .view-nav__icon { opacity: 1; }
+@media (hover: hover) {
+  .view-nav__link:hover .view-nav__icon { opacity: 1; }
+}
 .view-nav__link.is-active .view-nav__icon { color: var(--nav-active-icon); opacity: 1; }
-.view-nav__link.is-active:hover { color: var(--text); }
+@media (hover: hover) {
+  .view-nav__link.is-active:hover { color: var(--text); }
+}
 
 /* The hover highlight (added by motion.js on mouse/trackpad devices). */
 .view-nav__glider {
@@ -3394,10 +3532,14 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 /* Hover: a hairline of gold. Selected: an ink ring, set off by a gap. */
-.calendar__day:hover { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--gold) 70%, transparent); }
+@media (hover: hover) {
+  .calendar__day:hover { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--gold) 70%, transparent); }
+}
 .calendar__day:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
-.calendar__day.is-selected,
-.calendar__day.is-selected:hover { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text); }
+.calendar__day.is-selected { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text); }
+@media (hover: hover) {
+  .calendar__day.is-selected:hover { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text); }
+}
 
 .calendar__date { font-size: 12px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 .calendar__amount {
@@ -3684,7 +3826,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .ledger-table thead .ledger-table__num, .ledger-table__num { text-align: right; }
 .ledger-table__num { font-family: var(--font-num); width: 1%; }
 .ledger-table tbody tr { cursor: pointer; transition: background var(--transition); }
-.ledger-table tbody tr:hover { background: var(--surface-alt); }
+@media (hover: hover) {
+  .ledger-table tbody tr:hover { background: var(--surface-alt); }
+}
 .ledger-table__month { font-weight: 400; text-align: left; }
 .ledger-table__month a {
   font-size: 15.5px;
@@ -3693,7 +3837,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   color: var(--text);
   text-decoration: none;
 }
-.ledger-table tbody tr:hover .ledger-table__month a { color: var(--gold-strong, var(--gold)); }
+@media (hover: hover) {
+  .ledger-table tbody tr:hover .ledger-table__month a { color: var(--gold-strong, var(--gold)); }
+}
 .ledger-table__year { margin-left: 2px; font-family: var(--font-body); font-size: 11.5px; color: var(--text-faint); letter-spacing: 0; }
 .ledger-table__flag {
   margin-left: var(--space-2);
@@ -3841,7 +3987,14 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   /* The transactions table stops scrolling sideways on phones; these tables keep scrolling inside their cards. */
   .summary-page .table-scroll { overflow-x: auto; }
   .ledger-table tbody th, .ledger-table tfoot th { position: sticky; left: 0; z-index: 1; background: var(--surface); }
-  .ledger-table tbody tr:hover th { background: var(--surface); }
+  /* Scrolled sideways: the pinned column casts a soft edge over what's passing under it. */
+  .table-scroll.is-scrolled :is(.ledger-table tbody th, .ledger-table tfoot th, .category-matrix__name) { box-shadow: 6px 0 10px -8px rgba(0, 0, 0, 0.45); }
+  /* More to see to the right: the table fades out at the card's edge. */
+  .table-scroll.has-more {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  @media (hover: hover) { .ledger-table tbody tr:hover th { background: var(--surface); } }
   .summary-flow .summary-flow__chart { height: 240px; padding-left: 8px; padding-right: 8px; }
   .ledger-table tbody td, .ledger-table tbody th, .ledger-table tfoot th, .ledger-table tfoot td { padding: 12px 10px; }
   .ledger-table__rate, .ledger-table thead th:nth-child(5), .ledger-table tfoot td:nth-child(5) { display: none; }
@@ -3908,14 +4061,20 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
 }
-.tile-edit:hover { color: var(--gold-strong); background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
+@media (hover: hover) {
+  .tile-edit:hover { color: var(--gold-strong); background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
+}
 .tile-edit:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
 .tile-link { padding: 0; font: inherit; color: var(--gold-strong); background: none; border: none; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
-.tile-link:hover { text-decoration-color: currentColor; }
+@media (hover: hover) {
+  .tile-link:hover { text-decoration-color: currentColor; }
+}
 
 .stat-tile__foot b.is-positive { color: var(--accent); }
 .hero-tile__link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 3px; }
-.hero-tile__link:hover { text-decoration-color: currentColor; }
+@media (hover: hover) {
+  .hero-tile__link:hover { text-decoration-color: currentColor; }
+}
 
 /* Allocated and free: the budget as one bar with its key beneath, a colour
    for each figure (the Calendar's forecast colours, with Holiday's violet
@@ -4162,7 +4321,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-base) var(--ease-out);
 }
 [data-theme="dark"] .trip-new-btn { color: var(--bg); }
-.trip-new-btn:hover { box-shadow: 0 2px 4px rgba(10, 40, 30, 0.22), 0 12px 24px -8px color-mix(in srgb, var(--accent) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+@media (hover: hover) {
+  .trip-new-btn:hover { box-shadow: 0 2px 4px rgba(10, 40, 30, 0.22), 0 12px 24px -8px color-mix(in srgb, var(--accent) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+}
 .trip-new-btn:active { transform: scale(0.97); }
 .trip-new-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
 /* "Delete trip": a quiet outlined pill that turns rose on hover. */
@@ -4182,7 +4343,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out), background var(--motion-base) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .trip-delete-btn[hidden] { display: none; }
-.trip-delete-btn:hover { color: var(--rose); border-color: color-mix(in srgb, var(--rose) 50%, transparent); background: var(--rose-soft); }
+@media (hover: hover) {
+  .trip-delete-btn:hover { color: var(--rose); border-color: color-mix(in srgb, var(--rose) 50%, transparent); background: var(--rose-soft); }
+}
 .trip-delete-btn:active { transform: scale(0.97); }
 .trip-delete-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
 
@@ -4219,7 +4382,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: border-color var(--motion-base) var(--ease-out), transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-base) var(--ease-out);
 }
-.place:hover { border-color: var(--gold); box-shadow: var(--shadow-1); }
+@media (hover: hover) {
+  .place:hover { border-color: var(--gold); box-shadow: var(--shadow-1); }
+}
 .place:active { transform: scale(0.98); }
 .place:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
 .place__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); min-width: 0; }
@@ -4285,7 +4450,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .sub-chip svg { color: var(--chip-color); }
-.sub-chip:hover { color: var(--text); border-color: var(--chip-color); background: color-mix(in srgb, var(--chip-color) 10%, transparent); }
+@media (hover: hover) {
+  .sub-chip:hover { color: var(--text); border-color: var(--chip-color); background: color-mix(in srgb, var(--chip-color) 10%, transparent); }
+}
 .sub-chip:active { transform: scale(0.96); }
 .sub-chip:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
 /* A transaction's sub-category in its meta line: a quiet dropdown, as in the transactions table. */
@@ -4327,7 +4494,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
-.trip-form__close:hover { color: var(--text); background: var(--surface-alt); }
+@media (hover: hover) {
+  .trip-form__close:hover { color: var(--text); background: var(--surface-alt); }
+}
 .trip-form__dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .trip-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .trip-field__label { font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
@@ -4344,11 +4513,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .trip-field__input::placeholder { color: var(--text-faint); }
-.trip-field__input:hover { border-color: var(--border-strong); }
+@media (hover: hover) {
+  .trip-field__input:hover { border-color: var(--border-strong); }
+}
 .trip-field__input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
 .trip-date { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); text-align: left; font-family: var(--font-num); font-variant-numeric: tabular-nums; cursor: pointer; }
 .trip-date svg { flex: none; color: var(--text-faint); transition: color var(--transition); }
-.trip-date:hover svg, .trip-date[aria-expanded="true"] svg { color: var(--gold); }
+.trip-date[aria-expanded="true"] svg { color: var(--gold); }
+@media (hover: hover) {
+  .trip-date:hover svg { color: var(--gold); }
+}
 .trip-date[aria-expanded="true"] { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
 .trip-date.is-empty { color: var(--text-faint); }
 .trip-date:focus-visible { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
@@ -4593,10 +4767,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .month-picker__year, .month-picker__month { font-size: var(--fs-body); }
 
   .topbar__actions .icon-btn { border-color: transparent; background: transparent; box-shadow: none; }
-  .topbar__actions .icon-btn:hover { border-color: transparent; background: var(--surface-alt); }
+  @media (hover: hover) { .topbar__actions .icon-btn:hover { border-color: transparent; background: var(--surface-alt); } }
   .user-menu__button,
-  .user-menu__button:hover,
-  .user-menu.is-open .user-menu__button { padding: 4px; border-color: transparent; background: transparent; box-shadow: none; }
+.user-menu.is-open .user-menu__button { padding: 4px; border-color: transparent; background: transparent; box-shadow: none; }
+@media (hover: hover) {
+  .user-menu__button:hover { padding: 4px; border-color: transparent; background: transparent; box-shadow: none; }
+}
   .user-menu__button svg, .user-menu__name { display: none; }
 
   /* Transactions: search fills the header row, chips scroll sideways in one line. */
@@ -4671,6 +4847,44 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2396A0AD' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right center;
   }
   .tx-table__category .category-select { position: absolute; inset: 0; width: 100%; opacity: 0; }
+
+  /* Rows read as plain text: tapping one doesn't open the keyboard, and its
+     icon isn't a checkbox. Fields switch on from the row's Edit action. */
+  .tx-table tbody tr:not(.is-editing) :is(.merchant-input, .amount-input, .amount-edit) { pointer-events: none; }
+  .tx-table tbody .tx-avatar { pointer-events: none; }
+  .tx-table tbody tr.is-editing .merchant-input,
+  .tx-table tbody tr.is-editing .amount-edit { background: var(--surface-alt); border-color: var(--border-strong); }
+  .tx-table tbody tr.is-editing :is(.merchant-input, .amount-edit):focus-within,
+  .tx-table tbody tr.is-editing .merchant-input:focus { border-color: var(--gold); }
+
+  /* Swiping a row left brings its actions in from past the card's edge (row-swipe.js). */
+  .table-scroll--transactions { overflow-x: clip; }
+  .tx-table tbody tr:not(.tx-group) {
+    position: relative;
+    touch-action: pan-y;
+    transition: transform var(--motion-slow) var(--ease-sheet);
+  }
+  .tx-table tbody .tx-table__swipe {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 100%;
+    display: flex;
+    width: 144px;
+  }
+  .tx-swipe {
+    flex: 1;
+    padding: 0;
+    font: inherit;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .tx-swipe--edit { color: var(--gold-strong); background: var(--gold-soft); }
+  .tx-swipe--hide { color: var(--rose); background: var(--rose-soft); }
+  .tx-swipe:active { opacity: 0.6; }
   .chart-tile__body { flex-direction: column; align-items: flex-start; }
   .chart-tile__canvas-wrap--donut { width: 180px; height: 180px; align-self: center; }
   .chart-tile__canvas-wrap--line { height: 250px; }
@@ -4689,8 +4903,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .brand__name { font-size: 13px; } /* the wordmark: sized as artwork, not text */
   .topbar__actions .icon-btn svg { width: 18px; height: 18px; }
   .user-menu__button,
-  .user-menu__button:hover,
-  .user-menu.is-open .user-menu__button { height: auto; padding: 4px; }
+.user-menu.is-open .user-menu__button { height: auto; padding: 4px; }
+@media (hover: hover) {
+  .user-menu__button:hover { height: auto; padding: 4px; }
+}
   .user-menu__avatar { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
   .multiselect__button { font-size: var(--fs-body); }
   .month-stepper__label { font-size: var(--fs-body); }
@@ -4710,8 +4926,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; font-size: var(--fs-small); }
   .page-heading .sync-status { grid-column: 2; grid-row: 2; }
 
-  .stats-grid { gap: 8px; margin-bottom: 12px; }
-  .stat-tile { padding: 12px; gap: 4px; }
+  .stats-grid { gap: 12px; margin-bottom: 12px; }
+  .stat-tile { padding: 14px; gap: 4px; }
   .breakdown-card { padding: var(--space-4); gap: var(--space-3); }
   .breakdown-card__value { font-size: calc(var(--fs-heading) * var(--fs-trim)); }
   .breakdown-card__unit { font-size: var(--fs-small); }
@@ -4734,7 +4950,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
      to two lines in one tile doesn't push its neighbour's figure out of line. */
   .stats-grid--hero > .stat-tile:not(.hero-tile) .stat-tile__head { min-height: 20px; margin-bottom: 0; padding-bottom: var(--space-1); }
   .stats-grid--hero > .stat-tile:not(.hero-tile) .sparkline { margin-top: auto; padding-top: var(--space-2); box-sizing: content-box; }
-  .hero-tile { padding-bottom: 14px; }
+  .hero-tile { padding: var(--space-4) var(--space-4) 14px; }
   .hero-tile__chart { height: 120px; margin-top: var(--space-3); }
   .trend-legend { font-size: var(--fs-caption); }
   .trend-legend.hero-tile__legend { gap: 4px 12px; }
@@ -4900,8 +5116,10 @@ body.chat-page {
   transform: translateY(-50%);
   transition: transform var(--motion-base) var(--ease-out);
 }
-.chat__suggestion:hover::after { transform: translate(4px, -50%); }
-.chat__suggestion:hover { border-color: var(--border-strong); background: var(--surface-alt); }
+@media (hover: hover) {
+  .chat__suggestion:hover::after { transform: translate(4px, -50%); }
+  .chat__suggestion:hover { border-color: var(--border-strong); background: var(--surface-alt); }
+}
 .chat__suggestion:active { transform: scale(0.99); }
 
 /* ---- Thread ---- */
@@ -5002,7 +5220,10 @@ body.chat-page {
 @keyframes thinking { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); } 40% { opacity: 1; transform: scale(1); } }
 
 .msg__actions { display: flex; gap: var(--space-1); margin: 6px 0 0 -8px; opacity: 0; transition: opacity var(--transition); }
-.msg--assistant:hover .msg__actions, .msg__actions:focus-within { opacity: 1; }
+.msg__actions:focus-within { opacity: 1; }
+@media (hover: hover) {
+  .msg--assistant:hover .msg__actions { opacity: 1; }
+}
 .msg.is-streaming .msg__actions { display: none; }
 .msg__action {
   display: inline-flex;
@@ -5017,7 +5238,9 @@ body.chat-page {
   border-radius: var(--radius-xs);
   cursor: pointer;
 }
-.msg__action:hover { color: var(--text); background: var(--surface-alt); }
+@media (hover: hover) {
+  .msg__action:hover { color: var(--text); background: var(--surface-alt); }
+}
 
 /* ---- Composer ---- */
 .chat__dock {
@@ -5070,7 +5293,9 @@ body.chat-page {
   border-radius: var(--radius-full);
   cursor: pointer;
 }
-.composer__new:hover { color: var(--text); border-color: var(--border-strong); }
+@media (hover: hover) {
+  .composer__new:hover { color: var(--text); border-color: var(--border-strong); }
+}
 .composer__new[hidden] { display: none; }
 .composer__send {
   display: inline-flex;
@@ -5087,7 +5312,9 @@ body.chat-page {
   cursor: pointer;
   transition: background var(--transition), opacity var(--transition), transform var(--transition);
 }
-.composer__send:hover:not(:disabled) { background: var(--accent-strong); }
+@media (hover: hover) {
+  .composer__send:hover:not(:disabled) { background: var(--accent-strong); }
+}
 .composer__send:active:not(:disabled) { transform: scale(0.94); }
 .composer__send:disabled { color: var(--text-faint); background: var(--border); cursor: default; }
 .composer__send:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
@@ -5226,7 +5453,9 @@ body::after { background: var(--ambient-orbs); animation: ambient-in 1400ms ease
   cursor: pointer;
   transition: background var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
-.toast__action:hover { background: color-mix(in srgb, var(--surface) 22%, transparent); }
+@media (hover: hover) {
+  .toast__action:hover { background: color-mix(in srgb, var(--surface) 22%, transparent); }
+}
 .toast__action:active { transform: scale(0.96); }
 .toast__close {
   display: inline-flex;
@@ -5242,7 +5471,9 @@ body::after { background: var(--ambient-orbs); animation: ambient-in 1400ms ease
   border-radius: 50%;
   cursor: pointer;
 }
-.toast__close:hover { color: var(--toast-fg); background: var(--toast-soft); }
+@media (hover: hover) {
+  .toast__close:hover { color: var(--toast-fg); background: var(--toast-soft); }
+}
 .toast__action:focus-visible, .toast__close:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
 /* Time left before it dismisses itself; pauses on hover/focus. */
 .toast__timer {
@@ -5350,6 +5581,18 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 .icon-btn:active, .multiselect__button:active, .month-stepper__btn:active:not(:disabled),
 .chip:active, .view-nav__link:active, .empty-state__action:active, .google-btn:active { transform: scale(0.97); }
 .calendar__day:active { transform: scale(0.98); }
+/* Touch: whatever answers a tap shows it under the finger. List rows tint, buttons
+   give a little. (Plain transaction rows don't: tapping one does nothing.) */
+@media (hover: none) {
+  .legend.is-selectable [data-index], .ledger-table tbody tr, .menu__item, .account-picker__row,
+  .multiselect__option, .month-picker__year, .month-picker__month, .date-button { transition: background var(--transition); }
+  .legend.is-selectable [data-index]:active, .ledger-table tbody tr:active, .menu__item:active, .account-picker__row:active,
+  .multiselect__option:active, .month-picker__year:active, .month-picker__month:active:not(:disabled), .date-button:active { background: var(--surface-alt); }
+  .tile__action, .hide-button, .switch, .budget-strip, .tile-edit, .tile-link { transition: transform var(--transition), opacity var(--transition); }
+  .tile__action:active, .hide-button:active, .switch:active, .budget-strip:active, .tile-edit:active, .tile-link:active { transform: scale(0.97); }
+  .category-badge { transition: opacity var(--transition); }
+  .category-badge:has(.category-select:active) { opacity: 0.55; }
+}
 
 /* Moving between Overview, Calendar and Assistant: a soft cross-fade, with
    the header held still and the active tab sliding to its new place. */
@@ -5444,6 +5687,13 @@ html.theme-transition::view-transition-old(root) { z-index: 1; }
 html.theme-transition::view-transition-new(root) { z-index: 2; }
 html.theme-transition:active-view-transition .topbar { view-transition-name: none; }
 html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
+
+/* Touch screens: press and hold does nothing, as in a native app. Text stays
+   selectable where it's worth copying: fields and the Assistant's messages. */
+@media (hover: none) {
+  body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  input, textarea, [contenteditable="true"], .msg__content, .msg__bubble { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
+}
 
 /* The glass rim: a hairline ring in --rim, drawn on a pseudo-element because a
    border can't be both a gradient and rounded. The mask cuts out everything
@@ -5556,6 +5806,13 @@ html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
 
 /* Phones: floating panels open as bottom sheets (sheet.js). */
 html.has-sheet, html.has-sheet body { overflow: hidden; }
+/* The page recedes behind a sheet, from the middle of what's on screen (sheet.js sets
+   the origin). Only <main>: the tab bar is fixed inside the top bar, and transforming
+   the top bar would pull it off the screen's edge. They dim under the scrim instead. */
+@media (max-width: 560px) and (prefers-reduced-motion: no-preference) {
+  main { transition: transform var(--motion-slow) var(--ease-sheet); }
+  html.has-sheet main { transform: scale(0.97); transform-origin: 50% var(--sheet-origin, 50vh); }
+}
 .sheet-scrim {
   position: fixed;
   inset: 0;
@@ -5586,10 +5843,15 @@ html.has-sheet, html.has-sheet body { overflow: hidden; }
   border-top: var(--hairline) solid var(--tile-border);
   border-radius: 24px 24px 0 0;
   box-shadow: var(--shadow-3);
-  animation: sheet-in 320ms var(--ease-out) backwards;
+  animation: sheet-in 460ms var(--ease-sheet) backwards;
   transition: transform 280ms var(--ease-out);
 }
 @keyframes sheet-in { from { transform: translateY(100%); } }
+/* Long lists sit in two columns, so they fit without scrolling (menu.js). */
+.menu--grid .menu__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px var(--space-1); }
+.is-sheet.menu--grid .menu__item { gap: var(--space-2); padding: var(--space-2) 6px; }
+.menu--grid .menu__item.is-selected { background: var(--gold-soft); }
+.menu--grid .menu__check { display: none; }
 /* The grab handle. */
 .is-sheet.is-sheet::before {
   content: '';
@@ -5611,11 +5873,24 @@ html.has-sheet, html.has-sheet body { overflow: hidden; }
 .is-sheet .table-filter__options { max-height: none; }
 .is-sheet .menu__list { overflow: visible; }
 .month-picker.is-sheet { --cell: 44px; }
+/* The Calendar's selected day (calendar.js): off the page until a day is tapped, then a
+   sheet, its two cards laid flat so the sheet is the only surface. */
+.day-column[hidden] { display: none; }
+@media (max-width: 560px) {
+  .day-column:not(.is-sheet) { display: none; }
+}
+.day-column.is-sheet.is-sheet { display: flex; padding-left: 0; padding-right: 0; gap: 0; }
+.day-column.is-sheet .tile { background: none; border: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.day-column.is-sheet .tile::before { content: none; }
+.day-column.is-sheet .day-tile:has(#event-empty:not([hidden])) { display: none; }
+.day-column.is-sheet .empty-state { padding: var(--space-6) var(--tile-gutter) var(--space-3); }
+.day-column.is-sheet .empty-state__art { display: none; }
 .is-sheet .account-picker__row { min-height: 44px; font-size: var(--fs-body); }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .stat-tile:hover, .chart-tile:hover { transform: none; }
+  @media (hover: hover) { .stat-tile:hover,
+.chart-tile:hover { transform: none; } }
   * { animation-duration: 0.001ms !important; animation-delay: 0s !important; transition-duration: 0.001ms !important; }
   @view-transition { navigation: none; }
 }
