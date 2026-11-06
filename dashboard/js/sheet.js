@@ -121,8 +121,8 @@ function initDrag(panel) {
 }
 
 /** Opens `panel` as a bottom sheet on phones. `close` is how its owner closes it. */
-export function asSheet(panel, close) {
-  initDrag(panel);
+export function asSheet(panel, close, { draggable = true } = {}) {
+  if (draggable) initDrag(panel);
   new MutationObserver(() => {
     if (panel.hidden) dismiss(panel);
     else if (phone.matches) present(panel, close);

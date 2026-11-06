@@ -43,6 +43,7 @@ import { openMenu } from './menu.js';
 import { motion } from './motion.js';
 import { finishLoading, people, showLoadError, spendOwnerColor } from './state.js';
 import { refreshIfStale } from './sync.js';
+import { initTableEdges } from './table-edges.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { showToast } from './toast.js';
 import { updateTransactionSubCategory } from './transactions-api.js';
@@ -1946,6 +1947,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   syncStepper();
   render();
+  initTableEdges();
   finishLoading();
 
   // The charts hold theme colours, so they redraw when light/dark changes (theme.js).

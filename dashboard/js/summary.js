@@ -52,6 +52,7 @@ import {
   state,
 } from './state.js';
 import { initSync } from './sync.js';
+import { initTableEdges } from './table-edges.js';
 import { initTheme, toggleTheme } from './theme.js';
 
 const TARGET = MONTHLY_SAVINGS_TARGET;
@@ -526,24 +527,6 @@ function renderLedger({ months, full, totals }) {
       <td class="ledger-table__num">${totals.income > 0 ? percent(totals.saved / totals.income) : '—'}</td>
       <td class="ledger-table__target"><span class="ledger-table__hits">${totals.hits} of ${full.length} on target</span></td>
     </tr>` : '';
-}
-
-/**
- * Summary's tables scroll sideways inside their cards on phones: says whether
- * there's more to the right (a fade) and whether they've been scrolled (an
- * edge on the pinned column). See .table-scroll in styles.css.
- */
-function initTableEdges() {
-  document.querySelectorAll('.table-scroll').forEach((scroller) => {
-    const update = () => {
-      scroller.classList.toggle('has-more', scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1);
-      scroller.classList.toggle('is-scrolled', scroller.scrollLeft > 0);
-    };
-    scroller.addEventListener('scroll', update, { passive: true });
-    new ResizeObserver(update).observe(scroller);
-    [...scroller.children].forEach((child) => new ResizeObserver(update).observe(child)); // a redraw can change the table's width
-    update();
-  });
 }
 
 function initLedger() {

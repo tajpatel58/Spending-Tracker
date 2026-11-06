@@ -173,7 +173,7 @@
   --glass-well: rgba(0, 0, 0, 0.18);
   --glass-control: rgba(255, 255, 255, 0.07);
   /* Cards: a dark tint, rather than a white film, so text and charts stay crisp over the glow behind them. */
-  --glass-1: rgba(22, 28, 26, 0.35);
+  --glass-1: rgba(22, 28, 26, 0.5);
   --glass-2: rgba(28, 35, 32, 0.82);
   --glass-3: rgba(26, 33, 30, 0.86);
   --glass-bar: rgba(20, 26, 24, 0.66);
@@ -3954,7 +3954,13 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   white-space: nowrap;
 }
 .category-matrix tbody tr:last-child th, .category-matrix tbody tr:last-child td { border-bottom: none; }
-.category-matrix__name { position: sticky; left: 0; z-index: 1; padding-left: var(--tile-gutter) !important; text-align: left; font-weight: 500; color: var(--text); background: var(--surface); }
+.category-matrix__name { position: sticky; left: 0; z-index: 1; padding-left: var(--tile-gutter) !important; text-align: left; font-weight: 500; color: var(--text); }
+/* A pinned first column is plain glass, like the rest of its card, until the table is
+   scrolled sideways (table-edges.js). Then it hides the figures passing under it, which
+   would otherwise collide with its text, and fades into them at its right edge. */
+.table-scroll.is-scrolled .category-matrix__name {
+  background: linear-gradient(to right, var(--surface) calc(100% - 16px), transparent);
+}
 .category-matrix__name i { display: inline-block; width: 8px; height: 8px; margin-right: 10px; border-radius: 2px; }
 .category-matrix__cell {
   min-width: 64px;
@@ -3986,15 +3992,19 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 @media (max-width: 560px) {
   /* The transactions table stops scrolling sideways on phones; these tables keep scrolling inside their cards. */
   .summary-page .table-scroll { overflow-x: auto; }
-  .ledger-table tbody th, .ledger-table tfoot th { position: sticky; left: 0; z-index: 1; background: var(--surface); }
-  /* Scrolled sideways: the pinned column casts a soft edge over what's passing under it. */
-  .table-scroll.is-scrolled :is(.ledger-table tbody th, .ledger-table tfoot th, .category-matrix__name) { box-shadow: 6px 0 10px -8px rgba(0, 0, 0, 0.45); }
+  .ledger-table tbody th, .ledger-table tfoot th { position: sticky; left: 0; z-index: 1; }
+  /* As .category-matrix__name: glass until scrolled sideways. */
+  .table-scroll.is-scrolled :is(.ledger-table tbody th, .ledger-table tfoot th) {
+    background: linear-gradient(to right, var(--surface) calc(100% - 16px), transparent);
+  }
+  .category-matrix :is(thead, tbody) th.category-matrix__name { padding-right: var(--space-6); } /* room for that fade, clear of the name */
+  /* These tables end their cards: their corners follow the card's. */
+  .ledger-tile .table-scroll, .category-tile .table-scroll { border-radius: 0 0 var(--radius-md) var(--radius-md); }
   /* More to see to the right: the table fades out at the card's edge. */
   .table-scroll.has-more {
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
     mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
   }
-  @media (hover: hover) { .ledger-table tbody tr:hover th { background: var(--surface); } }
   .summary-flow .summary-flow__chart { height: 240px; padding-left: 8px; padding-right: 8px; }
   .ledger-table tbody td, .ledger-table tbody th, .ledger-table tfoot th, .ledger-table tfoot td { padding: 12px 10px; }
   .ledger-table__rate, .ledger-table thead th:nth-child(5), .ledger-table tfoot td:nth-child(5) { display: none; }
@@ -5882,6 +5892,31 @@ html.has-sheet, html.has-sheet body { overflow: hidden; }
 .day-column.is-sheet.is-sheet { display: flex; padding-left: 0; padding-right: 0; gap: 0; }
 .day-column.is-sheet .tile { background: none; border: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .day-column.is-sheet .tile::before { content: none; }
+/* Closes with its ×, not by dragging, so no grab handle. It stays in reach as a long day scrolls. */
+.day-column.is-sheet::before { content: none; }
+.day-sheet-close { display: none; }
+.day-column.is-sheet .day-sheet-close {
+  position: sticky;
+  top: 2px;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  width: 28px;
+  height: 28px;
+  margin: var(--space-3) var(--space-3) -40px 0; /* level with the date beside it, and taking up no room */
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.day-sheet-close::after { content: ''; position: absolute; inset: -8px; } /* a finger-sized target around the small mark */
+.day-sheet-close:active { opacity: 0.6; }
+.day-column.is-sheet .day-tile:first-of-type .tile__header { padding-right: 52px; }
 .day-column.is-sheet .day-tile:has(#event-empty:not([hidden])) { display: none; }
 .day-column.is-sheet .empty-state { padding: var(--space-6) var(--tile-gutter) var(--space-3); }
 .day-column.is-sheet .empty-state__art { display: none; }

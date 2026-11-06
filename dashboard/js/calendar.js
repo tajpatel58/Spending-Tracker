@@ -490,7 +490,9 @@ function initCalendarInteractions() {
   // otherwise sit below the whole month). Larger screens keep them beside the calendar.
   const dayColumn = document.querySelector('.day-column');
   dayColumn.hidden = isPhone();
-  asSheet(dayColumn, () => { dayColumn.hidden = true; });
+  const closeDay = () => { dayColumn.hidden = true; };
+  asSheet(dayColumn, closeDay, { draggable: false }); // closes with its × or a tap outside
+  document.getElementById('day-sheet-close').addEventListener('click', closeDay);
   window.matchMedia('(max-width: 560px)').addEventListener('change', (event) => { dayColumn.hidden = event.matches; });
 
   grid.addEventListener('click', (e) => {
