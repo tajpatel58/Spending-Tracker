@@ -188,9 +188,15 @@ it's never counted twice.
 A trip's budget is set part by part (flights, stay, food...) with the
 sliders behind the pencil on its **By part** tile. The parts are saved to
 `part_budgets` (e.g. `{"flights": 420, "stay": 900}`), and `budget` is
-kept as their sum, which is the trip's Budget everywhere on the page. A
-trip saved before there were parts keeps its `budget` total until its
-parts are set.
+kept as their sum. A trip saved before there were parts keeps its `budget`
+total until its parts are set.
+
+Flights and stay are estimates until they're booked. From a part's first
+transaction, its budget on the page is what's booked (plus any event in that
+part with no spending against it yet), so the trip's Budget falls or rises
+to match, and its slider locks. The estimate stays saved in `part_budgets`,
+so it comes back if the booking is re-filed; `budget` is the sum of what's
+saved, not this figure.
 
 Create the table once in the Supabase SQL editor:
 

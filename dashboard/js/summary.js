@@ -17,8 +17,9 @@
  * coming in is shown as a forecast — its income includes any salary
  * still expected (expectedSalaries) and its spending is the month-end
  * forecast (forecastSpend) — so it never drags the figures down while
- * statements are still arriving. Reuses the dashboard's data, account
- * filter and expense rules, so a month's figures match the Overview's.
+ * statements are still arriving. Months after this one aren't shown.
+ * Reuses the dashboard's data, account filter and expense rules, so a
+ * month's figures match the Overview's.
  * ---------------------------------------------------------------------
  */
 
@@ -104,9 +105,20 @@ function monthFigures(key) {
   };
 }
 
-/** The months the period covers (oldest first), split into full months and the one in progress. */
+/** This month's key ('2026-11'), local time. */
+function thisMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+}
+
+/**
+ * The months the period covers (oldest first), split into full months and
+ * the one in progress. It stops at this month: a later month only exists
+ * because a transaction was re-dated into it, so it isn't shown or counted
+ * until it arrives.
+ */
 function buildModel() {
-  const keys = MONTHS.map((m) => m.key);
+  const keys = MONTHS.map((m) => m.key).filter((key) => key <= thisMonth());
   const inRange = view.period === 'all' ? keys : keys.slice(-Number(view.period));
   const months = inRange.map(monthFigures);
   const full = months.filter((m) => m.complete);

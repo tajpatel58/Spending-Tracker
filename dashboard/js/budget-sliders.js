@@ -23,8 +23,9 @@ const listeners = new WeakMap();
 const unlisten = (list) => (listeners.get(list) || []).forEach(([type, fn]) => list.removeEventListener(type, fn));
 
 /**
- * Draws `rows` — [{ key, label, color, icon?, value, spent, planned?, fallback? }] —
- * into `list` (a budget list) as gauges, and returns { values(),
+ * Draws `rows` — [{ key, label, color, icon?, value, spent, planned?, fallback?, locked? }] —
+ * into `list` (a budget list) as gauges (a `locked` one, set by what's been
+ * booked, shows its amount but can't be changed), and returns { values(),
  * set(values) }: the amounts as { key: pounds }, and a way to move every
  * knob at once (e.g. back to the defaults). Each gauge reaches at least
  * `minReach`, and twice its amount or its spending when that's more
@@ -45,7 +46,7 @@ export function budgetSliders(list, rows, { minReach = 1000, onInput = () => {},
     const id = `budget-range-${r.key.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
     const reach = Math.max(minReach, roundUp(draft[r.key] * 2), roundUp(r.spent || 0));
     return `
-      <li class="budget-item budget-gauge" data-key="${escapeAttr(r.key)}" style="--avatar-color:${r.color}; --i:${i}">
+      <li class="budget-item budget-gauge${r.locked ? ' is-locked' : ''}" data-key="${escapeAttr(r.key)}" style="--avatar-color:${r.color}; --i:${i}">
         <div class="budget-item__header">
           <label class="budget-item__category${r.icon ? ' trip-part' : ''}" for="${id}">
             ${r.icon ? `<span class="trip-part__icon" aria-hidden="true">${categoryIcon(r.icon)}</span>` : ''}${r.label}
@@ -53,7 +54,7 @@ export function budgetSliders(list, rows, { minReach = 1000, onInput = () => {},
           <span class="budget-item__summary">
             <span class="budget-item__amounts">${currencyShort(r.spent || 0)} of</span>
             <span class="budget-gauge__amount">
-              <span aria-hidden="true">£</span><input type="number" min="0" step="any" inputmode="decimal" placeholder="0" aria-label="${r.label} budget, in pounds">
+              <span aria-hidden="true">£</span><input type="number" min="0" step="any" inputmode="decimal" placeholder="0" aria-label="${r.label} budget, in pounds"${r.locked ? ' disabled' : ''}>
             </span>
           </span>
         </div>
@@ -63,7 +64,7 @@ export function budgetSliders(list, rows, { minReach = 1000, onInput = () => {},
             <span class="budget-gauge__spent"></span>
             <span class="budget-gauge__over"></span>
           </span>
-          <input type="range" id="${id}" min="0" max="${reach}" step="10" value="${draft[r.key]}">
+          <input type="range" id="${id}" min="0" max="${reach}" step="10" value="${draft[r.key]}"${r.locked ? ' disabled' : ''}>
         </div>
         <p class="budget-item__note"></p>
       </li>`;
@@ -92,7 +93,8 @@ export function budgetSliders(list, rows, { minReach = 1000, onInput = () => {},
     const note = item.querySelector('.budget-item__note');
     let text = !spent ? 'Nothing spent yet' : over ? `${currencyShort(spent - value)} over` : value - spent < 1 ? 'All spent' : `${currencyShort(value - spent)} left`;
     if (!value) text = spent ? `${currencyShort(spent)} spent · no budget` : 'No budget';
-    const { fallback, planned } = byKey[key];
+    const { fallback, planned, locked } = byKey[key];
+    if (locked) text = 'Set by what’s booked';
     if (planned) text = `${currencyShort(planned)} planned · ${text}`;
     note.textContent = fallback != null && value !== fallback ? `${text} · default ${currencyShort(fallback)}` : text;
     note.className = `budget-item__note${over && value > 0 ? ' is-negative' : ''}`;

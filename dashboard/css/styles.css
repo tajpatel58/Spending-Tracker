@@ -1802,6 +1802,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
 }
 .budget-gauge__bar input[type="range"]:focus { outline: none; }
+/* Set by what's booked: no knob to drag, and its amount reads as a figure rather than a field. */
+.budget-gauge.is-locked .budget-gauge__bar input[type="range"] { visibility: hidden; }
+.budget-gauge.is-locked .budget-gauge__amount,
+.budget-gauge.is-locked .budget-gauge__amount:hover { border-bottom-color: transparent; }
+.budget-gauge.is-locked .budget-gauge__amount input { -webkit-text-fill-color: currentColor; opacity: 1; }
 .budget-gauge__bar input[type="range"]::-webkit-slider-runnable-track { height: 16px; background: none; }
 .budget-gauge__bar input[type="range"]::-moz-range-track { height: 16px; background: none; }
 .budget-gauge__bar input[type="range"]::-webkit-slider-thumb {
