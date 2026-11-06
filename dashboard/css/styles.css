@@ -152,6 +152,7 @@
   --tile-border: rgba(255, 255, 255, 0.72);
   /* The glass's edge catching the light: brightest top-left, a faint return at the far corner. */
   --rim: linear-gradient(to bottom right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.62) 30%, rgba(255, 255, 255, 0.2) 68%, rgba(255, 255, 255, 0.5));
+  --rim-lit: var(--gold); /* the edge nearest the pointer (motion.js rimLight) */
   --status-bar: #F8F9F6; /* the top bar's colour, so the phone's status bar runs into it (theme.js) */
   --scrollbar: rgba(28, 44, 36, 0.22);
 
@@ -5618,6 +5619,48 @@ html:active-view-transition .topbar { view-transition-name: topbar; }
 @keyframes vt-fade-out { to { opacity: 0; } }
 @keyframes vt-rise-in { from { opacity: 0; transform: translateY(8px); } }
 
+/* Moving along the tab bar (motion.js trackNavStep sets data-nav-step for the
+   page arrived at): the page slides the way you moved, as changing month does.
+   The header and tab bar are their own layers, so they hold still. Reloads and
+   back/forward have no step and keep the cross-fade above. */
+html[data-nav-step="next"] { --month-step: 1; }
+html[data-nav-step="prev"] { --month-step: -1; }
+/* The page's own backdrop behind the two pages, so no edge shows as they fade and slide over it. */
+html[data-nav-step]::view-transition { background: var(--ambient-orbs), var(--ambient-wash), var(--bg); }
+html[data-nav-step]::view-transition-old(root) { animation: 160ms ease-in both month-out; }
+html[data-nav-step]::view-transition-new(root) { animation: 400ms var(--ease-out) 120ms both month-in; }
+
+/* ...and the tab's icon comes to life once, as the active pill lands. */
+html[data-nav-step] .view-nav__link.is-active { --icon-delay: 140ms; }
+html[data-nav-step] .view-nav__link.is-active .view-nav__icon * { transform-box: fill-box; transform-origin: center; }
+/* Overview: the squares pop in, one after another. */
+html[data-nav-step] .view-nav__link[href="index.html"].is-active rect { animation: icon-pop 340ms var(--ease-out) calc(var(--icon-delay) + var(--icon-i, 0) * 55ms) both; }
+html[data-nav-step] .view-nav__link[href="index.html"].is-active rect:nth-of-type(2) { --icon-i: 1; }
+html[data-nav-step] .view-nav__link[href="index.html"].is-active rect:nth-of-type(3) { --icon-i: 2; }
+html[data-nav-step] .view-nav__link[href="index.html"].is-active rect:nth-of-type(4) { --icon-i: 3; }
+/* Calendar: the binder rings drop in, and the page gives under them. */
+html[data-nav-step] .view-nav__link[href="calendar.html"].is-active rect { transform-origin: center bottom; animation: icon-settle 420ms var(--ease-out) calc(var(--icon-delay) + 90ms) both; }
+html[data-nav-step] .view-nav__link[href="calendar.html"].is-active path:nth-of-type(2) { animation: icon-drop 340ms var(--ease-out) var(--icon-delay) both; }
+/* Summary: the bars grow from the baseline, one after another. */
+html[data-nav-step] .view-nav__link[href="summary.html"].is-active path:not(:first-of-type) { transform-origin: center bottom; animation: icon-grow 420ms var(--ease-out) calc(var(--icon-delay) + var(--icon-i, 0) * 70ms) both; }
+html[data-nav-step] .view-nav__link[href="summary.html"].is-active path:nth-of-type(3) { --icon-i: 1; }
+html[data-nav-step] .view-nav__link[href="summary.html"].is-active path:nth-of-type(4) { --icon-i: 2; }
+/* Trips: the suitcase hops, and lands with a little squash. */
+html[data-nav-step] .view-nav__link[href="trips.html"].is-active .view-nav__icon { transform-origin: center bottom; animation: icon-hop 560ms var(--ease-out) var(--icon-delay) both; }
+/* Assistant: the large sparkle turns into place, then the small one twinkles. */
+html[data-nav-step] .view-nav__link[href="chat.html"].is-active path:nth-of-type(1) { animation: icon-turn 480ms var(--ease-out) var(--icon-delay) both; }
+html[data-nav-step] .view-nav__link[href="chat.html"].is-active path:nth-of-type(2) { animation: icon-twinkle 420ms var(--ease-out) calc(var(--icon-delay) + 240ms) both; }
+/* Upload: the arrow lifts. */
+html[data-nav-step] .view-nav__link[href="upload.html"].is-active path:nth-of-type(1) { animation: icon-lift 380ms var(--ease-out) var(--icon-delay) both; }
+@keyframes icon-pop { from { opacity: 0.25; transform: scale(0.6); } }
+@keyframes icon-drop { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes icon-settle { 0% { transform: none; } 45% { transform: scaleY(0.92); } 100% { transform: none; } }
+@keyframes icon-grow { from { transform: scaleY(0); } }
+@keyframes icon-hop { 0% { transform: none; } 40% { transform: translateY(-4px); } 72% { transform: scale(1.08, 0.92); } 100% { transform: none; } }
+@keyframes icon-turn { from { opacity: 0.3; transform: rotate(-45deg) scale(0.6); } }
+@keyframes icon-twinkle { 0% { opacity: 0; transform: scale(0); } 60% { opacity: 1; transform: scale(1.35); } 100% { transform: none; } }
+@keyframes icon-lift { from { opacity: 0.3; transform: translateY(4px); } }
+
 /* Changing month (motion.js monthTransition): the page slides out
    towards the month you came from and fades, while the new month slides
    in from the side you're heading; the month name in the header does the
@@ -5711,6 +5754,9 @@ html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
    Browsers without masks keep the flat --tile-border. Cards use ::before (their
    ::after is the refresh glow); the rest use ::after (the top bar's ::before is
    its blur). */
+/* Registered so the rim light can fade (browsers without this simply snap). */
+@property --rim-lit-amount { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+
 @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
   .tile,
   .topbar,
@@ -5747,6 +5793,17 @@ html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
   .tile::before { opacity: 0.8; transition: opacity var(--transition-lift); }
   @media (hover: hover) {
     .stat-tile:hover::before, .chart-tile:hover::before { opacity: 1; }
+  }
+  /* ...and the edge nearest the pointer catches the light (motion.js rimLight).
+     The ring's mask keeps it to the edge, so the card itself is never tinted. */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .stat-tile::before, .chart-tile::before {
+      background:
+        radial-gradient(200px circle at var(--rim-x, 50%) var(--rim-y, 50%), color-mix(in srgb, var(--rim-lit) var(--rim-lit-amount), transparent), transparent 75%),
+        var(--rim);
+      transition: opacity var(--transition-lift), --rim-lit-amount var(--transition-lift);
+    }
+    .stat-tile:hover::before, .chart-tile:hover::before { --rim-lit-amount: 100%; }
   }
   /* Editing budgets: the gold border takes over from the rim. */
   .tile.is-editing::before { opacity: 0; }

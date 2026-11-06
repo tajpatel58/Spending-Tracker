@@ -14,6 +14,9 @@
  *   - Once you scroll, the header gains a soft shadow.
  *   - In the top nav, a soft highlight glides to whichever tab the mouse
  *     is over.
+ *   - Clicking a tab notes which way you're moving along the tab bar, so
+ *     the next page slides that way and plays its icon.
+ *   - On summary cards, the glass edge catches the light near the mouse.
  *
  * Bars growing, calendar cells cascading, ticks drawing themselves and
  * page-to-page transitions are pure CSS (see "Motion" in styles.css).
@@ -270,10 +273,56 @@ export const motion = (() => {
     nav.addEventListener('pointerleave', () => nav.classList.remove('is-hovering'));
   }
 
+  // ---------- Which way the tabs are moving ----------
+
+  /**
+   * Each tab is its own page, so the way you're moving along the tab bar is
+   * left for the next page to pick up: a script in its <head> turns this into
+   * html[data-nav-step], which slides the page that way and plays the tab's
+   * icon (see "Moving along the tab bar" in styles.css). Reloads and
+   * back/forward leave nothing, and keep the plain cross-fade.
+   */
+  function trackNavStep() {
+    const nav = document.querySelector('.view-nav');
+    if (!nav || reduced()) return;
+    nav.addEventListener('click', (e) => {
+      const link = e.target.closest('.view-nav__link');
+      if (!link || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab or window
+      const links = [...nav.querySelectorAll('.view-nav__link')];
+      const from = links.findIndex((l) => l.classList.contains('is-active'));
+      const to = links.indexOf(link);
+      if (from < 0 || from === to) return;
+      try { sessionStorage.setItem('ledger-nav-step', to > from ? 'next' : 'prev'); } catch { /* slides are optional */ }
+    });
+  }
+
+  // ---------- Card rim light ----------
+
+  /** The glass edge of a summary card catches the light nearest the pointer. */
+  function rimLight() {
+    if (reduced() || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    let latest = null; // the newest position, drawn once per frame
+    const draw = () => {
+      const { target, clientX, clientY } = latest;
+      latest = null;
+      const tile = target instanceof Element && target.closest('.stat-tile, .chart-tile');
+      if (!tile) return;
+      const box = tile.getBoundingClientRect();
+      tile.style.setProperty('--rim-x', `${clientX - box.left}px`);
+      tile.style.setProperty('--rim-y', `${clientY - box.top}px`);
+    };
+    document.addEventListener('pointermove', (e) => {
+      if (!latest) requestAnimationFrame(draw);
+      latest = e;
+    }, { passive: true });
+  }
+
   // iOS Safari only applies :active (the press styles) once a page listens for touches.
   document.addEventListener('touchstart', () => {}, { passive: true });
 
   document.addEventListener('DOMContentLoaded', navGlide);
+  document.addEventListener('DOMContentLoaded', trackNavStep);
+  document.addEventListener('DOMContentLoaded', rimLight);
   document.addEventListener('DOMContentLoaded', watchFigures);
   document.addEventListener('DOMContentLoaded', watchHeader);
   return { reveal, monthTransition, reduced };
