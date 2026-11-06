@@ -1478,7 +1478,6 @@ function renderHomeTrips(models) {
 function renderHomeCompare(models) {
   const rows = models.filter((m) => m.spent > 0 || m.budget > 0).sort((a, b) => (a.trip.start < b.trip.start ? 1 : -1));
   const owners = [...new Set(rows.flatMap((m) => Object.keys(m.paid)))].sort();
-  const surface = cssVar('--surface');
   const gold = cssVar('--gold');
   const muted = cssVar('--text-faint');
   const text = cssVar('--text');
@@ -1505,7 +1504,7 @@ function renderHomeCompare(models) {
           label: owner,
           data: rows.map((m) => m.paid[owner] || 0),
           backgroundColor: fade(resolve(spendOwnerColor(owner)), 0.9),
-          borderColor: surface,
+          borderColor: 'transparent',
           borderWidth: 1.5,
           borderSkipped: false,
           borderRadius: 4,

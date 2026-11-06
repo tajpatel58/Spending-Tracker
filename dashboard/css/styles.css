@@ -4,8 +4,8 @@
 
 :root {
   /* Type */
-  /* Editorial serif for headings and headline figures, a quiet grotesk for
-     everything else. Money uses the body face's tabular figures (--font-num)
+  /* Editorial serif for the greeting and headline figures, a quiet grotesk for
+     everything else, titles included. Money uses the body face's tabular figures (--font-num)
      so columns line up without looking like code; --font-mono is kept for
      things that really are codes (account IDs, file paths). */
   --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
@@ -24,11 +24,12 @@
   --space-8: 32px;
   --space-10: 40px;
 
-  /* Radius: xs for small inline controls, sm for buttons/inputs/menus,
-     md for cards and dialogs, full for pills and round buttons. */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 18px;
+  /* Radius: xs for small inline controls, sm for buttons and inputs, menu
+     for floating panels, md for cards and dialogs, full for pills. */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-menu: 18px;
+  --radius-md: 24px;
   --radius-full: 999px;
   --hairline: 1px; /* 0.5px on high-density screens, below */
   /* Inner gutter of every card: headers, chart bodies, table cells and
@@ -36,7 +37,20 @@
   --tile-gutter: 28px; /* 16px on phones, below */
   /* Height of the phone tab bar plus its gap to the screen edge. */
   --tabbar-clearance: calc(64px + max(10px, env(safe-area-inset-bottom)));
-  --transition: 150ms ease;
+  --transition: 180ms ease;
+  --transition-lift: 320ms cubic-bezier(0.2, 0.7, 0.2, 1); /* cards rising under the pointer */
+
+  /* Glass: how much each layer frosts what's behind it. Colours, per theme, are below.
+     Cards only frost on desktop: behind them there is nothing but the soft
+     ambient light, so on a phone translucency alone looks the same and
+     scrolling stays smooth. Bars and floating layers, which pass over
+     content, always frost. */
+  --blur-sm: 12px;
+  --blur-md: 22px;
+  --blur-lg: 36px;
+  --backdrop-card: none;
+  --backdrop-bar: blur(var(--blur-md)) saturate(165%);
+  --backdrop-float: blur(var(--blur-lg)) saturate(170%);
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* quick start, soft landing — used for all entrances */
 
   /* Category palette — consistent across themes */
@@ -61,8 +75,34 @@
 /* ---- Light theme (default) ---- */
 :root,
 [data-theme="light"] {
-  --bg: #F6F4EF;
-  --surface: #FFFEFB;
+  --bg: #E9ECE6;
+  /* --surface is the solid colour of a card: for what must stay opaque or
+     be drawn on a canvas (knobs, chart cut-outs, sticky table columns).
+     Anything that's a surface in its own right uses a --glass-* layer. */
+  --surface: #F7F8F4;
+
+  /* Glass layers, weakest to strongest:
+     well (set into a card) < control < 1 (cards) < 2 (hero, bars, nav)
+     < 3 (menus, dialogs: solid enough to read over anything). */
+  --glass-well: rgba(255, 255, 255, 0.34);
+  --glass-control: rgba(255, 255, 255, 0.6);
+  --glass-1: rgba(255, 255, 255, 0.56);
+  --glass-2: rgba(255, 255, 255, 0.72);
+  --glass-3: rgba(250, 251, 248, 0.86);
+  --glass-bar: rgba(255, 255, 255, 0.68); /* the top bar: content scrolls under it */
+  --glass-hover: rgba(255, 255, 255, 0.82);
+  --glass-pill: #FFFFFF; /* the raised, current choice in a segmented control */
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 38%);
+  --scrim: rgba(38, 50, 44, 0.28);
+  /* Ambient light: the wide, soft base wash, then firmer orbs the glass refracts. */
+  --ambient-wash:
+    radial-gradient(70% 55% at 88% -6%, rgba(216, 186, 124, 0.5), transparent 70%),
+    radial-gradient(60% 60% at -4% 22%, rgba(116, 190, 160, 0.46), transparent 70%),
+    radial-gradient(70% 60% at 62% 108%, rgba(140, 176, 214, 0.42), transparent 72%);
+  --ambient-orbs:
+    radial-gradient(circle 360px at 86% 20%, rgba(226, 186, 104, 0.42), rgba(226, 186, 104, 0.2) 45%, rgba(226, 186, 104, 0.05) 76%, transparent),
+    radial-gradient(circle 420px at 7% 60%, rgba(82, 178, 140, 0.38), rgba(82, 178, 140, 0.18) 45%, rgba(82, 178, 140, 0.04) 76%, transparent),
+    radial-gradient(circle 320px at 54% 96%, rgba(120, 160, 222, 0.34), rgba(120, 160, 222, 0.16) 45%, rgba(120, 160, 222, 0.04) 76%, transparent);
   /* Forecast doughnut segments (colour-blind-safe, validated against --surface) */
   --forecast-fixed: #2a78d6;
   --forecast-spent: #eb6834;
@@ -74,16 +114,16 @@
   --user-3: #d2449c;
   /* "Extras" budget bar — separate from --cat-other, which stays grey for Unassigned */
   --budget-extras: #db2777;
-  --surface-alt: #FAF8F3;
-  --border: #E8E3D9;
-  --border-strong: #D9D2C4;
-  --text: #1C1B18;
-  --text-muted: #625D54;
-  --text-faint: #97907F;
+  --surface-alt: rgba(255, 255, 255, 0.5); /* a row or button under the pointer */
+  --border: rgba(28, 44, 36, 0.1);
+  --border-strong: rgba(28, 44, 36, 0.18);
+  --text: #161A17;
+  --text-muted: #4D544E;
+  --text-faint: #5F665F;
   --accent: #1F6650;
   --accent-strong: #174F3E;
-  --accent-soft: rgba(31, 102, 80, 0.09);
-  --gold: #A9844A;
+  --accent-soft: rgba(31, 102, 80, 0.1);
+  --gold: #876526;
   /* Interaction gold: focus rings, selection, active chips and checks.
      --ring is the gold deepened a touch so a 1.5px line clears 3:1 on
      --bg and --surface; --gold-strong is chip text on --gold-soft. */
@@ -94,15 +134,14 @@
   --rose-soft: rgba(168, 71, 60, 0.09);
   --amber: #9A6213; /* "ahead of pace": a warning short of rose */
   /* Elevation: 1 = cards, 2 = menus/tooltips/date picker, 3 = dialogs and floating panels */
-  /* Warm, layered and soft: a tight contact shadow plus a wide, faint ambient one. */
-  --shadow-1: 0 1px 1px rgba(40, 32, 18, 0.03), 0 2px 4px rgba(40, 32, 18, 0.025), 0 12px 32px -12px rgba(40, 32, 18, 0.08);
-  --shadow-2: 0 1px 2px rgba(40, 32, 18, 0.05), 0 10px 28px -6px rgba(40, 32, 18, 0.14);
-  --shadow-3: 0 2px 6px rgba(40, 32, 18, 0.06), 0 24px 56px -12px rgba(40, 32, 18, 0.22);
-  --tile-border: var(--border);
-  /* Ambient light behind the top of each page (the login page's, much quieter). */
-  --glow-accent: color-mix(in srgb, var(--accent) 5%, transparent);
-  --glow-gold: color-mix(in srgb, var(--gold) 8%, transparent);
-  --scrollbar: #D9D2C4;
+  /* Each has a bright top edge, the glass catching the light, then a tight
+     contact shadow and a wide, tinted ambient one. */
+  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 1px 2px rgba(30, 48, 40, 0.05), 0 18px 40px -20px rgba(30, 48, 40, 0.2);
+  --shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 4px rgba(30, 48, 40, 0.06), 0 28px 52px -22px rgba(30, 48, 40, 0.3);
+  --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 4px rgba(30, 48, 40, 0.06), 0 16px 36px -10px rgba(30, 48, 40, 0.2);
+  --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(30, 48, 40, 0.08), 0 32px 64px -16px rgba(30, 48, 40, 0.32);
+  --tile-border: rgba(255, 255, 255, 0.72);
+  --scrollbar: rgba(28, 44, 36, 0.22);
 
   /* Calendar heat scale — one green, light to deep as spend rises.
      Dark text reads on levels 1–4 (≥ 5:1); level 5 takes white. */
@@ -116,8 +155,27 @@
 
 /* ---- Dark theme ---- */
 [data-theme="dark"] {
-  --bg: #0F0E0C;
-  --surface: #181714;
+  --bg: #090E0D;
+  --surface: #161C1A;
+
+  --glass-well: rgba(0, 0, 0, 0.18);
+  --glass-control: rgba(255, 255, 255, 0.07);
+  --glass-1: rgba(255, 255, 255, 0.055);
+  --glass-2: rgba(255, 255, 255, 0.085);
+  --glass-3: rgba(26, 33, 30, 0.86);
+  --glass-bar: rgba(20, 26, 24, 0.66);
+  --glass-hover: rgba(255, 255, 255, 0.13);
+  --glass-pill: rgba(255, 255, 255, 0.16);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 38%);
+  --scrim: rgba(3, 6, 5, 0.58);
+  --ambient-wash:
+    radial-gradient(70% 55% at 90% -8%, rgba(190, 148, 76, 0.2), transparent 70%),
+    radial-gradient(62% 62% at -6% 18%, rgba(30, 130, 100, 0.3), transparent 70%),
+    radial-gradient(70% 60% at 60% 110%, rgba(44, 84, 140, 0.26), transparent 72%);
+  --ambient-orbs:
+    radial-gradient(circle 360px at 86% 20%, rgba(206, 160, 82, 0.24), rgba(206, 160, 82, 0.11) 45%, rgba(206, 160, 82, 0.03) 76%, transparent),
+    radial-gradient(circle 420px at 7% 60%, rgba(40, 168, 126, 0.28), rgba(40, 168, 126, 0.13) 45%, rgba(40, 168, 126, 0.03) 76%, transparent),
+    radial-gradient(circle 320px at 54% 96%, rgba(70, 116, 200, 0.24), rgba(70, 116, 200, 0.11) 45%, rgba(70, 116, 200, 0.03) 76%, transparent);
   --forecast-fixed: #3987e5;
   --forecast-spent: #d95926;
   --forecast-projected: #199e70;
@@ -126,12 +184,12 @@
   --user-2: #ff3a8f;
   --user-3: #4089ef;
   --budget-extras: #f356b9;
-  --surface-alt: #1F1D19;
-  --border: #2C2924;
-  --border-strong: #3B3730;
-  --text: #EDE8DF;
-  --text-muted: #ADA697;
-  --text-faint: #7A7466;
+  --surface-alt: rgba(255, 255, 255, 0.065);
+  --border: rgba(255, 255, 255, 0.085);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #F2F0EA;
+  --text-muted: #B9BAB1;
+  --text-faint: #91948B;
   --accent: #5BB592;
   --accent-strong: #7CCAA9;
   --accent-soft: rgba(91, 181, 146, 0.13);
@@ -142,15 +200,12 @@
   --rose: #DC8273;
   --rose-soft: rgba(220, 130, 115, 0.13);
   --amber: #E3A857;
-  /* Dark mode separates layers by depth, not outlines: cards get a faint
-     top highlight and a softer edge instead of a full-strength border. */
-  --shadow-1: inset 0 1px 0 rgba(255, 240, 210, 0.045), 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 36px -14px rgba(0, 0, 0, 0.5);
-  --shadow-2: inset 0 1px 0 rgba(255, 240, 210, 0.055), 0 12px 28px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-3: inset 0 1px 0 rgba(255, 240, 210, 0.055), 0 20px 45px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
-  --tile-border: color-mix(in srgb, var(--border) 55%, transparent);
-  --glow-accent: color-mix(in srgb, var(--accent) 7%, transparent);
-  --glow-gold: color-mix(in srgb, var(--gold) 7%, transparent);
-  --scrollbar: #3B3730;
+  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.3), 0 20px 44px -20px rgba(0, 0, 0, 0.65);
+  --shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 2px 4px rgba(0, 0, 0, 0.3), 0 30px 56px -22px rgba(0, 0, 0, 0.8);
+  --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 6px rgba(0, 0, 0, 0.3), 0 14px 32px rgba(0, 0, 0, 0.45);
+  --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3), 0 28px 60px rgba(0, 0, 0, 0.6);
+  --tile-border: rgba(255, 255, 255, 0.1);
+  --scrollbar: rgba(255, 255, 255, 0.2);
 
   /* Calendar heat scale — the same green, stepped up from the dark surface.
      Light text reads on levels 1–4; the brightest level takes dark text. */
@@ -195,7 +250,7 @@
     --fs-small: calc(12.5px * var(--fs-scale));    /* secondary text: chips, categories, subtitles */
     --fs-body: calc(14px * var(--fs-scale));       /* primary content: merchants, row amounts, controls */
     --fs-lead: calc(15px * var(--fs-scale));       /* reading text: chat, day headings, buttons */
-    --fs-title: calc(17px * var(--fs-scale));      /* card titles (serif) */
+    --fs-title: calc(17px * var(--fs-scale));      /* card titles */
     --fs-figure-sm: calc(18px * var(--fs-scale));  /* secondary figures: trend summary, doughnut centre */
     --fs-figure: calc(22px * var(--fs-scale));     /* stat tile figures */
     --fs-heading: calc(24px * var(--fs-scale));    /* page headings */
@@ -216,11 +271,26 @@
   }
 }
 
-/* Retina screens get true hairlines: borders at half a pixel, darkened a
-   touch so they keep the same presence. */
+/* Retina screens get true hairlines: borders at half a pixel. */
 @media (min-resolution: 2dppx) {
   :root { --hairline: 0.5px; }
-  [data-theme="light"], :root:not([data-theme="dark"]) { --tile-border: var(--border-strong); }
+}
+
+/* Desktop frosts cards too (see --backdrop-card above). */
+@media (min-width: 901px) and (hover: hover) {
+  :root { --backdrop-card: blur(var(--blur-md)) saturate(150%); }
+}
+
+/* People who've asked for less transparency, and browsers with no
+   backdrop-filter, get the same layers nearly solid, so text stays clear. */
+@media (prefers-reduced-transparency: reduce) {
+  :root, [data-theme="light"] { --glass-control: #FFFFFF; --glass-1: #F7F8F4; --glass-2: #FBFBF8; --glass-3: #FBFBF8; --glass-bar: #FBFBF8; }
+  [data-theme="dark"] { --glass-control: #232A27; --glass-1: #161C1A; --glass-2: #1B2220; --glass-3: #1F2624; --glass-bar: #1F2624; }
+  :root { --backdrop-card: none; --backdrop-bar: none; --backdrop-float: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root, [data-theme="light"] { --glass-2: rgba(250, 251, 248, 0.92); --glass-3: rgba(250, 251, 248, 0.98); --glass-bar: rgba(250, 251, 248, 0.94); }
+  [data-theme="dark"] { --glass-2: rgba(30, 37, 34, 0.92); --glass-3: rgba(30, 37, 34, 0.98); --glass-bar: rgba(30, 37, 34, 0.94); }
 }
 
 /* ==========================================================================
@@ -362,18 +432,24 @@ body {
   font: inherit;
   font-weight: 500;
   color: var(--rose);
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid color-mix(in srgb, var(--rose) 40%, transparent);
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
+/* The serif is kept for the moments of character (the greeting, the headline
+   figures); card and section titles use the sans, for a cleaner, app-like read. */
 h1, h2, h3 {
+  font-weight: 550;
+  font-variant-numeric: lining-nums;
+  margin: 0;
+  letter-spacing: -0.012em;
+}
+h1 {
   font-family: var(--font-display);
   font-weight: 500;
   font-optical-sizing: auto;
-  font-variant-numeric: lining-nums;
-  margin: 0;
   letter-spacing: -0.015em;
 }
 
@@ -392,25 +468,30 @@ button { font-family: inherit; }
 html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: var(--radius-full); border: 2px solid var(--bg); }
-::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--gold) 45%, var(--scrollbar)); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar) padding-box; border-radius: var(--radius-full); border: 2px solid transparent; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--gold) 45%, var(--scrollbar)) padding-box; }
 
 .container {
-  max-width: 1180px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 56px calc(var(--space-8) + env(safe-area-inset-right)) calc(120px + env(safe-area-inset-bottom)) calc(var(--space-8) + env(safe-area-inset-left));
+  padding: 44px calc(var(--space-8) + env(safe-area-inset-right)) calc(120px + env(safe-area-inset-bottom)) calc(var(--space-8) + env(safe-area-inset-left));
 }
 
 /* ==========================================================================
    Top bar
    ========================================================================== */
 
+/* A floating glass bar, held a little off the top of the screen. */
 .topbar {
   position: sticky;
-  top: 0;
+  top: calc(var(--space-6) + env(safe-area-inset-top));
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  border-bottom: var(--hairline) solid var(--border);
+  width: min(100% - 2 * var(--space-4), 1320px);
+  margin: var(--space-6) auto 0;
+  background: var(--glass-sheen), var(--glass-bar);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-2);
 }
 /* The frosted blur lives on a pseudo-element: a backdrop-filter on the
    header itself would pin the phone tab bar (position: fixed, inside the
@@ -420,18 +501,17 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   position: absolute;
   inset: 0;
   z-index: -1;
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
+  border-radius: inherit;
+  -webkit-backdrop-filter: var(--backdrop-bar);
+  backdrop-filter: var(--backdrop-bar);
   pointer-events: none;
 }
 
 .topbar__inner {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: calc(18px + env(safe-area-inset-top)) calc(32px + env(safe-area-inset-right)) 18px calc(32px + env(safe-area-inset-left));
+  padding: 9px 10px 9px 18px;
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: var(--space-6);
 }
 
 .topbar__controls { margin-left: auto; }
@@ -476,7 +556,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text);
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 8px 32px 8px 12px;
@@ -499,7 +579,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   display: flex;
   align-items: center;
   height: 36px;
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
 }
@@ -562,9 +642,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   width: 292px;
   max-width: calc(100vw - 32px);
   padding: 14px 12px;
-  background: var(--surface);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
   border: var(--hairline) solid var(--tile-border);
-  border-radius: 18px;
+  border-radius: var(--radius-menu);
   box-shadow: var(--shadow-3);
 }
 .month-picker[hidden] { display: none; }
@@ -674,7 +756,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text);
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
@@ -693,10 +775,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   top: calc(100% + 6px);
   left: 0;
   min-width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-2);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-menu);
+  box-shadow: var(--shadow-3);
   padding: 6px;
   z-index: 25;
 }
@@ -746,11 +830,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   width: 304px;
   padding: 6px 6px 0;
   border: var(--hairline) solid var(--tile-border);
-  border-radius: 18px;
+  border-radius: var(--radius-menu);
   box-shadow: var(--shadow-3);
 }
 .account-picker__head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 12px 8px; }
-.account-picker__title { font-family: var(--font-display); font-size: 17px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.account-picker__title { font-size: 17px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 .account-picker__links { display: inline-flex; gap: 14px; }
 .account-picker__links button {
   padding: 0;
@@ -780,7 +864,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   color: var(--text);
   background: none;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background var(--transition), color var(--transition), opacity var(--transition);
 }
@@ -903,7 +987,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -952,9 +1036,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   right: 0;
   width: 268px;
   padding: 8px;
-  background: var(--surface);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
   border: var(--hairline) solid var(--tile-border);
-  border-radius: 18px;
+  border-radius: var(--radius-menu);
   box-shadow: var(--shadow-3);
   z-index: 25;
 }
@@ -978,7 +1064,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
     inset 0 0 0 5.5px rgba(212, 182, 124, 0.35),
     0 6px 16px -6px rgba(20, 63, 51, 0.5);
 }
-.user-menu__card .user-menu__panel-name { font-family: var(--font-display); font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+.user-menu__card .user-menu__panel-name { font-size: 18px; font-weight: 550; letter-spacing: -0.01em; }
 .user-menu__card .user-menu__email { max-width: 100%; margin-top: 2px; color: var(--gold); }
 
 /* Appearance row: a label and a two-way Light / Dark switch. */
@@ -1050,7 +1136,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   height: 36px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
-  background: var(--surface);
+  background: var(--glass-control);
   color: var(--text-muted);
   cursor: pointer;
   transition: border-color var(--transition), color var(--transition), background var(--transition);
@@ -1090,7 +1176,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font: inherit;
   font-size: 12.5px;
   color: var(--text-muted);
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--tile-border);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-1);
@@ -1113,7 +1199,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   animation: sync-spin 900ms linear infinite;
 }
 @keyframes sync-spin { to { transform: rotate(360deg); } }
-.page-heading h1 { font-size: 30px; line-height: 1.15; letter-spacing: -0.025em; }
+.page-heading h1 { font-size: 38px; font-weight: 450; line-height: 1.12; letter-spacing: -0.03em; }
 /* "— MONDAY 19 OCTOBER": today's date in gold small caps above the greeting. */
 .page-heading__eyebrow {
   display: flex;
@@ -1136,7 +1222,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin: var(--space-5) 0 var(--space-4);
+  margin: var(--space-8) 0 var(--space-4) var(--space-1);
   font-size: 10.5px;
   font-weight: 500;
   line-height: 1;
@@ -1144,8 +1230,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   text-transform: uppercase;
   color: var(--text-faint);
 }
-.section-eyebrow::before { content: ''; flex: none; width: 24px; border-top: 1px solid var(--gold); }
-.section-eyebrow::after { content: ''; flex: 1; border-top: var(--hairline) solid var(--border); }
+.section-eyebrow::before { content: ''; flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
 .page-heading + .section-eyebrow { margin-top: 0; }
 .page-heading__subtitle { max-width: 62ch; margin: var(--space-3) 0 0; color: var(--text-muted); font-size: 15px; line-height: 1.5; }
 
@@ -1154,10 +1239,25 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
    ========================================================================== */
 
 .tile {
-  background: var(--surface);
+  background: var(--glass-sheen), var(--glass-1);
+  -webkit-backdrop-filter: var(--backdrop-card);
+  backdrop-filter: var(--backdrop-card);
   border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-1);
+  transition: transform var(--transition-lift), box-shadow var(--transition-lift), border-color var(--transition-lift), background-color var(--transition-lift);
+}
+/* A frosted card makes its own stacking layer, so one whose menu or tooltip is
+   open has to rise above the cards after it. */
+.tile:has(.multiselect__panel:not([hidden]), .table-filter__panel:not([hidden]), .chart-tooltip.is-visible) { position: relative; z-index: 26; }
+/* Inside a frosted card, a panel can't blur what's behind it (the card is its
+   backdrop root), so it stays solid enough that no text ghosts through. */
+.tile .multiselect__panel, .tile .chart-tooltip, .tile .calendar-tooltip, .tile .datepicker { background: color-mix(in srgb, var(--surface) 97%, transparent); }
+/* Summary cards rise a little under the pointer. Tables and the calendar stay
+   still: they're worked in, and a moving target is harder to click. */
+@media (hover: hover) {
+  .stat-tile:hover, .chart-tile:hover { transform: translateY(-2px); border-color: var(--border-strong); box-shadow: var(--shadow-hover); }
+  [data-theme="light"] .stat-tile:hover, [data-theme="light"] .chart-tile:hover { border-color: #fff; }
 }
 
 .tile__header {
@@ -1167,7 +1267,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   padding: var(--space-6) var(--tile-gutter) 0;
 }
 
-.tile__header h2 { font-size: 18px; font-weight: 500; }
+.tile__header h2 { font-size: 16px; }
 
 /* Category doughnut, opened into a category: a back arrow before the
    title, and "Show transactions →" in place of the meta. */
@@ -1267,6 +1367,15 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* ==========================================================================
    Stat tiles
    ========================================================================== */
+
+/* The headline card: the strongest glass on the page, lit from its corner. */
+.hero-tile {
+  background:
+    radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--gold) 13%, transparent), transparent 70%),
+    radial-gradient(80% 70% at 0% 100%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%),
+    var(--glass-sheen),
+    var(--glass-2);
+}
 
 .stats-grid {
   display: grid;
@@ -1595,9 +1704,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   z-index: 5;
   min-width: 196px;
   padding: 12px 14px;
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
   border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-2);
@@ -1609,7 +1718,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .chart-tooltip.is-visible { opacity: 1; transform: translate(var(--x, 0), var(--y, 0)); }
 .chart-tooltip.is-placing { transition: opacity 160ms ease; }
 .chart-tooltip p { margin: 0; }
-.chart-tooltip__title { margin-bottom: 8px !important; font-family: var(--font-display); font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.chart-tooltip__title { margin-bottom: 8px !important; font-size: 15px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 .chart-tooltip__row { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 12.5px; color: var(--text-muted); }
 .chart-tooltip__row b { margin-left: auto; padding-left: 16px; font-weight: 500; color: var(--text); }
 .chart-tooltip__row--total { margin-top: 8px !important; padding-top: 8px; border-top: var(--hairline) solid var(--border); color: var(--text); font-weight: 500; }
@@ -1985,7 +2094,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .table-controls { display: flex; align-items: center; gap: 8px; }
 
 /* Category / user filters (transactions table) */
-.table-filter .multiselect__button { height: 36px; padding: 0 12px; background: var(--surface); }
+.table-filter .multiselect__button { height: 36px; padding: 0 12px; }
 .table-filter__icon { color: var(--text-faint); }
 .table-filter.is-filtered .multiselect__button { border-color: var(--gold); }
 .table-filter.is-filtered .table-filter__icon { color: var(--accent); }
@@ -2047,7 +2156,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   align-items: center;
   gap: 6px;
   border: 1px solid var(--border-strong);
-  background: var(--surface);
+  background: var(--glass-control);
   color: var(--text-muted);
   border-radius: var(--radius-full);
   padding: 4px 12px 4px 8px;
@@ -2078,7 +2187,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .tx-table thead th {
   position: sticky;
   top: 0;
-  background: var(--surface);
+  background: transparent;
   text-align: left;
   padding: 12px 20px 10px;
   font-size: 10.5px;
@@ -2127,16 +2236,14 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Day headings (when sorted by date): a serif date with the day's spend
-   aligned right, like a printed statement. */
+/* Day headings (when sorted by date): the date, with the day's spend aligned right. */
 .tx-table tbody tr.tx-group td {
   padding: 26px var(--tile-gutter) var(--space-2);
-  background: var(--surface);
   border-bottom: var(--hairline) solid var(--border);
 }
 .tx-table tbody tr.tx-group:first-child td { padding-top: 16px; }
 .tx-group td { font-size: 12px; }
-.tx-group__day { font-family: var(--font-display); font-size: 16px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.tx-group__day { font-size: 14px; font-weight: 550; letter-spacing: -0.008em; color: var(--text); }
 .tx-group__total { float: right; margin-top: 3px; font-family: var(--font-num); font-size: 12.5px; color: var(--text-muted); }
 
 /* The category's icon (category-icons.js), tinted by category; becomes the select-to-hide checkbox on hover. */
@@ -2307,7 +2414,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: 1px solid var(--gold);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--glass-control);
   color: var(--gold);
   cursor: pointer;
   font-family: var(--font-body);
@@ -2363,7 +2470,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* Line illustrations: ink outlines with a single gold detail. */
 .empty-state__art { display: block; margin-bottom: var(--space-3); color: var(--text-faint); }
 .empty-state__art [stroke="currentColor"] { stroke-width: 1.5px; }
-.empty-state__title { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.empty-state__title { margin: 0; font-size: 17px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 .empty-state__hint { margin: 0; font-size: 12.5px; color: var(--text-faint); max-width: 260px; }
 .empty-state__hint:empty { display: none; }
 .empty-state__action {
@@ -2373,7 +2480,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-size: 12.5px;
   font-weight: 500;
   color: var(--accent);
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -2450,29 +2557,35 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
    Login page
    ========================================================================== */
 
-.login-page { min-height: 100vh; min-height: 100dvh; background: var(--bg); }
+.login-page { min-height: 100vh; min-height: 100dvh; }
 
 .login-page__theme-toggle {
   position: fixed;
   z-index: 5;
-  top: calc(var(--space-5) + env(safe-area-inset-top));
-  right: calc(var(--space-5) + env(safe-area-inset-right));
+  top: calc(var(--space-8) + env(safe-area-inset-top));
+  right: calc(var(--space-8) + env(safe-area-inset-right));
 }
 
 /* Two halves: sign-in on the left, a lit product showcase on the right. */
 .login {
   display: grid;
-  grid-template-columns: minmax(380px, 520px) minmax(0, 1fr);
+  grid-template-columns: minmax(380px, 500px) minmax(0, 1fr);
+  gap: var(--space-4);
   min-height: 100vh;
   min-height: 100dvh;
+  padding: calc(var(--space-4) + env(safe-area-inset-top)) calc(var(--space-4) + env(safe-area-inset-right)) calc(var(--space-4) + env(safe-area-inset-bottom)) calc(var(--space-4) + env(safe-area-inset-left));
 }
 
 .login__panel {
   display: flex;
   flex-direction: column;
-  padding: calc(var(--space-8) + env(safe-area-inset-top)) var(--space-10) calc(var(--space-8) + env(safe-area-inset-bottom));
-  background: var(--surface);
-  border-right: 1px solid var(--tile-border);
+  padding: var(--space-8) var(--space-10);
+  background: var(--glass-sheen), var(--glass-2);
+  -webkit-backdrop-filter: var(--backdrop-card);
+  backdrop-filter: var(--backdrop-card);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: 28px;
+  box-shadow: var(--shadow-2);
 }
 .login__panel .brand__name { font-size: 15px; }
 .login__panel .brand__svg { width: 32px; height: 32px; }
@@ -2537,6 +2650,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   gap: var(--space-8);
   overflow: hidden;
   padding: var(--space-10);
+  border-radius: 28px;
+  box-shadow: var(--shadow-2);
   /* The emerald of the app icon, lit from the top, with paper grain. */
   background:
     var(--grain),
@@ -2571,10 +2686,13 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   flex-direction: column;
   gap: 6px;
   padding: var(--space-5);
-  background: color-mix(in srgb, var(--surface) 96%, transparent);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--tile-border);
-  border-radius: 16px;
+  /* The showcase is the one dark backdrop in the light theme too, so the
+     cards keep more of their own colour for the text to stay readable. */
+  background: var(--glass-sheen), color-mix(in srgb, var(--surface) 84%, transparent);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-md);
   box-shadow: 0 40px 70px -24px rgba(0, 0, 0, 0.45), 0 10px 24px -10px rgba(0, 0, 0, 0.25);
   animation: lp-float 7s ease-in-out infinite;
 }
@@ -2602,7 +2720,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .lp-row i { width: 7px; height: 7px; border-radius: 2px; }
 .lp-row b { margin-left: auto; font-family: var(--font-num); font-weight: 500; }
 .lp-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 6px; }
-.lp-cal__day { aspect-ratio: 1; border-radius: 4px; background: var(--surface-alt); border: 1px solid var(--border); }
+.lp-cal__day { aspect-ratio: 1; border-radius: 4px; background: var(--glass-control); border: 1px solid var(--border); }
 .lp-heat-1 { background: var(--heat-1); border-color: transparent; }
 .lp-heat-2 { background: var(--heat-2); border-color: transparent; }
 .lp-heat-3 { background: var(--heat-3); border-color: transparent; }
@@ -2614,14 +2732,28 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 @media (max-width: 900px) {
   .login { grid-template-columns: minmax(0, 1fr); }
   .login__showcase { display: none; }
+  .login-page__theme-toggle { top: calc(var(--space-5) + env(safe-area-inset-top)); right: calc(var(--space-5) + env(safe-area-inset-right)); }
+  /* The pane steps back and the sign-in itself becomes the glass card. */
   .login__panel {
-    padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom));
-    border-right: none;
-    background:
-      radial-gradient(80% 40% at 80% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
-      var(--bg);
+    padding: var(--space-2) var(--space-1);
+    background: none;
+    border: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
-  .login__body { max-width: 420px; width: 100%; margin: auto; padding: var(--space-8) 0; }
+  .login__body {
+    width: 100%;
+    max-width: 440px;
+    margin: auto;
+    padding: var(--space-8) var(--space-6);
+    background: var(--glass-sheen), var(--glass-2);
+    -webkit-backdrop-filter: var(--backdrop-bar);
+    backdrop-filter: var(--backdrop-bar);
+    border: var(--hairline) solid var(--tile-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-2);
+  }
   .login__title { font-size: 34px; }
   .login__footnote { justify-content: center; text-align: center; }
 }
@@ -2693,20 +2825,20 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   gap: 2px;
   padding: 3px;
   background: color-mix(in srgb, var(--text) 5%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 .choice-group .choice {
   padding: 7px 16px;
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text-muted);
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   transition: color var(--transition), background var(--transition), box-shadow var(--transition);
 }
 .choice-group .choice:hover { color: var(--text); }
 .choice-group .choice:has(input:checked) {
   color: var(--text);
-  background: var(--surface);
+  background: var(--glass-hover);
   box-shadow: 0 1px 2px rgba(20, 23, 31, 0.08), 0 0 0 0.5px var(--border);
 }
 .choice-group--months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-self: stretch; max-width: 460px; }
@@ -2721,9 +2853,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   align-items: center;
   gap: var(--space-3);
   padding: 11px 14px;
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
 .account-choice:hover { border-color: var(--border-strong); }
@@ -2784,7 +2916,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   height: 46px;
   margin-bottom: 6px;
   color: var(--accent);
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--border);
   border-radius: 50%;
   box-shadow: var(--shadow-1);
@@ -2846,7 +2978,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   cursor: pointer;
   transition: color var(--transition), background var(--transition);
 }
-.file-card__remove:hover { color: var(--text); background: var(--surface); }
+.file-card__remove:hover { color: var(--text); background: var(--glass-hover); }
 .is-uploading .file-card__remove { visibility: hidden; }
 
 /* Checks against the bank's format. */
@@ -2882,7 +3014,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   gap: 8px;
   padding: 10px 20px;
   font-size: 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 1px 2px rgba(20, 23, 31, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 .upload-submit:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
@@ -2900,7 +3032,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .is-uploading .upload-submit__spinner { display: block; }
 
 /* Statements card: what's saved for the month. Stays in view beside the form. */
-.statements-card { position: sticky; top: 88px; }
+.statements-card { position: sticky; top: 108px; }
 .statements-progress { display: block; height: 4px; margin: var(--space-3) var(--space-5) 0; overflow: hidden; background: var(--border); border-radius: var(--radius-full); }
 .statements-progress__fill { display: block; width: 0; height: 100%; background: var(--accent); border-radius: inherit; transition: width 600ms var(--ease-out); }
 .statement-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: var(--space-3) var(--space-2) 0; list-style: none; }
@@ -2968,9 +3100,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
-.btn--ghost { background: var(--surface); color: var(--text-muted); }
+.btn--ghost { background: var(--glass-control); color: var(--text-muted); }
 .btn--ghost:hover { color: var(--text); border-color: var(--accent); }
-.btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn--primary { background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0)), var(--accent); border-color: var(--accent); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
+[data-theme="dark"] .btn--primary { color: var(--bg); }
 .btn--primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
 .btn--danger { background: var(--rose); border-color: var(--rose); color: #fff; }
 .btn--danger:hover { background: color-mix(in srgb, var(--rose) 85%, #000); border-color: color-mix(in srgb, var(--rose) 85%, #000); }
@@ -3018,10 +3151,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   width: 248px;
   padding: 10px;
   color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-2);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-menu);
+  box-shadow: var(--shadow-3);
   animation: chat-pop 140ms ease;
 }
 
@@ -3034,7 +3169,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   margin-bottom: 6px;
 }
 
-.datepicker__title { padding-left: 4px; font-family: var(--font-display); font-size: 13.5px; font-weight: 600; }
+.datepicker__title { padding-left: 4px; font-size: 13.5px; font-weight: 600; }
 
 .datepicker__controls { display: flex; align-items: center; gap: 2px; }
 
@@ -3165,10 +3300,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   align-items: center;
   gap: 2px;
   padding: var(--nav-pad);
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
-  border: var(--hairline) solid var(--tile-border);
+  background: var(--glass-well);
+  border: var(--hairline) solid var(--border);
   border-radius: var(--radius-full);
-  box-shadow: var(--shadow-1);
 }
 
 .view-nav__link {
@@ -3194,22 +3328,18 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 
 .view-nav__link.is-active {
   --nav-active-icon: var(--gold);
-  color: var(--surface);
-  background: var(--text);
-  box-shadow: 0 1px 2px rgba(40, 32, 18, 0.18), 0 4px 12px -4px rgba(40, 32, 18, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  background: var(--glass-pill);
+  box-shadow: 0 1px 2px rgba(20, 30, 26, 0.12), 0 6px 14px -6px rgba(20, 30, 26, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
-/* Dark: a cream pill; the gold is deepened so it still reads on it. */
 [data-theme="dark"] .view-nav__link.is-active {
-  --nav-active-icon: color-mix(in srgb, var(--gold) 62%, #000);
-  color: var(--bg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 16px -6px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 18px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .view-nav__icon { display: block; width: 15px; height: 15px; flex: none; opacity: 0.75; transition: color 200ms ease, opacity 200ms ease; }
 .view-nav__link:hover .view-nav__icon { opacity: 1; }
 .view-nav__link.is-active .view-nav__icon { color: var(--nav-active-icon); opacity: 1; }
-.view-nav__link.is-active:hover { color: var(--surface); }
-[data-theme="dark"] .view-nav__link.is-active:hover { color: var(--bg); }
+.view-nav__link.is-active:hover { color: var(--text); }
 
 /* The hover highlight (added by motion.js on mouse/trackpad devices). */
 .view-nav__glider {
@@ -3335,7 +3465,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   color: var(--text);
   background: var(--surface-alt);
   border: var(--hairline) solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
 }
@@ -3346,7 +3476,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .calendar__day.is-selected,
 .calendar__day.is-selected:hover { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text); }
 
-.calendar__date { font-family: var(--font-display); font-size: 12px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.calendar__date { font-size: 12px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 .calendar__amount {
   font-family: var(--font-num);
   font-size: 12.5px;
@@ -3441,7 +3571,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* min-width: 0 stops a long merchant name widening the grid (and the page). */
 .calendar-tile, .day-column, .day-tile { min-width: 0; }
 /* Spending and events tiles stack beside the calendar and scroll with it. */
-.day-column { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 92px; }
+.day-column { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 108px; }
 .day-tile .tile__header { padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .day-tile .empty-state { padding: 24px 20px 24px; }
 
@@ -3483,8 +3613,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   max-width: 260px;
   padding: 8px 12px;
   pointer-events: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
+  border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-2);
 }
@@ -3632,9 +3764,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .ledger-table tbody tr:hover { background: var(--surface-alt); }
 .ledger-table__month { font-weight: 400; text-align: left; }
 .ledger-table__month a {
-  font-family: var(--font-display);
   font-size: 15.5px;
-  font-weight: 450;
+  font-weight: 550;
   letter-spacing: -0.01em;
   color: var(--text);
   text-decoration: none;
@@ -3704,7 +3835,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 .ledger-table tfoot .ledger-table__num { text-align: right; }
 .ledger-table tfoot .ledger-table__saved { color: var(--gold-strong, var(--gold)); }
-.ledger-table tfoot th { font-family: var(--font-display); font-size: 15.5px; font-weight: 450; }
+.ledger-table tfoot th { font-size: 15.5px; font-weight: 550; }
 .ledger-table__hits { font-size: 12px; font-weight: 400; color: var(--text-muted); }
 
 /* Highlights: numbered like footnotes in a printed report — a gold
@@ -3787,7 +3918,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   /* The transactions table stops scrolling sideways on phones; these tables keep scrolling inside their cards. */
   .summary-page .table-scroll { overflow-x: auto; }
   .ledger-table tbody th, .ledger-table tfoot th { position: sticky; left: 0; z-index: 1; background: var(--surface); }
-  .ledger-table tbody tr:hover th { background: var(--surface-alt); }
+  .ledger-table tbody tr:hover th { background: var(--surface); }
   .summary-flow .summary-flow__chart { height: 240px; padding-left: 8px; padding-right: 8px; }
   .ledger-table tbody td, .ledger-table tbody th, .ledger-table tfoot th, .ledger-table tfoot td { padding: 12px 10px; }
   .ledger-table__rate, .ledger-table thead th:nth-child(5), .ledger-table tfoot td:nth-child(5) { display: none; }
@@ -3928,7 +4059,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   animation-delay: calc(var(--i, 0) * 40ms + 80ms);
 }
 .itinerary-day__rail { padding: var(--space-4); }
-.itinerary-day__title { font-family: var(--font-display); font-size: 21px; font-weight: 450; letter-spacing: -0.015em; }
+.itinerary-day__title { font-size: 21px; font-weight: 550; letter-spacing: -0.015em; }
 .itinerary-day__date { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--space-2); margin: 3px 0 0; font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
 .itinerary-day__date .ledger-table__flag { margin-left: 0; font-family: var(--font-body); }
 .itinerary-day__free { margin: var(--space-3) 0 0; font-size: 12px; color: var(--text-muted); }
@@ -3938,7 +4069,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .itinerary-day__list { margin: 0; padding: 0; list-style: none; }
 .itinerary-day .trip-tx { padding: 8px var(--space-4); }
 .itinerary-day__quiet { padding: var(--space-2) var(--space-4); font-size: 12.5px; color: var(--text-faint); }
-.itinerary-day.is-today { background: var(--surface); border-color: color-mix(in srgb, var(--gold) 70%, transparent); box-shadow: 0 0 0 3px var(--gold-soft); }
+.itinerary-day.is-today { background: var(--glass-2); border-color: color-mix(in srgb, var(--gold) 70%, transparent); box-shadow: 0 0 0 3px var(--gold-soft); }
 .itinerary-day { scroll-margin-top: 96px; transition: box-shadow 400ms ease, border-color 400ms ease; }
 .itinerary-day:focus { outline: none; }
 .itinerary-day.is-landed { border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); }
@@ -3985,7 +4116,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   width: 28px;
   height: 28px;
   color: var(--text-muted);
-  background: var(--surface);
+  background: var(--glass-control);
   border: var(--hairline) solid var(--border-strong);
   border-radius: 50%;
   pointer-events: none;
@@ -4019,7 +4150,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .week-day__figure { min-height: 15px; font-family: var(--font-num); font-size: 11.5px; line-height: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-muted); }
 .week-day.is-spent .week-day__figure { color: var(--text); }
 .week-day.is-empty .week-day__date { color: var(--text-muted); }
-.week-day.is-today { background: var(--surface); box-shadow: inset 0 0 0 var(--hairline) var(--gold), 0 0 0 3px var(--gold-soft); }
+.week-day.is-today { background: var(--glass-2); box-shadow: inset 0 0 0 var(--hairline) var(--gold), 0 0 0 3px var(--gold-soft); }
 
 @media (hover: hover) {
   .itinerary-week__toggle:hover::after { background: color-mix(in srgb, var(--text) 3%, transparent); }
@@ -4033,7 +4164,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .itinerary-week__list { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; margin: 0; padding: 0 var(--space-3); list-style: none; overflow: hidden; visibility: hidden; transition: padding 300ms var(--ease-out), visibility 0s linear 300ms; }
 .itinerary-week.is-open .itinerary-week__list { padding-top: var(--space-1); padding-bottom: var(--space-3); visibility: visible; transition: padding 300ms var(--ease-out), visibility 0s; }
 .itinerary-week:not(.is-open) .itinerary-day { animation: none; }
-.itinerary-week .itinerary-day { flex: none; background: var(--surface); }
+.itinerary-week .itinerary-day { flex: none; background: var(--glass-control); }
 .itinerary-week .trip-event__ring { background: var(--surface); }
 .itinerary-week .itinerary-day.is-today { margin: 4px; }
 
@@ -4049,14 +4180,14 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* Every day of a trip: each week's dates between them. */
 .itinerary-week-label { display: flex; align-items: baseline; gap: var(--space-2); padding-top: var(--space-3); font-size: 12.5px; color: var(--text-muted); }
 .itinerary-week-label:first-child { padding-top: 0; }
-.itinerary-week-label span { font-family: var(--font-display); font-size: 17px; font-weight: 450; letter-spacing: -0.01em; color: var(--text); }
+.itinerary-week-label span { font-size: 17px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 
 /* A planned event: its time, then a hollow ring (a line runs between the
    rings of the day's events, like a route), its title and its budget. */
 .trip-event { position: relative; display: flex; align-items: center; gap: var(--space-3); padding: 8px var(--space-4); }
 .trip-event__time { flex: none; width: 42px; font-family: var(--font-num); font-size: 12px; font-weight: 500; line-height: 1.3; font-variant-numeric: tabular-nums; color: var(--text-muted); }
 .trip-event__day { display: block; font-size: 11px; font-weight: 400; color: var(--text-faint); white-space: nowrap; }
-.trip-event__ring { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: var(--avatar-color); background: var(--surface-alt); border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--avatar-color) 60%, transparent); }
+.trip-event__ring { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: var(--avatar-color); background: var(--surface); border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--avatar-color) 60%, transparent); }
 .is-today .trip-event__ring { background: var(--surface); }
 .itinerary-day .trip-event + .trip-event::before { content: ''; position: absolute; top: -9px; left: calc(var(--space-4) + 42px + var(--space-3) + 14px); height: 18px; border-left: var(--hairline) solid var(--border-strong); }
 .trip-event__budget { flex: none; font-family: var(--font-num); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-muted); }
@@ -4099,18 +4230,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font: inherit;
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--surface);
-  background: var(--text);
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0)), var(--accent);
   border: none;
   border-radius: var(--radius-full);
-  box-shadow: 0 1px 2px rgba(40, 32, 18, 0.18), 0 4px 12px -4px rgba(40, 32, 18, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 2px rgba(10, 40, 30, 0.2), 0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   cursor: pointer;
   transition: transform 160ms var(--ease-out), box-shadow 200ms ease;
 }
-.trip-new-btn svg { color: var(--gold); }
 [data-theme="dark"] .trip-new-btn { color: var(--bg); }
-[data-theme="dark"] .trip-new-btn svg { color: color-mix(in srgb, var(--gold) 62%, #000); }
-.trip-new-btn:hover { box-shadow: 0 2px 4px rgba(40, 32, 18, 0.2), 0 8px 18px -6px rgba(40, 32, 18, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.trip-new-btn:hover { box-shadow: 0 2px 4px rgba(10, 40, 30, 0.22), 0 12px 24px -8px color-mix(in srgb, var(--accent) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
 .trip-new-btn:active { transform: scale(0.97); }
 .trip-new-btn:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
 /* "Delete trip": a quiet outlined pill that turns rose on hover. */
@@ -4123,7 +4252,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
-  background: var(--surface);
+  background: var(--glass-control);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -4171,7 +4300,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .place:active { transform: scale(0.98); }
 .place:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
 .place__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); min-width: 0; }
-.place__name { min-width: 0; font-family: var(--font-display); font-size: 18px; font-weight: 450; line-height: 1.3; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.place__name { min-width: 0; font-size: 18px; font-weight: 550; line-height: 1.3; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .place__flags { display: inline-flex; flex: none; gap: 4px; margin-top: 3px; }
 .place__flags .ledger-table__flag { margin-left: 0; }
 .place__meta { font-size: 12.5px; color: var(--text-muted); }
@@ -4226,7 +4355,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   font-size: 12.5px;
   font-weight: 500;
   color: var(--text-muted);
-  background: var(--surface);
+  background: var(--glass-control);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -4246,12 +4375,14 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   max-height: calc(100dvh - 32px);
   padding: 0;
   color: var(--text);
-  background: var(--surface);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
   border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-3);
 }
-.trip-dialog::backdrop { background: color-mix(in srgb, var(--bg) 55%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.trip-dialog::backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(var(--blur-sm)); backdrop-filter: blur(var(--blur-sm)); }
 .trip-dialog[open] { animation: dialog-in 280ms var(--ease-out) backwards; } /* no lasting transform: the date picker inside is position: fixed */
 @keyframes dialog-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
 .trip-form { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6) var(--space-6) var(--space-5); }
@@ -4465,9 +4596,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
     grid-auto-columns: minmax(0, 1fr);
     gap: 2px;
     margin: 0;
-    background: color-mix(in srgb, var(--surface) 90%, transparent);
-    -webkit-backdrop-filter: blur(20px) saturate(170%);
-    backdrop-filter: blur(20px) saturate(170%);
+    background: var(--glass-3);
+    -webkit-backdrop-filter: var(--backdrop-float);
+    backdrop-filter: var(--backdrop-float);
+    border-color: var(--tile-border);
     border-radius: 24px;
     box-shadow: var(--shadow-3);
     view-transition-name: tabbar; /* held still while the page cross-fades */
@@ -4514,7 +4646,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .brand { grid-area: brand; }
   /* Only the logo row scrolls away; the tabs and filters stay pinned,
      with the same 8px above them the logo had. */
-  .topbar { top: -42px; }
+  /* On a phone the bar is a sheet hanging from the top edge, not floating. */
+  .topbar { top: -42px; width: 100%; margin: 0; border-width: 0 0 var(--hairline); border-radius: 0 0 22px 22px; }
   .chat-page .topbar { top: 0; } /* the Assistant scrolls inside the page */
   .topbar__actions { grid-area: actions; gap: 2px; }
   .topbar__filters { grid-area: filters; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -4647,8 +4780,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .page-heading > div { display: contents; }
   .page-heading__eyebrow { grid-column: 1 / -1; grid-row: 1; margin-bottom: 4px; font-size: var(--fs-micro); letter-spacing: 0.18em; }
   .page-heading__eyebrow::before { width: 16px; }
-  .section-eyebrow { margin: var(--space-5) 0 12px; font-size: var(--fs-micro); letter-spacing: 0.18em; gap: var(--space-2); }
-  .section-eyebrow::before { width: 16px; }
+  .section-eyebrow { margin: var(--space-5) 0 12px var(--space-1); font-size: var(--fs-micro); letter-spacing: 0.18em; gap: var(--space-2); }
   .page-heading h1 { grid-column: 1; grid-row: 2; font-size: calc(var(--fs-heading) * var(--fs-trim)); line-height: 1.15; }
   .page-heading__subtitle { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; font-size: var(--fs-small); }
   .page-heading .sync-status { grid-column: 2; grid-row: 2; }
@@ -4823,14 +4955,14 @@ body.chat-page {
   font-size: 13.5px;
   color: var(--text-muted);
   text-align: left;
-  background: var(--surface);
+  background: var(--glass-control);
   border: 1px solid var(--tile-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-1);
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition), transform var(--transition);
 }
-.chat__suggestion strong { font-family: var(--font-display); font-size: 15.5px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); }
+.chat__suggestion strong { font-size: 15.5px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 /* A gold arrow that slides forward on hover. */
 .chat__suggestion::after {
   content: '→';
@@ -4965,14 +5097,16 @@ body.chat-page {
 .chat__dock {
   flex: none;
   padding: 0 var(--space-6) calc(var(--space-3) + env(safe-area-inset-bottom));
-  background: linear-gradient(to bottom, transparent, var(--bg) 24px);
+  background: none;
 }
 .composer {
   width: 100%;
   max-width: var(--chat-width);
   margin: 0 auto;
   padding: var(--space-3) var(--space-3) var(--space-2) var(--space-4);
-  background: var(--surface);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
   border: 1px solid var(--border-strong);
   border-radius: 24px;
   box-shadow: var(--shadow-2);
@@ -5073,40 +5207,26 @@ body.chat-page {
 
 
 /* ==========================================================================
-   Ambience — the login page's light, carried quietly into the app
+   Ambience — the light behind the glass
    ========================================================================== */
 
-/* A soft gold and green glow behind the top of every page. It sits behind
-   everything (isolation keeps z-index -1 above the page background) and
-   fades out before the content gets dense. */
-body:not(.login-page) { position: relative; isolation: isolate; }
-body:not(.login-page)::before {
+/* Fixed behind every page, so the glass always has light to catch however
+   far down you are: a wide wash of gold, green and blue, then firmer orbs
+   that the frosted panels visibly soften as they pass in front. Painted once
+   rather than animated: anything moving behind blurred panels makes the
+   browser re-blur every one of them on every frame. */
+body { position: relative; isolation: isolate; background-image: var(--grain); background-size: 160px 160px; }
+body::before,
+body::after {
   content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 760px;
+  position: fixed;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(55% 60% at 85% -8%, var(--glow-gold), transparent 70%),
-    radial-gradient(40% 50% at 10% -12%, var(--glow-accent), transparent 70%);
 }
-/* Paper grain: a background layer on the page itself, so it can never
-   paint over content. */
-body:not(.login-page) { background-image: var(--grain); background-size: 160px 160px; }
-/* The assistant fills one screen, so its glow follows it. */
-body.chat-page::before { position: fixed; }
-
-/* Dark mode: cards let a touch of that light through. Desktop also frosts
-   them; phones skip the blur to keep scrolling smooth and battery-friendly. */
-[data-theme="dark"] .tile { background: color-mix(in srgb, var(--surface) 90%, transparent); }
-@media (min-width: 901px) and (hover: hover) {
-  [data-theme="dark"] .tile {
-    background: color-mix(in srgb, var(--surface) 80%, transparent);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    backdrop-filter: blur(18px) saturate(140%);
-  }
-}
+body::before { background: var(--ambient-wash); }
+body::after { background: var(--ambient-orbs); animation: ambient-in 1400ms ease both; }
+@keyframes ambient-in { from { opacity: 0; } }
 
 /* ==========================================================================
    Toasts (toast.js) — inverted pill, bottom centre
@@ -5235,7 +5355,9 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
   width: 38px;
   height: 38px;
   color: var(--text-muted);
-  background: var(--surface);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
   border: 1px solid var(--tile-border);
   border-radius: 50%;
   box-shadow: var(--shadow-2);
@@ -5306,7 +5428,10 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 /* Moving between Overview, Calendar and Assistant: a soft cross-fade, with
    the header held still and the active tab sliding to its new place. */
 @view-transition { navigation: auto; }
-.topbar { view-transition-name: topbar; }
+/* Named only while a transition runs: a view-transition-name makes the
+   element a "backdrop root", so if it were always on, nothing inside the
+   header (its own frost, the tab bar, menus) could blur the page behind it. */
+html:active-view-transition .topbar { view-transition-name: topbar; }
 .view-nav__link.is-active { view-transition-name: nav-active; }
 ::view-transition-old(root) { animation: 160ms ease both vt-fade-out; }
 ::view-transition-new(root) { animation: 320ms var(--ease-out) both vt-rise-in; }
@@ -5366,11 +5491,7 @@ html.month-transition::view-transition-new(month-label) { animation: 320ms var(-
 
 /* The header picks up a soft shadow once the page is scrolled. */
 .topbar { transition: box-shadow 260ms ease, background-color 260ms ease, border-color 260ms ease; }
-.topbar.is-scrolled {
-  background-color: color-mix(in srgb, var(--bg) 94%, transparent);
-  box-shadow: 0 10px 30px -18px rgba(20, 23, 31, 0.35);
-}
-[data-theme="dark"] .topbar.is-scrolled { box-shadow: 0 10px 30px -14px rgba(0, 0, 0, 0.7); }
+.topbar.is-scrolled { background-color: var(--glass-3); box-shadow: var(--shadow-3); }
 
 /* Menus ease open from where they're anchored instead of snapping in. */
 .multiselect__panel:not([hidden]),
@@ -5395,11 +5516,12 @@ html.theme-transition::view-transition-old(root),
 html.theme-transition::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 html.theme-transition::view-transition-old(root) { z-index: 1; }
 html.theme-transition::view-transition-new(root) { z-index: 2; }
-html.theme-transition .topbar,
+html.theme-transition:active-view-transition .topbar { view-transition-name: none; }
 html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  .stat-tile:hover, .chart-tile:hover { transform: none; }
   * { animation-duration: 0.001ms !important; animation-delay: 0s !important; transition-duration: 0.001ms !important; }
   @view-transition { navigation: none; }
 }

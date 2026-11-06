@@ -361,7 +361,7 @@ function renderFlowChart({ months, full }) {
   const text = cssVar('--text');
   const faint = cssVar('--text-faint');
   const surface = cssVar('--surface');
-  const segment = { borderColor: surface, borderWidth: 2, borderSkipped: false, borderRadius: 5, maxBarThickness: 26, categoryPercentage: 0.72, barPercentage: 0.94 };
+  const segment = { borderColor: 'transparent', borderWidth: 2, borderSkipped: false, borderRadius: 5, maxBarThickness: 26, categoryPercentage: 0.72, barPercentage: 0.94 };
   const forecastFrom = months.findIndex((m) => !m.complete);
   const swatches = { Income: fade(colors.income, 0.85), Fixed: colors.fixed, Everyday: colors.everyday, 'Still to come': colors.toCome, Saved: colors.gold };
 

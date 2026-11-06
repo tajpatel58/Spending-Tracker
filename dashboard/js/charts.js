@@ -910,7 +910,7 @@ export function renderTrendChart() {
 
   const colors = { fixed: cssVar('--forecast-fixed'), everyday: cssVar('--forecast-spent'), toCome: cssVar('--forecast-projected') };
   const dimUnlessSelected = (color) => (c) => (months[c.dataIndex] === state.month ? color : fade(color, 0.45));
-  const segment = { borderColor: cssVar('--surface'), borderWidth: 2, borderSkipped: false, borderRadius: 6, maxBarThickness: 36, stack: 'spend' };
+  const segment = { borderColor: 'transparent', borderWidth: 2, borderSkipped: false, borderRadius: 6, maxBarThickness: 36, stack: 'spend' };
   const swatches = { Fixed: colors.fixed, Everyday: colors.everyday, 'Still to come': colors.toCome };
   const text = cssVar('--text');
   const faint = cssVar('--text-faint');
