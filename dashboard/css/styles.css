@@ -39,8 +39,13 @@
   --tile-gutter: 28px; /* 16px on phones, below */
   /* Height of the phone tab bar plus its gap to the screen edge. */
   --tabbar-clearance: calc(64px + max(10px, env(safe-area-inset-bottom)));
-  --transition: 180ms ease;
-  --transition-lift: 320ms cubic-bezier(0.2, 0.7, 0.2, 1); /* cards rising under the pointer */
+  /* How long things take, so the interface moves as one: fast for colours and
+     presses, base for things that shift, slow for things that travel. */
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
+  --motion-slow: 320ms;
+  --transition: var(--motion-fast) var(--ease-out);
+  --transition-lift: var(--motion-slow) var(--ease-out); /* cards rising under the pointer */
 
   /* Glass: how much each layer frosts what's behind it. Colours, per theme, are below.
      Cards only frost on desktop: behind them there is nothing but the soft
@@ -940,9 +945,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   color: transparent;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px var(--border-strong);
-  transition: background 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  transition: background var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out);
 }
-.account-picker__check svg { width: 14px; height: 14px; transform: scale(0.6); transition: transform 220ms var(--ease-out); }
+.account-picker__check svg { width: 14px; height: 14px; transform: scale(0.6); transition: transform var(--motion-base) var(--ease-out); }
 .account-picker__account.is-on .account-picker__check,
 .account-picker__person.is-on .account-picker__check,
 .account-picker__person.is-some .account-picker__check {
@@ -1194,7 +1199,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-1);
   cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .sync-status[hidden] { display: none; }
 .sync-status:hover { color: var(--text); border-color: var(--border-strong); }
@@ -1300,7 +1305,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-full);
   cursor: pointer;
   align-self: center;
-  transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+  transition: color var(--motion-fast) var(--ease-out), background-color var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .tile__back:hover { color: var(--text); background: var(--surface-alt); }
 .tile__back:active { transform: scale(0.94); }
@@ -1319,7 +1324,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: none;
   cursor: pointer;
 }
-.tile__action svg { transition: transform 200ms var(--ease-out); }
+.tile__action svg { transition: transform var(--motion-base) var(--ease-out); }
 .tile__action:hover svg { transform: translateX(2px); }
 .chart-tile.is-drilled .tile__header { align-items: center; }
 
@@ -1339,7 +1344,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-faint);
-  transition: color 240ms ease;
+  transition: color var(--motion-base) var(--ease-out);
 }
 .switch.switch--between .switch__label:hover { color: var(--text-muted); }
 .switch.switch--between[aria-checked="false"] [data-mode="spending"],
@@ -1358,7 +1363,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   left: 3px;
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--gold) 55%, #fff), var(--gold) 70%);
   box-shadow: 0 1px 2px rgba(40, 32, 18, 0.25), 0 0 0 3px color-mix(in srgb, var(--gold) 12%, transparent);
-  transition: transform 340ms var(--ease-out), width 160ms ease;
+  transition: transform var(--motion-slow) var(--ease-out), width var(--motion-fast) var(--ease-out);
 }
 .switch.switch--between[aria-checked="true"] .switch__thumb { transform: translateX(14px); }
 .switch.switch--between:active .switch__thumb { width: 14px; }
@@ -1498,7 +1503,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   height: 16px;
   background: var(--border-strong);
   border-radius: var(--radius-full);
-  transition: background-color 200ms ease, box-shadow 150ms ease;
+  transition: background-color var(--motion-base) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
 .switch__thumb {
   position: absolute;
@@ -1509,7 +1514,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   background: var(--surface);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transition: transform 220ms var(--ease-out);
+  transition: transform var(--motion-base) var(--ease-out);
 }
 .switch[aria-checked="true"] .switch__track { background: var(--gold); }
 .switch[aria-checked="true"] .switch__thumb { transform: translateX(12px); }
@@ -1572,7 +1577,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   inset: 0 auto 0 0;
   background: var(--text-faint);
   border-radius: inherit;
-  transition: width 500ms var(--ease-out), background-color 200ms ease;
+  transition: width 500ms var(--ease-out), background-color var(--motion-base) var(--ease-out);
 }
 .budget-strip__over { position: absolute; inset: 0 0 0 auto; background: var(--rose); border-radius: 0 2px 2px 0; }
 .budget-strip:hover .budget-strip__fill { filter: brightness(1.08); }
@@ -1716,10 +1721,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   pointer-events: none;
   opacity: 0;
   transform: translate(var(--x, 0), var(--y, 0)) scale(0.97);
-  transition: opacity 160ms ease, transform 260ms var(--ease-out);
+  transition: opacity var(--motion-fast) var(--ease-out), transform var(--motion-base) var(--ease-out);
 }
 .chart-tooltip.is-visible { opacity: 1; transform: translate(var(--x, 0), var(--y, 0)); }
-.chart-tooltip.is-placing { transition: opacity 160ms ease; }
+.chart-tooltip.is-placing { transition: opacity var(--motion-fast) var(--ease-out); }
 .chart-tooltip p { margin: 0; }
 .chart-tooltip__title { margin-bottom: 8px !important; font-size: 15px; font-weight: 550; letter-spacing: -0.01em; color: var(--text); }
 .chart-tooltip__row { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 12.5px; color: var(--text-muted); }
@@ -1863,7 +1868,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* Editing budgets in place (budget-sliders.js): the tile takes a fine
    gold ring, and the pencil steps aside for the live total in the serif,
    then Cancel and a gold Save, as small pills. */
-.tile.is-editing { border-color: color-mix(in srgb, var(--gold) 45%, transparent); box-shadow: 0 0 0 3px var(--gold-soft), var(--shadow-1); transition: box-shadow 220ms ease, border-color 220ms ease; }
+.tile.is-editing { border-color: color-mix(in srgb, var(--gold) 45%, transparent); box-shadow: 0 0 0 3px var(--gold-soft), var(--shadow-1); transition: box-shadow var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out); }
 .tile.is-editing .tile__aside .tile-edit { display: none; }
 .tile__meta.is-editing { font-family: var(--font-display); font-size: 16px; font-weight: 450; color: var(--text); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
 .budget-edit-total__label { margin-right: 3px; font-family: var(--font-body); font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); vertical-align: 1px; }
@@ -1878,7 +1883,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+  transition: color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
 }
 .budget-edit-btn:hover { color: var(--text); border-color: var(--border-strong); }
 .budget-edit-btn--save { color: var(--gold-strong); background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
@@ -1931,7 +1936,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: 1.5px solid var(--avatar-color);
   border-radius: 50%;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
-  transition: transform 140ms var(--ease-out), box-shadow 140ms ease;
+  transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
 .budget-gauge__bar input[type="range"]::-moz-range-thumb {
   box-sizing: border-box;
@@ -1941,7 +1946,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: 1.5px solid var(--avatar-color);
   border-radius: 50%;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
-  transition: transform 140ms var(--ease-out), box-shadow 140ms ease;
+  transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
 .budget-gauge__bar input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.12); }
 .budget-gauge__bar input[type="range"]:hover::-moz-range-thumb { transform: scale(1.12); }
@@ -1951,7 +1956,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .budget-gauge__bar input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--gold-soft), 0 0 0 5px var(--gold); }
 
 /* "£312 of £400": the budget is a figure to type into, on a fine dashed gold rule. */
-.budget-gauge__amount { display: inline-flex; align-items: baseline; font-weight: 500; color: var(--text); border-bottom: 1px dashed color-mix(in srgb, var(--gold) 65%, transparent); transition: border-color 160ms ease; }
+.budget-gauge__amount { display: inline-flex; align-items: baseline; font-weight: 500; color: var(--text); border-bottom: 1px dashed color-mix(in srgb, var(--gold) 65%, transparent); transition: border-color var(--motion-fast) var(--ease-out); }
 .budget-gauge__amount:hover { border-bottom-color: var(--gold); }
 .budget-gauge__amount:focus-within { border-bottom: 1px solid var(--gold); }
 .budget-gauge__amount input {
@@ -1979,7 +1984,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   display: block;
   height: 100%;
   border-radius: inherit;
-  transition: width 250ms ease;
+  transition: width var(--motion-base) var(--ease-out);
 }
 /* First load: the bars grow in from the left, one after another. */
 .budget-list.is-entering .budget-item__fill {
@@ -2014,7 +2019,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-xs);
   cursor: default;
   outline: none;
-  transition: background 150ms ease, opacity 150ms ease;
+  transition: background var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 .legend.has-active [data-index]:not(.is-active) { opacity: 0.45; }
 .legend [data-index].is-active { background: var(--surface-alt); }
@@ -2905,7 +2910,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: 1.5px dashed var(--border-strong);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 200ms ease, background 200ms ease, transform 200ms var(--ease-out);
+  transition: border-color var(--motion-base) var(--ease-out), background var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
 }
 .dropzone[hidden] { display: none; }
 .dropzone:hover, .dropzone:has(input:focus-visible) { border-color: var(--ring); }
@@ -2927,7 +2932,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: 1px solid var(--border);
   border-radius: 50%;
   box-shadow: var(--shadow-1);
-  transition: transform 250ms var(--ease-out);
+  transition: transform var(--motion-base) var(--ease-out);
 }
 .dropzone:hover .dropzone__icon, .is-dragging-file .dropzone__icon { transform: translateY(-2px); }
 .dropzone__title { font-size: 14px; font-weight: 500; }
@@ -3130,7 +3135,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color 220ms ease;
+  transition: background var(--transition), border-color var(--transition), color var(--motion-base) var(--ease-out);
 }
 
 .date-button:hover,
@@ -3329,7 +3334,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   color: var(--text-muted);
   text-decoration: none;
   border-radius: var(--radius-full);
-  transition: color 200ms ease, background 200ms ease, box-shadow 200ms ease, transform 160ms var(--ease-out);
+  transition: color var(--motion-base) var(--ease-out), background var(--motion-base) var(--ease-out), box-shadow var(--motion-base) var(--ease-out), transform var(--motion-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 .view-nav__link[hidden] { display: none; }
@@ -3347,7 +3352,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 18px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
-.view-nav__icon { display: block; width: 15px; height: 15px; flex: none; opacity: 0.75; transition: color 200ms ease, opacity 200ms ease; }
+.view-nav__icon { display: block; width: 15px; height: 15px; flex: none; opacity: 0.75; transition: color var(--motion-base) var(--ease-out), opacity var(--motion-base) var(--ease-out); }
 .view-nav__link:hover .view-nav__icon { opacity: 1; }
 .view-nav__link.is-active .view-nav__icon { color: var(--nav-active-icon); opacity: 1; }
 .view-nav__link.is-active:hover { color: var(--text); }
@@ -3363,11 +3368,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-full);
   opacity: 0;
   transform: translateX(var(--glide-x, 0));
-  transition: transform 320ms var(--ease-out), width 320ms var(--ease-out), opacity 180ms ease;
+  transition: transform var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
   pointer-events: none;
 }
 .view-nav.is-hovering .view-nav__glider { opacity: 1; }
-.view-nav__glider.is-placing { transition: opacity 180ms ease; }
+.view-nav__glider.is-placing { transition: opacity var(--motion-fast) var(--ease-out); }
 
 /* ==========================================================================
    Calendar page
@@ -3402,7 +3407,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   background: var(--border);
   border-radius: var(--radius-full);
 }
-.breakdown-bar__seg { flex-basis: 0; min-width: 3px; transition: flex-grow 300ms ease; }
+.breakdown-bar__seg { flex-basis: 0; min-width: 3px; transition: flex-grow var(--motion-slow) var(--ease-out); }
 
 .breakdown-list { display: flex; flex-direction: column; }
 .breakdown-row {
@@ -3994,7 +3999,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: var(--hairline) solid transparent;
   border-radius: 50%;
   cursor: pointer;
-  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+  transition: color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
 }
 .tile-edit:hover { color: var(--gold-strong); background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
 .tile-edit:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 1px; }
@@ -4081,7 +4086,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 .itinerary-day .trip-tx { padding: 8px var(--space-4); }
 .itinerary-day__quiet { padding: var(--space-2) var(--space-4); font-size: 12.5px; color: var(--text-faint); }
 .itinerary-day.is-today { background: var(--glass-2); border-color: color-mix(in srgb, var(--gold) 70%, transparent); box-shadow: 0 0 0 3px var(--gold-soft); }
-.itinerary-day { scroll-margin-top: 96px; transition: box-shadow 400ms ease, border-color 400ms ease; }
+.itinerary-day { scroll-margin-top: 96px; transition: box-shadow var(--motion-slow) var(--ease-out), border-color var(--motion-slow) var(--ease-out); }
 .itinerary-day:focus { outline: none; }
 .itinerary-day.is-landed { border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); }
 
@@ -4095,7 +4100,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   background: var(--surface-alt);
   border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-sm);
-  transition: border-color 200ms ease;
+  transition: border-color var(--motion-base) var(--ease-out);
   animation: legend-in 420ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 50ms + 80ms);
 }
@@ -4109,7 +4114,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   padding: var(--space-3) var(--space-4);
 }
 .itinerary-week__toggle { display: flex; flex-direction: column; align-items: flex-start; padding: 0; color: inherit; text-align: left; background: none; border: none; cursor: pointer; }
-.itinerary-week__toggle::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-sm); transition: background 160ms ease; }
+.itinerary-week__toggle::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-sm); transition: background var(--motion-fast) var(--ease-out); }
 .itinerary-week__toggle:focus-visible { outline: none; }
 .itinerary-week__toggle:focus-visible::after { box-shadow: inset 0 0 0 1.5px var(--ring); }
 /* Seven columns, so a longer trip's weeks line up (even a short last one); a trip under a week spreads its days across the row. */
@@ -4131,7 +4136,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: var(--hairline) solid var(--border-strong);
   border-radius: 50%;
   pointer-events: none;
-  transition: color 160ms ease, border-color 160ms ease;
+  transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
 }
 .itinerary-week__chevron svg { transition: transform 280ms var(--ease-out); }
 .itinerary-week.is-open .itinerary-week__chevron svg { transform: rotate(180deg); }
@@ -4150,7 +4155,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-sm);
   cursor: pointer;
   pointer-events: auto;
-  transition: background 160ms ease;
+  transition: background var(--motion-fast) var(--ease-out);
 }
 .week-day:focus-visible { outline: none; box-shadow: inset 0 0 0 1.5px var(--ring); }
 .week-day__name { font-size: 10.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); }
@@ -4170,10 +4175,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 }
 
 /* The week's days, unfolding: the height eases open (0fr to 1fr), and each day rises in as it does. */
-.itinerary-week__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 300ms var(--ease-out); }
+.itinerary-week__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--motion-slow) var(--ease-out); }
 .itinerary-week.is-open .itinerary-week__panel { grid-template-rows: 1fr; }
-.itinerary-week__list { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; margin: 0; padding: 0 var(--space-3); list-style: none; overflow: hidden; visibility: hidden; transition: padding 300ms var(--ease-out), visibility 0s linear 300ms; }
-.itinerary-week.is-open .itinerary-week__list { padding-top: var(--space-1); padding-bottom: var(--space-3); visibility: visible; transition: padding 300ms var(--ease-out), visibility 0s; }
+.itinerary-week__list { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; margin: 0; padding: 0 var(--space-3); list-style: none; overflow: hidden; visibility: hidden; transition: padding var(--motion-slow) var(--ease-out), visibility 0s linear var(--motion-slow); }
+.itinerary-week.is-open .itinerary-week__list { padding-top: var(--space-1); padding-bottom: var(--space-3); visibility: visible; transition: padding var(--motion-slow) var(--ease-out), visibility 0s; }
 .itinerary-week:not(.is-open) .itinerary-day { animation: none; }
 .itinerary-week .itinerary-day { flex: none; background: var(--glass-control); }
 .itinerary-week .trip-event__ring { background: var(--surface); }
@@ -4247,7 +4252,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border-radius: var(--radius-full);
   box-shadow: 0 1px 2px rgba(10, 40, 30, 0.2), 0 8px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   cursor: pointer;
-  transition: transform 160ms var(--ease-out), box-shadow 200ms ease;
+  transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-base) var(--ease-out);
 }
 [data-theme="dark"] .trip-new-btn { color: var(--bg); }
 .trip-new-btn:hover { box-shadow: 0 2px 4px rgba(10, 40, 30, 0.22), 0 12px 24px -8px color-mix(in srgb, var(--accent) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
@@ -4267,7 +4272,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: color 200ms ease, border-color 200ms ease, background 200ms ease, transform 160ms var(--ease-out);
+  transition: color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out), background var(--motion-base) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .trip-delete-btn[hidden] { display: none; }
 .trip-delete-btn:hover { color: var(--rose); border-color: color-mix(in srgb, var(--rose) 50%, transparent); background: var(--rose-soft); }
@@ -4305,7 +4310,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: var(--hairline) solid var(--tile-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 200ms ease, transform 160ms var(--ease-out), box-shadow 200ms ease;
+  transition: border-color var(--motion-base) var(--ease-out), transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-base) var(--ease-out);
 }
 .place:hover { border-color: var(--gold); box-shadow: var(--shadow-1); }
 .place:active { transform: scale(0.98); }
@@ -4370,7 +4375,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: color 160ms ease, border-color 160ms ease, background 160ms ease, transform 160ms var(--ease-out);
+  transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .sub-chip svg { color: var(--chip-color); }
 .sub-chip:hover { color: var(--text); border-color: var(--chip-color); background: color-mix(in srgb, var(--chip-color) 10%, transparent); }
@@ -4986,7 +4991,7 @@ body.chat-page {
   color: var(--gold);
   font-size: 16px;
   transform: translateY(-50%);
-  transition: transform 220ms var(--ease-out);
+  transition: transform var(--motion-base) var(--ease-out);
 }
 .chat__suggestion:hover::after { transform: translate(4px, -50%); }
 .chat__suggestion:hover { border-color: var(--border-strong); background: var(--surface-alt); }
@@ -5312,7 +5317,7 @@ body::after { background: var(--ambient-orbs); animation: ambient-in 1400ms ease
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
+  transition: background var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 .toast__action:hover { background: color-mix(in srgb, var(--surface) 22%, transparent); }
 .toast__action:active { transform: scale(0.96); }
@@ -5382,8 +5387,8 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 /* The ring starts undrawn and fills in as you pull (sync.js sets the offset). */
 .pull-refresh { color: var(--text); }
 .pull-refresh .sync-ring { stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); }
-.pull-refresh.is-armed svg { transform: scale(1.08); transition: transform 200ms var(--ease-out); }
-.pull-refresh.is-settling { transition: transform 260ms var(--ease-out), opacity 260ms ease; }
+.pull-refresh.is-armed svg { transform: scale(1.08); transition: transform var(--motion-base) var(--ease-out); }
+.pull-refresh.is-settling { transition: transform var(--motion-base) var(--ease-out), opacity var(--motion-base) var(--ease-out); }
 
 /* ==========================================================================
    Motion — entrances, bars, page transitions and press feedback
@@ -5433,7 +5438,7 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 .icon-btn, .multiselect__button, .month-stepper__btn, .chip, .view-nav__link,
 .empty-state__action, .chat__suggestion, .calendar__day, .google-btn {
   transition-property: color, background-color, border-color, box-shadow, opacity, transform;
-  transition-duration: 150ms;
+  transition-duration: var(--motion-fast);
 }
 .icon-btn:active, .multiselect__button:active, .month-stepper__btn:active:not(:disabled),
 .chip:active, .view-nav__link:active, .empty-state__action:active, .google-btn:active { transform: scale(0.97); }
@@ -5504,7 +5509,7 @@ html.month-transition::view-transition-new(month-label) { animation: 320ms var(-
 .sync-status.is-done .sync-status__done { display: block; }
 
 /* The header picks up a soft shadow once the page is scrolled. */
-.topbar { transition: box-shadow 260ms ease, background-color 260ms ease, border-color 260ms ease; }
+.topbar { transition: box-shadow var(--motion-base) var(--ease-out), background-color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out); }
 .topbar.is-scrolled { background-color: var(--glass-3); box-shadow: var(--shadow-3); }
 
 /* Menus ease open from where they're anchored instead of snapping in. */
