@@ -84,7 +84,7 @@
   --surface: #F7F8F4;
 
   /* Glass layers, weakest to strongest:
-     well (set into a card) < control < 1 (cards) < 2 (hero, bars, nav)
+     well (set into a card) < control < 1 (cards) < 2 (bars, nav)
      < 3 (menus, dialogs: solid enough to read over anything). */
   --glass-well: rgba(255, 255, 255, 0.34);
   --glass-control: rgba(255, 255, 255, 0.6);
@@ -166,8 +166,8 @@
   --glass-well: rgba(0, 0, 0, 0.18);
   --glass-control: rgba(255, 255, 255, 0.07);
   /* Cards: a dark tint, mostly opaque, so text and charts have a steady backing rather than the glow behind them. */
-  --glass-1: rgba(22, 28, 26, 0.92);
-  --glass-2: rgba(28, 35, 32, 0.94);
+  --glass-1: rgba(22, 28, 26, 0.9);
+  --glass-2: rgba(28, 35, 32, 0.82);
   --glass-3: rgba(26, 33, 30, 0.86);
   --glass-bar: rgba(20, 26, 24, 0.66);
   --glass-hover: rgba(255, 255, 255, 0.13);
@@ -1388,15 +1388,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* ==========================================================================
    Stat tiles
    ========================================================================== */
-
-/* The headline card: the strongest glass on the page, lit from its corner. */
-.hero-tile {
-  background:
-    radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--gold) 13%, transparent), transparent 70%),
-    radial-gradient(80% 70% at 0% 100%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%),
-    var(--glass-sheen),
-    var(--glass-2);
-}
 
 .stats-grid {
   display: grid;
@@ -5587,9 +5578,8 @@ html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
     pointer-events: none;
   }
 
-  /* Cards rest a little below full brightness, and light up under the pointer. The headline card is always lit. */
+  /* Cards rest a little below full brightness, and light up under the pointer. */
   .tile::before { opacity: 0.8; transition: opacity var(--transition-lift); }
-  .hero-tile::before { opacity: 1; }
   @media (hover: hover) {
     .stat-tile:hover::before, .chart-tile:hover::before { opacity: 1; }
   }
