@@ -34,7 +34,7 @@
 
 import { initPageHeading, initUserMenu, localDataCleared, signOut } from './auth.js';
 import { budgetEditHeader, budgetSliders, endBudgetEditHeader, endBudgetSliders } from './budget-sliders.js';
-import { fade, htmlTooltip } from './chart-kit.js';
+import { barEntrance, donutEntrance, fade, htmlTooltip } from './chart-kit.js';
 import { categoryIcon } from './category-icons.js';
 import { accountsReady, CALENDAR_EVENTS, pageSession, saveDataCache, TRANSACTIONS } from './data.js';
 import { openDatePicker } from './datepicker.js';
@@ -1438,7 +1438,7 @@ function renderHomeTrips(models) {
       cutout: '84%',
       layout: { padding: 8 },
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      animation: drawn ? { duration: 350 } : { duration: 1100, easing: 'easeOutQuart' },
+      animation: drawn ? { duration: 350 } : donutEntrance(),
       onHover: (_event, elements) => setActive(entries.length && elements.length ? elements[0].index : null),
       onClick: (_event, elements) => setActive(elements.length && elements[0].index !== active ? elements[0].index : null),
     },
@@ -1575,7 +1575,7 @@ function renderHomeCompare(models) {
           ticks: { padding: 10, color: text, font: { family: 'Fraunces', size: 14 } },
         },
       },
-      animation: drawn ? { duration: 400 } : { duration: 900, easing: 'easeOutQuart' },
+      animation: drawn ? { duration: 400 } : barEntrance(),
     },
   });
 }
@@ -1864,6 +1864,7 @@ function openTrip(id) {
     view.trip = id;
     syncStepper();
     render();
+    motion.reveal(); // the new view's cards play their entrance as it slides in
   });
 }
 

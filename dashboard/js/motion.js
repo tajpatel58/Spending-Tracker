@@ -6,9 +6,11 @@
  *   - Headline figures count to their new value whenever they change
  *     (first load counts up from zero).
  *   - After a data refresh, cards whose figure changed glow briefly.
- *   - On first load, cards in view rise into place one after another;
- *     cards further down rise in (and replay their charts) as you scroll
- *     to them.
+ *   - The entrance is one timeline across the page: the heading's words
+ *     arrive, then cards clear from frosted glass in a wave from the top
+ *     left. As each card lands, a light runs round its rim and everything
+ *     in it plays together: charts draw in, bars grow, figures count up.
+ *     Cards further down do the same as you scroll to them.
  *   - Switching month slides the page the way you moved (swiping
  *     sideways on a phone does it too — see filters.js).
  *   - Once you scroll, the header gains a soft shadow. On wider screens,
@@ -34,6 +36,7 @@ export const motion = (() => {
   // ---------- Counting figures ----------
 
   const ease = (t) => 1 - (1 - t) ** 3; // ease-out cubic
+  const easeExpo = (t) => (t >= 1 ? 1 : 1 - 2 ** (-10 * t)); // the entrance's long, soft landing
 
   /** Splits "−£1,234.56/mo" into prefix, number, decimals, separators and suffix. */
   function parse(text) {
@@ -75,14 +78,18 @@ export const motion = (() => {
     setTimeout(() => tile.classList.remove('is-changed'), 1800);
   }
 
-  function countTo(el) {
-    const target = el.textContent;
+  /**
+   * Counts a figure to its value: from what it showed before, or with
+   * `fresh` (the entrance) from zero, to the value it last settled on.
+   */
+  function countTo(el, { fresh = false, duration = 650 } = {}) {
+    const target = fresh ? (shown.get(el) ?? el.textContent) : el.textContent;
     const to = parse(target);
     const before = shown.get(el) || '';
-    const from = parse(before);
+    const from = fresh ? null : parse(before);
     shown.set(el, target);
     cancelAnimationFrame(frames.get(el));
-    if (before !== target && from && Date.now() < flashUntil) flash(el);
+    if (!fresh && before !== target && from && Date.now() < flashUntil) flash(el);
     // Animate plain numeric text, or a money figure whose only markup is its
     // £ sign and pence (moneyMarkup) — not values like "£2.77/day" with a unit.
     const money = el.children.length > 0 && [...el.children].every((child) => child.matches('.money__sym, .money__pence'));
@@ -91,7 +98,7 @@ export const motion = (() => {
     const start = from && from.prefix === to.prefix ? from.value : 0;
     if (start === to.value) return;
 
-    const duration = 650;
+    const easing = fresh ? easeExpo : ease;
     const began = performance.now();
     let last = null;
     let parts = null; // a money figure's [pounds text node, pence span], updated in place
@@ -113,8 +120,10 @@ export const motion = (() => {
         ? [sym.nextSibling, penceEl] : null;
     };
     const step = (now) => {
+      // Something else has written here since (a donut's centre, as a slice is hovered): it wins.
+      if (last !== null && writing.get(el) !== el.textContent) return;
       const t = Math.min(1, (now - began) / duration);
-      const text = t < 1 ? format(start + (to.value - start) * ease(t), to) : target;
+      const text = t < 1 ? format(start + (to.value - start) * easing(t), to) : target;
       if (text !== last || t >= 1) write(text, t >= 1);
       last = text;
       if (t < 1) frames.set(el, requestAnimationFrame(step));
@@ -140,45 +149,111 @@ export const motion = (() => {
 
   // ---------- First-load reveal + scroll-in ----------
 
-  /** Replays a card's chart draw-in (Chart.js) as it comes into view. */
+  /** Replays a card's chart draw-in: a line chart's own (playDrawIn in chart-kit.js), or Chart.js's. */
   function replay(tile) {
     tile.querySelectorAll('canvas').forEach((canvas) => {
       const chart = typeof Chart !== 'undefined' && Chart.getChart(canvas);
-      if (chart) { chart.reset(); chart.update(); }
+      if (!chart) return;
+      if (chart.$replay) chart.$replay();
+      else { chart.reset(); chart.update(); }
     });
   }
 
+  const STAGE_MS = 2600; // long enough for everything staged in a card to finish
+  const STAGGERED = '.tx-table tbody tr, .ledger-table tbody tr, .target-beads li, .allocation__slice, .breakdown-bar__seg, .trip-split i, .budget-strip__bar';
+
   /**
-   * Cards already on screen rise into place one after another; cards
-   * further down wait, then rise in as they're scrolled into view.
+   * Plays everything inside a card in time with its landing, `lag` ms from
+   * now. The page draws before it's seen (behind the launch mark, or below
+   * the fold), so the card's bars, sparklines and lists have already animated:
+   * this restarts each from the moment the card arrives, whatever it is.
+   * `.is-staging` switches on what only the entrance does (see "The entrance"
+   * in styles.css), so later edits and redraws stay quiet.
+   */
+  function stage(tile, lag) {
+    tile.querySelectorAll('.category-matrix tbody tr').forEach((row, r) => {
+      [...row.cells].forEach((cell, c) => cell.style.setProperty('--wave', Math.min(r + c, 22)));
+    });
+    tile.querySelectorAll(STAGGERED).forEach((el) => {
+      const siblings = [...el.parentElement.children];
+      el.style.setProperty('--i', Math.min(siblings.indexOf(el), 16));
+    });
+    tile.classList.add('is-staging');
+
+    const start = document.timeline.currentTime + lag;
+    tile.getAnimations({ subtree: true }).forEach((animation) => {
+      const { effect } = animation;
+      if (!(animation instanceof CSSAnimation) || !effect) return;
+      if (effect.target === tile && !effect.pseudoElement) return; // the card's own arrival
+      if (effect.getTiming().iterations === Infinity) return;
+      animation.startTime = start;
+    });
+    setTimeout(() => replay(tile), lag + 160);
+    tile.querySelectorAll('.stat-tile__value, .donut-center__value').forEach((el) => {
+      setTimeout(() => countTo(el, { fresh: true, duration: 1400 }), lag + 140);
+    });
+  }
+
+  /** The heading's words, each in a span to arrive on its own, then back to plain text. */
+  function splitHeading(heading) {
+    const text = heading?.textContent;
+    if (!text?.trim() || heading.children.length) return;
+    let word = 0;
+    heading.replaceChildren(...text.split(/(\s+)/).map((part) => {
+      if (!part.trim()) return document.createTextNode(part);
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.textContent = part;
+      span.style.setProperty('--w', word++);
+      return span;
+    }));
+    setTimeout(() => { if (heading.textContent === text) heading.textContent = text; }, 1800);
+  }
+
+  let revealRun = 0; // so an earlier entrance doesn't tidy up after a newer one
+
+  /**
+   * Plays the page's entrance (first load, or a new view of the same page).
+   * Cards on screen arrive in a wave from the top left, timed by where they
+   * sit; cards further down wait, then arrive as they're scrolled into view.
    */
   function reveal() {
     if (reduced()) return;
+    const run = ++revealRun;
+    document.querySelectorAll('.reveal-now, .reveal-in, .reveal-pending, .is-staging').forEach((el) => {
+      el.classList.remove('reveal-now', 'reveal-in', 'reveal-pending', 'is-staging');
+    });
     const items = [...document.querySelectorAll('main .page-heading, main .section-eyebrow, main .tile')]
       .filter((el) => !el.closest('[hidden]') && !el.hidden);
-    const inView = (el) => el.getBoundingClientRect().top < window.innerHeight - 40;
+    // A card just peeking over the fold waits: its entrance would play where it can't be seen.
+    const inView = (el) => el.getBoundingClientRect().top < window.innerHeight * 0.88;
 
-    const now = items.filter(inView);
-    now.forEach((el, i) => el.style.setProperty('--reveal-i', Math.min(i, 12)));
-    document.body.classList.add('is-revealing');
-    now.forEach((el) => el.classList.add('reveal-now'));
-    setTimeout(() => {
-      document.body.classList.remove('is-revealing');
-      now.forEach((el) => { el.classList.remove('reveal-now'); el.style.removeProperty('--reveal-i'); });
-    }, 1200);
+    const arrive = (el, lag, className) => {
+      el.style.setProperty('--reveal-delay', `${Math.round(lag)}ms`);
+      el.classList.add(className);
+      if (el.classList.contains('tile')) stage(el, lag);
+      setTimeout(() => {
+        if (run !== revealRun) return;
+        el.classList.remove(className, 'is-staging');
+        el.style.removeProperty('--reveal-delay');
+      }, lag + STAGE_MS);
+    };
+
+    splitHeading(document.querySelector('main .page-heading h1'));
+    items.filter(inView).forEach((el) => {
+      const box = el.getBoundingClientRect();
+      arrive(el, Math.min(620, 50 + Math.max(0, box.top) * 0.3 + Math.max(0, box.left) * 0.2), 'reveal-now');
+    });
 
     const later = items.filter((el) => !inView(el));
     if (!later.length || !('IntersectionObserver' in window)) return;
     later.forEach((el) => el.classList.add('reveal-pending'));
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
+      entries.filter((entry) => entry.isIntersecting).forEach((entry, i) => {
         const el = entry.target;
         observer.unobserve(el);
         el.classList.remove('reveal-pending');
-        el.classList.add('reveal-in');
-        replay(el);
-        setTimeout(() => el.classList.remove('reveal-in'), 800);
+        if (run === revealRun) arrive(el, i * 90, 'reveal-in');
       });
     }, { rootMargin: '0px 0px -12% 0px' });
     later.forEach((el) => observer.observe(el));
@@ -383,18 +458,35 @@ export const motion = (() => {
 
   // ---------- Card rim light ----------
 
-  /** The glass edge of a summary card catches the light nearest the pointer. */
+  const TILT = 2.6; // degrees a small card leans at its corners
+
+  /**
+   * The glass edge of a summary card catches the light nearest the pointer,
+   * and the small figure cards lean towards it. Cards holding a chart stay
+   * flat, so the pointer's position on the chart stays true.
+   */
   function rimLight() {
     if (reduced() || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
     let latest = null; // the newest position, drawn once per frame
+    let tilted = null;
+    const untilt = () => {
+      tilted?.style.removeProperty('--tilt-x');
+      tilted?.style.removeProperty('--tilt-y');
+      tilted = null;
+    };
     const draw = () => {
       const { target, clientX, clientY } = latest;
       latest = null;
       const tile = target instanceof Element && target.closest('.stat-tile, .chart-tile');
+      if (tile !== tilted) untilt();
       if (!tile) return;
       const box = tile.getBoundingClientRect();
       tile.style.setProperty('--rim-x', `${clientX - box.left}px`);
       tile.style.setProperty('--rim-y', `${clientY - box.top}px`);
+      if (!tile.matches('.stat-tile:not(.hero-tile)') || tile.querySelector('canvas')) return;
+      tilted = tile;
+      tile.style.setProperty('--tilt-x', `${(0.5 - (clientY - box.top) / box.height) * TILT * 2}deg`);
+      tile.style.setProperty('--tilt-y', `${((clientX - box.left) / box.width - 0.5) * TILT * 2}deg`);
     };
     document.addEventListener('pointermove', (e) => {
       if (!latest) requestAnimationFrame(draw);

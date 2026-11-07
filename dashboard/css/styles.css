@@ -60,6 +60,8 @@
   --backdrop-float: blur(var(--blur-lg)) saturate(170%);
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1); /* quick start, soft landing — used for all entrances */
   --ease-sheet: cubic-bezier(0.16, 0.84, 0.24, 1); /* a sheet arriving: fast, then a long settle */
+  --ease-luxe: cubic-bezier(0.16, 1, 0.3, 1); /* the entrance: a long, soft landing */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* small things popping into place, just past and back */
 
   /* Category palette — consistent across themes */
   --cat-groceries: #D97706;
@@ -1230,7 +1232,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* Summary cards rise a little under the pointer. Tables and the calendar stay
    still: they're worked in, and a moving target is harder to click. */
 @media (hover: hover) {
-  .stat-tile:hover, .chart-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  /* --tilt-*: the small figure cards lean towards the pointer (motion.js rimLight). */
+  .stat-tile:hover, .chart-tile:hover { transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px); box-shadow: var(--shadow-hover); }
 }
 
 .tile__header {
@@ -5389,8 +5392,8 @@ body::after {
   pointer-events: none;
 }
 body::before { background: var(--ambient-wash); }
-body::after { background: var(--ambient-orbs); animation: ambient-in 1400ms ease both; }
-@keyframes ambient-in { from { opacity: 0; } }
+body::after { background: var(--ambient-orbs); animation: ambient-in 2600ms var(--ease-luxe) both; }
+@keyframes ambient-in { from { opacity: 0; transform: scale(1.14); } }
 
 /* ==========================================================================
    Toasts (toast.js) — inverted pill, bottom centre
@@ -5544,19 +5547,8 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
    (figures counting and the first-load reveal are driven by js/motion.js)
    ========================================================================== */
 
-/* First load: cards in view rise into place one after another... */
-.is-revealing .reveal-now {
-  animation: rise-in 560ms var(--ease-out) both;
-  animation-delay: calc(var(--reveal-i, 0) * 45ms);
-}
-/* ...and cards further down rise in as they're scrolled to (motion.js). */
+/* The entrance: see "The entrance" below. Cards further down wait out of sight. */
 .reveal-pending { opacity: 0; transform: translateY(18px); }
-.reveal-pending .budget-item__fill,
-.reveal-pending .budget-item__overflow,
-.reveal-pending .budget-item__limit,
-.reveal-pending .budget-item__pace,
-.reveal-pending .breakdown-bar__seg { animation-play-state: paused; } /* their bars grow on arrival */
-.reveal-in { animation: rise-in 650ms var(--ease-out) both; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } }
 
 /* Bars grow from the left each time they're drawn. */
@@ -5574,13 +5566,12 @@ html.has-pull-refresh { overscroll-behavior-y: none; }
 
 /* A new month's calendar cells cascade in. */
 .calendar__days.is-entering .calendar__day {
-  animation: cell-in 420ms var(--ease-out) both;
+  animation: cell-in 720ms var(--ease-luxe) both;
   animation-delay: calc(var(--cell-i, 0) * 9ms);
 }
-@keyframes cell-in { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+@keyframes cell-in { from { opacity: 0; transform: perspective(500px) translateY(10px) rotateX(-38deg) scale(0.84); } }
 
-/* The selected day's lists fade in as you move between days. */
-.day-list__item { animation: fade-in 260ms ease both; }
+
 @keyframes fade-in { from { opacity: 0; } }
 
 /* Press feedback on controls. */
@@ -6104,6 +6095,169 @@ html.has-sheet, html.has-sheet body { overflow: hidden; }
   .day-column, .statements-card { transition: top var(--tuck-shape); }
   body:has(.topbar.is-tucked) :is(.day-column, .statements-card) { top: 64px; }
 }
+
+/* ==========================================================================
+   The entrance (motion.js reveal and stage)
+   One timeline for the page: the heading's words arrive, then cards clear from
+   frosted glass in a wave from the top left (--reveal-delay is where they sit).
+   As a card lands, a light runs round its rim and its contents play. Everything
+   under .is-staging plays only then; later edits and redraws stay quiet.
+   Delays below are measured from the card's own arrival (motion.js stage).
+   ========================================================================== */
+
+@property --trace-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@property --trace-glow { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+
+.reveal-now, .reveal-in {
+  animation: rise-in 800ms var(--ease-luxe) backwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+.page-heading.reveal-now, .page-heading.reveal-in { animation: none; }
+
+/* The heading, word by word. */
+.page-heading h1 .word {
+  display: inline-block;
+  animation: word-in 1000ms var(--ease-luxe) backwards;
+  animation-delay: calc(var(--w, 0) * 75ms + 60ms);
+}
+.page-heading.reveal-now .page-heading__eyebrow { animation: rise-in 800ms var(--ease-luxe) backwards; }
+.page-heading.reveal-now .page-heading__subtitle { animation: rise-in 900ms var(--ease-luxe) 320ms backwards; }
+@keyframes word-in { from { opacity: 0; transform: translateY(0.5em) rotate(1.5deg); filter: blur(8px); } }
+
+/* Cards: tipped back and rising. Clearing from a blur is kept to the desktop's frosted cards. */
+.tile.reveal-now, .tile.reveal-in {
+  animation-name: card-in-lite;
+  animation-duration: 1100ms;
+  transform-origin: 50% 100%;
+}
+@keyframes card-in-lite { from { opacity: 0; transform: perspective(1100px) translateY(26px) rotateX(5deg) scale(0.98); } }
+@media (min-width: 901px) and (hover: hover) {
+  .stat-tile.reveal-now, .stat-tile.reveal-in,
+  .chart-tile.reveal-now, .chart-tile.reveal-in { animation-name: card-in; }
+}
+@keyframes card-in { from { opacity: 0; transform: perspective(1100px) translateY(36px) rotateX(8deg) scale(0.96); filter: blur(9px); } }
+
+/* A gold light runs once round the rim, and a soft band of it crosses the glass. */
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  .tile.is-staging::before {
+    background:
+      conic-gradient(from var(--trace-angle), transparent 0 66%, color-mix(in srgb, var(--gold) var(--trace-glow), transparent) 86%, color-mix(in srgb, #fff var(--trace-glow), transparent) 92%, transparent 97%),
+      var(--rim);
+    opacity: 1;
+    animation: rim-trace 1700ms cubic-bezier(0.45, 0, 0.3, 1) 180ms backwards;
+  }
+}
+@keyframes rim-trace {
+  0% { --trace-angle: 0deg; --trace-glow: 0%; }
+  18% { --trace-glow: 100%; }
+  78% { --trace-glow: 100%; }
+  100% { --trace-angle: 360deg; --trace-glow: 0%; }
+}
+.stat-tile.is-staging::after,
+.chart-tile.is-staging::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(112deg, transparent 38%, rgba(255, 255, 255, 0.28) 46%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.28) 54%, transparent 62%) no-repeat;
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  animation: glass-sheen 1500ms var(--ease-sheet) 380ms both;
+}
+[data-theme="dark"] .stat-tile.is-staging::after,
+[data-theme="dark"] .chart-tile.is-staging::after { opacity: 0.22; }
+@keyframes glass-sheen { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+
+/* Figure cards: the change pills pop in once the count has nearly settled. */
+.is-staging .stat-tile__delta--pill { animation: pop-in 620ms var(--ease-spring) 720ms backwards; }
+.is-staging .stat-tile__label { animation: rise-in 700ms var(--ease-luxe) 120ms backwards; }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.72); } }
+
+/* Rings spiral open, with a gold ripple behind them, and the centre rises after. */
+.is-staging .chart-tile__canvas-wrap--donut canvas { animation: donut-spiral 1500ms var(--ease-luxe) 60ms backwards; }
+.is-staging .chart-tile__canvas-wrap--donut::before {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ring-ripple 1500ms var(--ease-luxe) 420ms both;
+}
+.is-staging .donut-center { animation: rise-in 900ms var(--ease-luxe) 420ms backwards; }
+@keyframes donut-spiral { from { opacity: 0; transform: rotate(-80deg) scale(0.82); } }
+@keyframes ring-ripple { 0% { opacity: 0; transform: scale(0.8); } 25% { opacity: 0.55; } 100% { opacity: 0; transform: scale(1.14); } }
+
+/* Lists and legends follow the chart in, one row at a time. */
+.is-staging .legend li { animation: legend-in 640ms var(--ease-luxe) backwards; animation-delay: calc(var(--i, 0) * 55ms + 480ms); }
+.is-staging .budget-item { animation: legend-in 640ms var(--ease-luxe) backwards; animation-delay: calc(var(--i, 0) * 70ms + 160ms); }
+.is-staging .highlights__item { animation-duration: 700ms; animation-timing-function: var(--ease-luxe); animation-delay: calc(var(--i, 0) * 90ms + 200ms); }
+.is-staging .highlights__marker { display: inline-block; animation: pop-in 620ms var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 90ms + 300ms); }
+
+/* Bars fill with a glint running along them; an overspend breaks through after,
+   and each tick lands once its bar has passed it. */
+.is-staging .budget-item__fill { position: relative; overflow: hidden; }
+.is-staging .budget-item__fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: bar-glint 1100ms ease-in-out both;
+  animation-delay: calc(var(--i, 0) * 70ms + 750ms);
+}
+@keyframes bar-glint { to { transform: translateX(100%); } }
+.is-staging .budget-item__overflow { transform-origin: left center; animation: grow-x 560ms var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 70ms + 960ms); }
+.is-staging .budget-item__limit,
+.is-staging .budget-item__pace { animation: tick-drop 560ms var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 70ms + 900ms); }
+.is-staging .target-bar__tick { animation: tick-drop 560ms var(--ease-spring) 1000ms backwards; }
+.is-staging .budget-item__note { animation: fade-in 500ms ease backwards; animation-delay: calc(var(--i, 0) * 70ms + 1000ms); }
+@keyframes tick-drop { from { opacity: 0; transform: translateY(-7px) scaleY(0.4); } }
+.is-staging .budget-strip__bar .budget-strip__fill { transform-origin: left center; animation: grow-x 800ms var(--ease-luxe) backwards; animation-delay: calc(var(--i, 0) * 70ms + 260ms); }
+.is-staging .budget-strip__over { animation: fade-in 400ms ease backwards; animation-delay: calc(var(--i, 0) * 70ms + 900ms); }
+.is-staging .target-bar__fill { transform-origin: left center; animation: grow-x 1200ms var(--ease-luxe) 240ms backwards; }
+
+/* Segmented bars fill along their length, part after part. */
+.is-staging .breakdown-bar__seg,
+.is-staging .allocation__slice,
+.is-staging .trip-split i { animation: grow-x 620ms var(--ease-luxe) backwards; animation-delay: calc(var(--i, 0) * 130ms + 240ms); }
+
+/* Summary: the rolling bars spring up, the month beads pop along their row. */
+.is-staging .saved-bars i { animation-timing-function: var(--ease-spring); animation-duration: 800ms; animation-delay: calc(var(--i, 0) * 50ms + 240ms); }
+.is-staging .saved-bars::after { animation: fade-in 700ms ease 800ms backwards; }
+.is-staging .target-beads li { animation: pop-in 560ms var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 60ms + 260ms); }
+
+/* Tables: rows rise in turn, and the category grid's shading washes across diagonally. */
+.is-staging .tx-table tbody tr,
+.is-staging .ledger-table tbody tr { animation: row-in 640ms var(--ease-luxe) backwards; animation-delay: calc(var(--i, 0) * 38ms + 200ms); }
+.is-staging .category-matrix tbody :is(td, th) { animation: cell-wash 620ms var(--ease-luxe) backwards; animation-delay: calc(var(--wave, 0) * 34ms + 180ms); }
+@keyframes row-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes cell-wash { from { opacity: 0; transform: translateY(5px) scale(0.96); } }
+
+/* Calendar: the ripple's cells (cell-in, above) on the card's arrival too, with the week totals and day names after. */
+.is-staging .calendar__days .calendar__day { animation: cell-in 720ms var(--ease-luxe) backwards; animation-delay: calc(var(--cell-i, 0) * 9ms + 150ms); }
+.is-staging .calendar__week { animation: fade-in 600ms ease 620ms backwards; }
+.is-staging .calendar__weekdays span { animation: fade-in 600ms ease 120ms backwards; }
+.day-list__item { animation: legend-in 460ms var(--ease-luxe) backwards; }
+.day-list__item:nth-child(2) { animation-delay: 45ms; }
+.day-list__item:nth-child(3) { animation-delay: 90ms; }
+.day-list__item:nth-child(4) { animation-delay: 135ms; }
+.day-list__item:nth-child(n + 5) { animation-delay: 180ms; }
+
+/* Trips: the place cards lift in. */
+.is-staging .places > li { animation: place-in 860ms var(--ease-luxe) backwards; animation-delay: calc(var(--i, 0) * 80ms + 200ms); }
+@keyframes place-in { from { opacity: 0; transform: translateY(22px) scale(0.94); } }
+
+/* Assistant: the welcome arrives in order, and the suggestions after it. */
+.chat__welcome-mark { animation: pop-in 900ms var(--ease-spring) 80ms backwards; }
+.chat__welcome-title { animation: word-in 1000ms var(--ease-luxe) 180ms backwards; }
+.chat__welcome-sub { animation: rise-in 900ms var(--ease-luxe) 340ms backwards; }
+.chat__suggestion { animation: rise-in 800ms var(--ease-luxe) 460ms backwards; }
+.chat__suggestion:nth-child(2) { animation-delay: 530ms; }
+.chat__suggestion:nth-child(3) { animation-delay: 600ms; }
+.chat__suggestion:nth-child(n + 4) { animation-delay: 670ms; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

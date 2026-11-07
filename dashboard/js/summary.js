@@ -24,7 +24,7 @@
  */
 
 import { initPageHeading, initUserMenu, signOut } from './auth.js';
-import { fade, htmlTooltip, stripePattern } from './chart-kit.js';
+import { barEntrance, drawInLine, fade, htmlTooltip, playDrawIn, stripePattern } from './chart-kit.js';
 import { ACCOUNTS, accountsReady, CATEGORIES, MONTH_LABEL, MONTHS, pageSession } from './data.js';
 import { initAccountFilter, initSwipeStep, pageHooks } from './filters.js';
 import {
@@ -267,9 +267,9 @@ function renderCumulativeChart(months) {
   const canvas = document.getElementById('sum-cumulative-chart');
   if (cumulativeChart) cumulativeChart.destroy();
   canvas.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible');
-  const firstDraw = isFirstDraw('cumulative');
   cumulativeChart = new Chart(canvas, {
     type: 'line',
+    plugins: [drawInLine],
     data: {
       labels: months.map((m) => shortMonth(m.key)),
       datasets: [
@@ -338,9 +338,11 @@ function renderCumulativeChart(months) {
         },
         y: { display: false, suggestedMin: 0, grace: '8%' },
       },
-      animation: firstDraw ? { duration: 1000, easing: 'easeOutQuart' } : { duration: 400 },
+      // The entrance is drawInLine's; before it plays and for later changes, quick.
+      animation: { duration: 400 },
     },
   });
+  cumulativeChart.$replay = () => playDrawIn(cumulativeChart);
 }
 
 // ============================================================
@@ -440,9 +442,7 @@ function renderFlowChart({ months, full }) {
           ticks: { color: faint, padding: 10, maxTicksLimit: 5, font: { family: 'Geist', size: 11 }, callback: (v) => currencyShort(v) },
         },
       },
-      animation: firstDraw
-        ? { duration: 800, easing: 'easeOutQuart', delay: (c) => (c.type === 'data' && c.mode === 'default' ? c.dataIndex * 45 : 0) }
-        : { duration: 450 },
+      animation: firstDraw ? barEntrance({ step: 45 }) : { duration: 450 },
     },
   });
 
@@ -733,9 +733,7 @@ function renderPeopleChart(full, everyone) {
           ticks: { color: faint, padding: 8, maxTicksLimit: 4, font: { family: 'Geist', size: 10.5 }, callback: (v) => currencyShort(v) },
         },
       },
-      animation: firstDraw
-        ? { duration: 700, easing: 'easeOutQuart', delay: (c) => (c.type === 'data' && c.mode === 'default' ? c.dataIndex * 35 : 0) }
-        : { duration: 400 },
+      animation: firstDraw ? barEntrance({ step: 35 }) : { duration: 400 },
     },
   });
 }

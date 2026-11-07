@@ -8,7 +8,7 @@
  * ---------------------------------------------------------------------
  */
 
-import { drawChart, fade, htmlTooltip, stripePattern } from './chart-kit.js';
+import { barEntrance, donutEntrance, drawChart, drawInLine, fade, htmlTooltip, playDrawIn, stripePattern } from './chart-kit.js';
 import { CATEGORIES, MONTH_LABEL, MONTHS, TRANSACTIONS } from './data.js';
 import { setMonth, syncTableFilters } from './filters.js';
 import {
@@ -147,8 +147,8 @@ function renderDonut({ chart, canvasId, legendId, entries, totalLabel, noun, emp
       cutout: '84%',
       layout: { padding: 8 }, // room for the lifted slice
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      // First load (and switching contents): the ring sweeps round; other changes are quick.
-      animation: firstDraw || sweep ? { duration: firstDraw ? 1100 : 750, easing: 'easeOutQuart' } : { duration: 350 },
+      // First load: the ring opens out as it sweeps round. Switching contents: just the sweep. Other changes are quick.
+      animation: firstDraw ? donutEntrance() : sweep ? { duration: 750, easing: 'easeOutQuart' } : { duration: 350 },
       onHover: (_event, elements) => setActive(drawn && elements.length ? elements[0].index : null),
       // Touch screens: a tap highlights a slice; tapping it again selects it (or,
       // without onSelect, clears it), as does tapping the middle.
@@ -715,10 +715,9 @@ export function renderPaceChart(pace) {
 
   const canvas = document.getElementById('pace-chart');
   canvas.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible');
-  const firstDraw = isFirstDraw('pace-chart');
   paceChart = drawChart(paceChart, canvas, {
     type: 'line',
-    plugins: [hoverLine],
+    plugins: [hoverLine, drawInLine],
     data: {
       labels,
       datasets: [
@@ -805,10 +804,11 @@ export function renderPaceChart(pace) {
         },
         y: { display: false, beginAtZero: true, suggestedMax: peak * 1.08 },
       },
-      // First load: the lines rise in slowly; later changes (month, edits) are quick.
-      animation: firstDraw ? { duration: 1000, easing: 'easeOutQuart' } : { duration: 400 },
+      // The entrance is drawInLine's; before it plays and for later changes (month, edits), quick.
+      animation: { duration: 400 },
     },
   });
+  paceChart.$replay = () => playDrawIn(paceChart);
   document.getElementById('pace-legend-this').textContent = monthName;
   document.getElementById('pace-legend-last').textContent = MONTH_LABEL(prevKey).split(' ')[0];
   document.getElementById('pace-legend-last-item').hidden = !prev;
@@ -996,10 +996,8 @@ export function renderTrendChart() {
           ticks: { color: faint, padding: 10, maxTicksLimit: 5, font: { family: 'Geist', size: 11 }, callback: (v) => currencyShort(v) },
         },
       },
-      // First load: bars rise one month after another; afterwards changes are quick.
-      animation: firstDraw
-        ? { duration: 800, easing: 'easeOutQuart', delay: (c) => (c.type === 'data' && c.mode === 'default' ? c.dataIndex * 70 : 0) }
-        : { duration: 450 },
+      // First load: bars spring up one month after another; afterwards changes are quick.
+      animation: firstDraw ? barEntrance() : { duration: 450 },
     },
   });
 }

@@ -342,6 +342,14 @@ function renderAll() {
     calendarView.selectedDate = today.startsWith(month) ? today : heaviest ? heaviest[0] : `${month}-01`;
   }
 
+  // Cells arrive in a ripple from the selected day: their delay is their distance from it, in grid squares.
+  const gridSpot = (d) => [(firstWeekday + d - 1) % 7, Math.floor((firstWeekday + d - 1) / 7)];
+  const [originX, originY] = gridSpot(Number(calendarView.selectedDate.slice(8, 10)));
+  const rippleFrom = (d) => {
+    const [x, y] = gridSpot(d);
+    return Math.round(Math.hypot(x - originX, y - originY) * 10);
+  };
+
   const cells = Array.from({ length: firstWeekday }, () => '<span class="calendar__pad" aria-hidden="true"></span>');
   let weekTotal = 0;
   // Each row ends with that week's total (Mon–Sun, within this month).
@@ -362,7 +370,7 @@ function renderAll() {
     const eventCount = EVENTS_BY_DATE[iso]?.length || 0;
     const label = `${longDate(iso)}: ${value ? currency(value) : 'no spending'}${eventCount ? `, ${plural(eventCount, 'event')}` : ''}`;
     cells.push(`
-      <button type="button" class="${classes}" data-date="${iso}" role="gridcell" aria-label="${label}" aria-pressed="${iso === calendarView.selectedDate}" style="--cell-i:${firstWeekday + d - 1}">
+      <button type="button" class="${classes}" data-date="${iso}" role="gridcell" aria-label="${label}" aria-pressed="${iso === calendarView.selectedDate}" style="--cell-i:${rippleFrom(d)}">
         ${eventCount ? '<span class="calendar__event-dot" aria-hidden="true"></span>' : ''}
         <span class="calendar__date">${d}</span>
         ${categoryDots(days[iso])}
@@ -379,13 +387,13 @@ function renderAll() {
   }
   const grid = document.getElementById('calendar-days');
   grid.innerHTML = cells.join('');
-  // A new month's cells cascade in (only on month changes, not on every day click).
+  // A new month's cells ripple in (only on month changes, not on every day click).
   if (monthChanged) {
     grid.classList.remove('is-entering');
     void grid.offsetWidth; // restart the animation
     grid.classList.add('is-entering');
     clearTimeout(grid.enterTimer);
-    grid.enterTimer = setTimeout(() => grid.classList.remove('is-entering'), 900);
+    grid.enterTimer = setTimeout(() => grid.classList.remove('is-entering'), 1500);
   }
 
   renderDayDetail(days);

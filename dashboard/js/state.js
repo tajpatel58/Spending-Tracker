@@ -103,7 +103,7 @@ export function finishLoading() {
 /** How long (from page start) the launch mark stays up at least: long enough to finish drawing. */
 const LAUNCH_MS = 1500;
 /** Roughly how long the cards, counting figures and charts take to draw in once revealed. */
-const ENTRANCE_MS = 1300;
+const ENTRANCE_MS = 2600;
 
 /**
  * Runs `task` once the page's entrance has played (the launch mark, then
