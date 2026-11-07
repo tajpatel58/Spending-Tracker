@@ -11,7 +11,8 @@
  *     to them.
  *   - Switching month slides the page the way you moved (swiping
  *     sideways on a phone does it too — see filters.js).
- *   - Once you scroll, the header gains a soft shadow.
+ *   - Once you scroll, the header gains a soft shadow. On wider screens,
+ *     scrolling down gathers it into a small pill and scrolling up opens it.
  *   - In the top nav, a soft highlight glides to whichever tab the mouse
  *     is over.
  *   - Clicking a tab notes which way you're moving along the tab bar, so
@@ -241,6 +242,90 @@ export const motion = (() => {
       if (!queued) { queued = true; requestAnimationFrame(update); }
     }, { passive: true });
     update();
+    if (!scroller) tuckHeader(topbar); // the Assistant's page doesn't scroll under its header
+  }
+
+  // ---------- The header tucks away ----------
+
+  const TUCK_FROM = 160; // px down the page before the bar will tuck
+  const TUCK_AFTER = 14; // px of scrolling down that tucks it
+  const SHOW_AFTER = 10; // px of scrolling up that brings it back
+
+  /**
+   * Wider screens only (on a phone the tabs live at the bottom): scrolling
+   * down gathers the floating bar into a small pill at the top of the screen,
+   * so it stops covering the cards, and scrolling up opens it again. So does
+   * reaching the top, or hovering or choosing the pill. It stays open while
+   * it's in use: under the pointer, a menu open, keyboard focus inside it, or
+   * rows selected (its "Hide selected" button is the only way to act on them).
+   */
+  function tuckHeader(topbar) {
+    const wide = window.matchMedia('(min-width: 561px)');
+    const hideButton = topbar.querySelector('#hide-selected-button');
+    const activeLink = topbar.querySelector('.view-nav__link.is-active');
+
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'topbar__pill';
+    pill.setAttribute('aria-label', 'Show navigation');
+    pill.title = 'Show navigation';
+    const mark = topbar.querySelector('.brand__svg')?.cloneNode(true);
+    if (mark) pill.append(mark);
+    const label = document.createElement('span');
+    label.textContent = activeLink?.textContent.trim() || 'Ledger';
+    pill.append(label);
+    topbar.prepend(pill);
+
+    // The bar's glass closes to the pill's width, which depends on the page's name and font.
+    const measure = () => topbar.style.setProperty('--pill-w', `${pill.offsetWidth}px`);
+    measure();
+    document.fonts?.ready.then(measure);
+
+    const inUse = () => topbar.matches(':hover')
+      || Boolean(topbar.querySelector('[aria-expanded="true"], :focus-visible'))
+      || (hideButton && !hideButton.hidden);
+
+    let lastY = 0;
+    let travelled = 0; // how far the page has moved in the current direction
+    let lastScroll = 0;
+    let queued = false;
+    const setTucked = (tucked) => {
+      travelled = 0;
+      topbar.classList.toggle('is-tucked', tucked);
+    };
+
+    const update = () => {
+      queued = false;
+      // Clamped, so a rubber-band bounce at either end doesn't count as a change of direction.
+      const y = Math.min(Math.max(0, window.scrollY), document.documentElement.scrollHeight - window.innerHeight);
+      const moved = y - lastY;
+      lastY = y;
+      if (!moved || !wide.matches) return;
+      if (moved * travelled < 0) travelled = 0;
+      travelled += moved;
+      if (y <= TUCK_FROM || travelled <= -SHOW_AFTER) setTucked(false);
+      else if (travelled >= TUCK_AFTER && !inUse()) setTucked(true);
+    };
+    window.addEventListener('scroll', () => {
+      lastScroll = performance.now();
+      if (!queued) { queued = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    lastY = window.scrollY;
+
+    pill.addEventListener('click', (e) => {
+      setTucked(false);
+      if (e.detail === 0) activeLink?.focus(); // from the keyboard: carry on into the bar
+    });
+    // Not when the page has just scrolled the pill under a resting pointer.
+    pill.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'mouse' && performance.now() - lastScroll > 200) setTucked(false);
+    });
+    wide.addEventListener('change', () => { setTucked(false); measure(); });
+    // Rows selected further down the page: bring back the button that acts on them.
+    if (hideButton) {
+      new MutationObserver(() => { if (!hideButton.hidden) setTucked(false); })
+        .observe(hideButton, { attributes: true, attributeFilter: ['hidden'] });
+    }
   }
 
   // ---------- Nav hover highlight ----------

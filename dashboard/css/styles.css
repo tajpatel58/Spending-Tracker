@@ -5979,8 +5979,135 @@ html.has-sheet, html.has-sheet body { overflow: hidden; }
 .day-column.is-sheet .empty-state__art { display: none; }
 .is-sheet .account-picker__row { min-height: 44px; font-size: var(--fs-body); }
 
+/* ==========================================================================
+   The top bar tucks away (motion.js tuckHeader)
+   Scrolling down, the bar's contents gather towards the middle and fade while
+   its glass closes around them into a small pill; scrolling up reverses it.
+   The glass is on the pseudo-elements so it alone can change shape. Nothing
+   here touches .topbar's own opacity or transform: that would switch off the
+   blur on its ::before. Phones keep their bar: their tabs are fixed inside it.
+   ========================================================================== */
+
+.topbar__pill { display: none; }
+
+@media (min-width: 561px) {
+  .topbar {
+    --pill-w: 132px;
+    --pill-h: 38px;
+    --pill-top: -14px; /* above the bar: 10px from the top of the screen */
+    --tuck-shape: 560ms var(--ease-sheet);
+    transition: none;
+  }
+  .topbar, .topbar.is-scrolled { background: none; box-shadow: none; border-color: transparent; }
+
+  .topbar::before { background: var(--glass-sheen), var(--glass-bar); box-shadow: var(--shadow-2); }
+  .topbar.is-scrolled::before { background-color: var(--glass-3); box-shadow: var(--shadow-3); }
+
+  .topbar::before,
+  .topbar::after {
+    inset: calc(var(--hairline) * -1);
+    transition:
+      top var(--tuck-shape), right var(--tuck-shape), bottom var(--tuck-shape), left var(--tuck-shape),
+      border-radius var(--tuck-shape),
+      box-shadow var(--motion-base) var(--ease-out),
+      background-color var(--motion-base) var(--ease-out);
+  }
+  .topbar.is-tucked::before,
+  .topbar.is-tucked::after {
+    top: var(--pill-top);
+    bottom: calc(100% - var(--pill-top) - var(--pill-h));
+    left: calc(50% - var(--pill-w) / 2);
+    right: calc(50% - var(--pill-w) / 2);
+    border-radius: calc(var(--pill-h) / 2);
+  }
+  /* The bar's deep shadow would smudge the cards under something this small. */
+  .topbar.is-tucked::before { box-shadow: var(--shadow-2); }
+  /* Closing: the glass waits a beat, so the contents have faded before its edges pass them. */
+  .topbar.is-tucked::before,
+  .topbar.is-tucked::after { transition-delay: 70ms, 70ms, 70ms, 70ms, 70ms, 0s, 0s; }
+
+  /* Opening: the glass leads, and the contents settle in behind it from the middle out. */
+  .topbar .view-nav,
+  .topbar .brand,
+  .topbar .topbar__controls {
+    transition:
+      opacity 320ms var(--ease-out) 170ms,
+      transform 560ms var(--ease-sheet) 40ms,
+      filter 320ms var(--ease-out) 170ms,
+      visibility 0s;
+  }
+  /* These sit at the far ends, so they wait until the glass has opened past them. */
+  .topbar .brand, .topbar .topbar__controls { transition-delay: 300ms, 90ms, 300ms, 0s; }
+
+  /* Closing: the contents go first, drawn inwards, then the glass finishes around the pill. */
+  .topbar.is-tucked { pointer-events: none; }
+  .topbar.is-tucked .view-nav,
+  .topbar.is-tucked .brand,
+  .topbar.is-tucked .topbar__controls {
+    opacity: 0;
+    filter: blur(5px);
+    visibility: hidden; /* out of the tab order too */
+    transition:
+      opacity 100ms linear,
+      transform 460ms var(--ease-sheet),
+      filter 100ms linear,
+      visibility 0s 120ms;
+  }
+  .topbar.is-tucked .view-nav { transform: scale(0.97); }
+  .topbar.is-tucked .brand { transform: translateX(32px) scale(0.97); }
+  .topbar.is-tucked .topbar__controls { transform: translateX(-32px) scale(0.97); }
+
+  /* The pill: the monogram and where you are, in the wordmark's spaced capitals. */
+  .topbar__pill {
+    position: absolute;
+    z-index: 1;
+    top: var(--pill-top);
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    height: var(--pill-h);
+    padding: 0 16px 0 7px;
+    border: 0;
+    border-radius: calc(var(--pill-h) / 2);
+    background: none;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) scale(0.94);
+    transition:
+      opacity 130ms var(--ease-out),
+      transform 300ms var(--ease-out),
+      visibility 0s 130ms;
+  }
+  .topbar__pill .brand__svg { width: 24px; height: 24px; flex: none; }
+  .topbar__pill:focus-visible { outline: 1.5px solid var(--ring); outline-offset: 2px; }
+  .topbar.is-tucked .topbar__pill {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%);
+    transition:
+      opacity 300ms var(--ease-out) 170ms,
+      transform 520ms var(--ease-sheet) 90ms,
+      visibility 0s;
+  }
+
+  /* Whatever was held clear of the full bar can rise into the space it leaves. */
+  .day-column, .statements-card { transition: top var(--tuck-shape); }
+  body:has(.topbar.is-tucked) :is(.day-column, .statements-card) { top: 64px; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  .topbar .view-nav, .topbar .brand, .topbar .topbar__controls, .topbar__pill, .topbar::before, .topbar::after { transition-delay: 0s !important; }
   @media (hover: hover) { .stat-tile:hover,
 .chart-tile:hover { transform: none; } }
   * { animation-duration: 0.001ms !important; animation-delay: 0s !important; transition-duration: 0.001ms !important; }
