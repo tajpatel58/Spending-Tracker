@@ -9,9 +9,14 @@
  *     anchor,   // the button that opens it (pressing it again closes it)
  *     label,    // what's being chosen, for screen readers
  *     value,    // the current choice
- *     items,    // [{ value, label, color?, icon? }]; icon is inline SVG
+ *     items,    // [{ value, label, color?, icon?, tone? }]; icon is inline SVG, tone 'danger' sets it in rose
  *     onSelect, // (value) => ..., called only when the choice changes
+ *     point,    // { x, y } on screen, to open there instead of beside the anchor
  *   });
+ *
+ * With a `point` and no `value` it is a right-click menu of actions (the
+ * transactions table): it opens at the pointer, nothing is ticked, and
+ * the anchor (a table row) is marked .has-menu while it's open.
  * ---------------------------------------------------------------------
  */
 
@@ -25,7 +30,7 @@ const EDGE = 8;        // px kept clear of the screen's edges
 const CHECK = '<svg class="menu__check" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor"/></svg>';
 
 let element = null;
-let current = null; // the open menu: { anchor, listeners }
+let current = null; // the open menu: { anchor, listeners, atPoint }
 
 function ensureElement() {
   if (element) return element;
@@ -40,19 +45,22 @@ function ensureElement() {
 /** Closes the open menu, if any; `refocus` returns the keyboard to its button. */
 export function closeMenu({ refocus = false } = {}) {
   if (!current) return;
-  const { anchor, listeners } = current;
+  const { anchor, listeners, atPoint } = current;
   current = null;
   listeners.abort();
   element.hidden = true;
+  if (atPoint) { anchor.classList.remove('has-menu'); return; }
   anchor.setAttribute('aria-expanded', 'false');
   if (refocus) anchor.focus({ preventScroll: true });
 }
 
-/** Beside its button: below if there's room, otherwise whichever side has more. */
-function place(menu, anchor) {
-  menu.style.minWidth = `${Math.max(anchor.getBoundingClientRect().width, 220)}px`;
+/** Beside its button (or at `point`): below if there's room, otherwise whichever side has more. */
+function place(menu, anchor, point) {
+  const button = point
+    ? { left: point.x, right: point.x, top: point.y, bottom: point.y, width: 0 }
+    : anchor.getBoundingClientRect();
+  menu.style.minWidth = `${Math.max(button.width, 220)}px`;
   menu.style.maxHeight = '';
-  const button = anchor.getBoundingClientRect();
   const { offsetWidth: width, offsetHeight: height } = menu; // not its rect: that's scaled while it eases open
   const below = window.innerHeight - button.bottom - GAP - EDGE;
   const above = button.top - GAP - EDGE;
@@ -64,8 +72,8 @@ function place(menu, anchor) {
   menu.style.transformOrigin = opensUp ? 'bottom left' : 'top left';
 }
 
-export function openMenu({ anchor, label, value, items, onSelect }) {
-  if (current?.anchor === anchor) { closeMenu({ refocus: true }); return; }
+export function openMenu({ anchor, label, value, items, onSelect, point }) {
+  if (!point && current?.anchor === anchor) { closeMenu({ refocus: true }); return; }
   closeMenu();
 
   const menu = ensureElement();
@@ -80,7 +88,7 @@ export function openMenu({ anchor, label, value, items, onSelect }) {
           ? `<span class="menu__icon" style="--menu-color:${item.color}">${item.icon}</span>`
           : item.color ? `<span class="chip__dot" style="background:${item.color}" aria-hidden="true"></span>` : '';
         return `
-          <li class="menu__item${selected ? ' is-selected' : ''}" id="menu-option-${i}" role="option" aria-selected="${selected}" data-index="${i}">
+          <li class="menu__item${selected ? ' is-selected' : ''}${item.tone === 'danger' ? ' menu__item--danger' : ''}" id="menu-option-${i}" role="option" aria-selected="${selected}" data-index="${i}">
             ${mark}<span class="menu__label">${escapeAttr(item.label)}</span>${selected ? CHECK : ''}
           </li>`;
       }).join('')}
@@ -89,6 +97,7 @@ export function openMenu({ anchor, label, value, items, onSelect }) {
   const options = [...list.children];
 
   let active = Math.max(0, items.findIndex((item) => item.value === value));
+  const atPoint = Boolean(point);
   const setActive = (index, scroll = true) => {
     active = index;
     options.forEach((option, i) => option.classList.toggle('is-active', i === index));
@@ -102,8 +111,9 @@ export function openMenu({ anchor, label, value, items, onSelect }) {
 
   const listeners = new AbortController();
   const { signal } = listeners;
-  current = { anchor, listeners };
-  anchor.setAttribute('aria-expanded', 'true');
+  current = { anchor, listeners, atPoint };
+  if (atPoint) anchor.classList.add('has-menu');
+  else anchor.setAttribute('aria-expanded', 'true');
 
   list.addEventListener('click', (event) => {
     const option = event.target.closest('[data-index]');
@@ -128,7 +138,7 @@ export function openMenu({ anchor, label, value, items, onSelect }) {
     event.preventDefault();
   }, { signal });
   document.addEventListener('pointerdown', (event) => {
-    if (!menu.contains(event.target) && !anchor.contains(event.target)) closeMenu();
+    if (!menu.contains(event.target) && (atPoint || !anchor.contains(event.target))) closeMenu();
   }, { capture: true, signal });
   if (!phone) {
     // A floating menu would be left behind by the page, so it closes instead.
@@ -140,7 +150,7 @@ export function openMenu({ anchor, label, value, items, onSelect }) {
   if (phone) {
     menu.style.cssText = ''; // the sheet's own position applies
   } else {
-    place(menu, anchor);
+    place(menu, anchor, point);
   }
   list.focus({ preventScroll: true });
   setActive(active);

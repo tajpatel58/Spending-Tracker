@@ -18,8 +18,9 @@
 
 import { initPageHeading, initUserMenu, signOut } from './auth.js';
 import { ACCOUNTS, accountsReady, MONTH_LABEL, MONTHS, pageSession, TRANSACTIONS } from './data.js';
-import { initAccountFilter, initMonthSelect, pageHooks, renderMonthOptions } from './filters.js';
+import { initAccountFilter, initMonthSelect, pageHooks, renderMonthOptions, setMonth } from './filters.js';
 import {
+  applyMood,
   coverageLine,
   daysIn,
   EVENTS_BY_DATE,
@@ -47,6 +48,7 @@ import {
   state,
 } from './state.js';
 import { asSheet, isPhone } from './sheet.js';
+import { providePalette } from './palette.js';
 import { initSync } from './sync.js';
 import { initTheme, toggleTheme } from './theme.js';
 
@@ -298,6 +300,7 @@ function renderAll() {
   const total = totals.reduce((s, v) => s + v, 0);
 
   document.getElementById('page-subtitle').textContent = `Daily spending — ${coverageLine(month)}`;
+  applyMood(month);
 
   // ---- Stat tiles ----
   const spendDays = totals.filter((v) => v > 0).length;
@@ -559,8 +562,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMonthSelect();
     initCalendarInteractions();
 
+    providePalette({ transactions: TRANSACTIONS, month: () => state.month, setMonth }); // quick find (⌘K) changes month in place
+
     renderAll();
     finishLoading();
+    document.addEventListener('ledger:discreet-changed', renderAll); // figures hidden or shown (discreet.js)
     initSync({
       onChange: () => {
         indexEvents();

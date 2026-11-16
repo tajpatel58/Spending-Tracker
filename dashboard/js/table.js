@@ -24,11 +24,13 @@ import {
   TRANSACTIONS,
 } from './data.js';
 import { openDatePicker } from './datepicker.js';
-import { renderMonthOptions } from './filters.js';
+import { isDiscreet } from './discreet.js';
+import { renderMonthOptions, setSearch } from './filters.js';
 import { currency, escapeAttr, formatDate, remembered } from './format.js';
 import { scheduleRender } from './main.js';
 import { openMenu } from './menu.js';
 import { closeOpenRow, initRowSwipe } from './row-swipe.js';
+import { isPhone } from './sheet.js';
 import { accountById, catById, getFilteredTransactions, isExpense, state } from './state.js';
 import { showToast } from './toast.js';
 import {
@@ -62,10 +64,10 @@ function sortTransactions(txs) {
  * The clickable date shown in a row. `extraClass` distinguishes the
  * desktop date column from the date inside the mobile account line.
  */
-function dateButton(t, extraClass) {
+function dateButton(t, extraClass, attrs = '') {
   const edited = t.date !== t.originalDate;
   const title = edited ? `Moved from ${formatDate(t.originalDate)} — click to change` : 'Change date';
-  return `<button type="button" class="date-button ${extraClass}${edited ? ' is-edited' : ''}" data-tx-id="${t.id}"
+  return `<button type="button" class="date-button ${extraClass}${edited ? ' is-edited' : ''}" data-tx-id="${t.id}"${attrs}
     aria-haspopup="dialog" aria-expanded="false" title="${title}" aria-label="Date ${formatDate(t.date)}${edited ? `, moved from ${formatDate(t.originalDate)}` : ''}. Change date">${formatDate(t.date)}</button>`;
 }
 
@@ -89,8 +91,18 @@ const CATEGORY_ITEMS = CATEGORIES.map((c) => ({ value: c.id, label: c.label, col
 // Phones: rows read as plain text, and the one being edited (from its Edit action) has its fields switched on.
 let editingRowId = null;
 
+/**
+ * True with a mouse or trackpad on a wider screen: there a row's name, date and
+ * amount are plain text until "Edit" in its right-click menu switches them on
+ * (the same rule as "Editing from the right-click menu" in styles.css). Phones
+ * use the swipe actions; other touch screens edit in place.
+ */
+const editsFromMenu = () => !isPhone() && window.matchMedia('(hover: hover)').matches;
+
 /** One transaction row. */
 function transactionRow(t) {
+  // Where editing starts from the right-click menu, a row's fields stay out of the Tab order until then.
+  const locked = editsFromMenu() && t.id !== editingRowId ? ' tabindex="-1"' : '';
   const cat = catById[t.category];
   const acc = accountById[t.account];
   const selected = state.selectedTransactionIds.has(t.id);
@@ -107,9 +119,9 @@ function transactionRow(t) {
             </label>
           </td>
           <td class="tx-table__merchant">
-            <input type="text" class="merchant-input" data-tx-id="${t.id}" value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
+            <input type="text" class="merchant-input" data-tx-id="${t.id}"${locked} value="${escapeAttr(t.merchant)}" aria-label="Rename merchant">
           </td>
-          <td class="tx-table__date">${dateButton(t, 'date-button--column')}</td>
+          <td class="tx-table__date">${dateButton(t, 'date-button--column', locked)}</td>
           <td class="tx-table__account"><span class="tx-table__meta-date">${dateButton(t, 'date-button--meta')} · </span>${acc.groupLabel} · ${acc.bank}<span class="tx-table__account-id"> · ${acc.label}</span></td>
           <td class="tx-table__category">
             <span class="category-badge">
@@ -125,10 +137,10 @@ function transactionRow(t) {
           </td>
           <td class="tx-table__amount">
             <!-- The typeset amount ("−£60.72"); the number field sits over it
-                 and only shows while it's being edited. -->
+                 and only shows while it's being edited (not at all in discreet mode). -->
             <span class="amount-edit${t.amount > 0 ? ' is-credit' : ''}">
               <span class="amount-display" aria-hidden="true">${t.amount > 0 ? '+' : ''}${currency(t.amount)}</span>
-              <input type="number" step="0.01" class="amount-input" data-tx-id="${t.id}" value="${amount}" aria-label="Edit amount">
+              <input type="number" step="0.01" class="amount-input" data-tx-id="${t.id}" value="${amount}" aria-label="Edit amount"${locked}${isDiscreet() ? ' disabled' : ''}>
             </span>
           </td>
         </tr>
@@ -250,6 +262,17 @@ export function initTableEditing() {
     });
   };
 
+  /** Switches a row's fields on (its name, amount and date) and puts the caret at the end of its name. */
+  const startEditing = (row, txId) => {
+    body.querySelector('tr.is-editing')?.classList.remove('is-editing');
+    editingRowId = txId;
+    row.classList.add('is-editing');
+    row.querySelectorAll('[tabindex="-1"]').forEach((control) => control.removeAttribute('tabindex'));
+    const merchant = row.querySelector('.merchant-input');
+    merchant.focus({ preventScroll: true });
+    merchant.setSelectionRange(merchant.value.length, merchant.value.length);
+  };
+
   // A row's swipe actions (row-swipe.js): Edit switches its fields on, Hide hides it.
   body.addEventListener('click', (e) => {
     const action = e.target.closest('[data-swipe]');
@@ -257,23 +280,30 @@ export function initTableEditing() {
     const row = action.closest('tr');
     closeOpenRow();
     if (action.dataset.swipe === 'hide') { hideWithUndo([action.dataset.row]); return; }
-    editingRowId = action.dataset.row;
-    row.classList.add('is-editing');
-    const merchant = row.querySelector('.merchant-input');
-    merchant.focus({ preventScroll: true });
-    merchant.setSelectionRange(merchant.value.length, merchant.value.length);
+    startEditing(row, action.dataset.row);
   });
   body.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.closest('tr.is-editing')) e.target.blur();
   });
   // Leaving the row switches its fields back off. A tick later, as saving rebuilds the table and puts focus back.
-  body.addEventListener('focusout', () => {
-    setTimeout(() => {
-      if (!editingRowId || document.activeElement?.closest('tr.is-editing')) return;
-      editingRowId = null;
-      body.querySelector('tr.is-editing')?.classList.remove('is-editing');
-    });
+  // Not while its date is being changed: the row is still in use while it's being pressed (Safari doesn't
+  // give a clicked button focus, so the name field's blur would otherwise lock the date before the click
+  // lands) and while its date picker is open.
+  let pressingRow = false;
+  const leaveEditing = () => setTimeout(() => {
+    if (!editingRowId || pressingRow) return;
+    const row = body.querySelector('tr.is-editing');
+    const focused = document.activeElement;
+    if (focused?.closest('tr.is-editing, .datepicker') || row?.querySelector('.date-button[aria-expanded="true"]')) return;
+    editingRowId = null;
+    row?.classList.remove('is-editing');
+    if (editsFromMenu()) row?.querySelectorAll('.merchant-input, .amount-input, .date-button--column').forEach((control) => { control.tabIndex = -1; });
   });
+  body.addEventListener('focusout', leaveEditing);
+  body.addEventListener('pointerdown', (e) => { pressingRow = Boolean(e.target.closest('tr.is-editing')); });
+  // A click anywhere ends a press; one outside the row (which also closes its date picker) ends the edit.
+  document.addEventListener('click', () => { pressingRow = false; leaveEditing(); });
+  document.addEventListener('pointercancel', () => { pressingRow = false; });
 
   /** Moves a transaction to another category (with Undo). */
   const changeCategory = (txId, next) => {
@@ -367,6 +397,51 @@ export function initTableEditing() {
       original: tx.originalDate,
       onSelect: (manualDate) => changeTransactionDate(tx, manualDate),
     });
+  });
+
+  // Right-click a row (mouse and trackpad): its actions in one menu, at the pointer.
+  // There, "Edit" is the only way into a row's name, date and amount (its category
+  // keeps its dropdown). Shift+right-click, or a field being typed in, keeps the
+  // browser's own menu.
+  const icon = (paths) => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">${paths}</svg>`;
+  const ROW_ACTIONS = [
+    { value: 'only', icon: icon('<circle cx="11" cy="11" r="6.5" stroke="currentColor"/><path d="M20 20l-4.2-4.2" stroke="currentColor"/>') },
+    { value: 'edit', label: 'Edit', icon: icon('<path d="M4.5 19.5l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3l-10 10-4 1.5ZM13.5 7l3 3" stroke="currentColor"/>') },
+    { value: 'hide', label: 'Hide', tone: 'danger', icon: icon('<path d="M4 4l16 16M9.9 5.3A9.6 9.6 0 0 1 12 5c5.2 0 8.5 4.6 9.3 7a11 11 0 0 1-2.6 3.9M6.4 6.9A11.6 11.6 0 0 0 2.7 12c.8 2.4 4.1 7 9.3 7a9.3 9.3 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2" stroke="currentColor"/>') },
+  ];
+  body.addEventListener('contextmenu', (e) => {
+    if (e.shiftKey || !editsFromMenu()) return;
+    if (e.target.matches('.merchant-input, .amount-input') && e.target === document.activeElement) return;
+    const row = e.target.closest('tr');
+    const txId = row?.querySelector('.hide-checkbox')?.dataset.txId; // a day heading has none
+    const tx = txId && (TRANSACTIONS[state.month] || []).find((t) => t.id === txId);
+    if (!tx) return;
+    e.preventDefault();
+    openMenu({
+      anchor: row,
+      point: { x: e.clientX, y: e.clientY },
+      label: `Actions for ${tx.merchant}`,
+      items: ROW_ACTIONS.map((action) => ({
+        ...action,
+        label: action.value === 'only' ? `Show only ${tx.merchant}` : action.label,
+        color: action.tone === 'danger' ? 'var(--rose)' : 'var(--text-muted)',
+      })),
+      onSelect: (action) => {
+        if (action === 'only') setSearch(tx.merchant);
+        else if (action === 'hide') hideWithUndo([txId]);
+        else if (action === 'edit') {
+          // The table may have been redrawn since the menu opened: find the row again.
+          const current = body.querySelector(`.hide-checkbox[data-tx-id="${CSS.escape(txId)}"]`)?.closest('tr');
+          if (current) startEditing(current, txId);
+        }
+      },
+    });
+  });
+  // Esc in a row being edited puts the field back as it was and leaves it.
+  body.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !e.target.matches('.merchant-input, .amount-input') || !e.target.closest('tr.is-editing')) return;
+    e.target.value = e.target.defaultValue;
+    e.target.blur();
   });
 
   document.getElementById('hide-selected-button').addEventListener('click', () => {

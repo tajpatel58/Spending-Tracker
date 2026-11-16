@@ -7,6 +7,8 @@
  * ---------------------------------------------------------------------
  */
 
+import { isDiscreet, toggleDiscreet } from './discreet.js';
+import { openPalette } from './palette.js';
 import { toggleTheme } from './theme.js';
 
 export const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -255,6 +257,37 @@ export function initUserMenu(session) {
     menu.classList.remove('is-open');
     button.setAttribute('aria-expanded', 'false');
   };
+
+  // Quick find (palette.js): a row for the mouse and for phones; the keyboard has ⌘K.
+  const find = document.createElement('button');
+  find.type = 'button';
+  find.className = 'user-menu__signout user-menu__find';
+  find.setAttribute('role', 'menuitem');
+  find.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor"/><path d="M20 20l-4.2-4.2" stroke="currentColor"/></svg>
+    <span>Quick find</span>
+    <kbd class="palette__key">${/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K'}</kbd>`;
+  document.getElementById('signout-button').before(find);
+  find.addEventListener('click', () => { close(); openPalette(); });
+
+  // Discreet mode (discreet.js): hides every money figure until it's chosen again.
+  const hide = document.createElement('button');
+  hide.type = 'button';
+  hide.id = 'discreet-toggle';
+  hide.className = 'user-menu__signout';
+  hide.setAttribute('role', 'menuitemcheckbox');
+  hide.innerHTML = `
+    <svg class="icon--eye" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.7 12C3.5 9.6 6.8 5 12 5s8.5 4.6 9.3 7c-.8 2.4-4.1 7-9.3 7s-8.5-4.6-9.3-7Z" stroke="currentColor"/><circle cx="12" cy="12" r="3" stroke="currentColor"/></svg>
+    <svg class="icon--eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4l16 16M9.9 5.3A9.6 9.6 0 0 1 12 5c5.2 0 8.5 4.6 9.3 7a11 11 0 0 1-2.6 3.9M6.4 6.9A11.6 11.6 0 0 0 2.7 12c.8 2.4 4.1 7 9.3 7a9.3 9.3 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2" stroke="currentColor"/></svg>
+    <span></span>`;
+  const syncHide = () => {
+    hide.querySelector('span').textContent = isDiscreet() ? 'Show figures' : 'Hide figures';
+    hide.setAttribute('aria-checked', String(isDiscreet()));
+  };
+  syncHide();
+  document.addEventListener('ledger:discreet-changed', syncHide);
+  find.before(hide);
+  hide.addEventListener('click', () => { close(); toggleDiscreet(); });
 
   button.addEventListener('click', (event) => {
     event.stopPropagation();

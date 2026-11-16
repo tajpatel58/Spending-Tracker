@@ -1129,6 +1129,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .icon-btn--accent:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
 }
 
+/* Discreet mode (discreet.js): its row in the account menu shows a closed eye, in gold, while figures are hidden. */
+.icon--eye-off { display: none; }
+[data-discreet] .icon--eye { display: none; }
+[data-discreet] .icon--eye-off { display: inline; }
+[data-discreet] #discreet-toggle { color: var(--gold-strong); }
+
 /* Theme toggle icon swap */
 .icon--moon { display: none; }
 [data-theme="dark"] .icon--sun { display: none; }
@@ -5374,6 +5380,129 @@ body.chat-page {
 
 
 /* ==========================================================================
+   Quick find (palette.js) — ⌘K
+   ========================================================================== */
+
+/* A glass panel a little above the middle of a dimmed, blurred page: the
+   search line, what it finds in groups, and the keys along the foot. */
+.palette {
+  width: min(560px, calc(100vw - 24px));
+  max-height: min(520px, calc(100dvh - 18vh - 24px));
+  margin: 18vh auto auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--glass-3);
+  -webkit-backdrop-filter: var(--backdrop-float);
+  backdrop-filter: var(--backdrop-float);
+  border: var(--hairline) solid var(--tile-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3);
+}
+.palette[open] { display: flex; flex-direction: column; animation: dialog-in 240ms var(--ease-out) backwards; }
+.palette::backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(var(--blur-sm)); backdrop-filter: blur(var(--blur-sm)); }
+
+.palette__field {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  color: var(--text-faint);
+  border-bottom: var(--hairline) solid var(--border);
+}
+.palette__field svg { flex: none; width: 18px; height: 18px; }
+.palette__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 16px; /* and no smaller: iOS zooms the page into anything under 16px */
+  letter-spacing: -0.01em;
+  color: var(--text);
+  background: none;
+  border: none;
+  outline: none;
+}
+.palette__input::placeholder { color: var(--text-faint); }
+
+/* A key: a small raised cap, as printed on the keyboard. */
+.palette__key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--glass-control);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: var(--control-shine);
+}
+
+.palette__results { flex: 1; min-height: 0; padding: var(--space-2); overflow-y: auto; overscroll-behavior: contain; }
+.palette__group {
+  margin: 0;
+  padding: var(--space-3) var(--space-3) 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.palette__group:first-child { padding-top: 6px; }
+.palette__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 9px var(--space-3);
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.palette__icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 20px; color: var(--text-muted); }
+.palette__icon svg { width: 16px; height: 16px; }
+.palette__dot { width: 9px; height: 9px; border-radius: 3px; }
+.palette__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette__hint { flex: none; font-size: 12px; color: var(--text-faint); }
+/* The row Enter will open: lifted, its icon and note in gold. */
+.palette__item.is-active { background: var(--surface-alt); box-shadow: inset 0 0 0 var(--hairline) var(--border); }
+.palette__item.is-active .palette__icon,
+.palette__item.is-active .palette__hint { color: var(--gold-strong); }
+.palette__empty { margin: 0; padding: var(--space-8) var(--space-4); font-size: 13.5px; text-align: center; color: var(--text-faint); }
+
+.palette__foot {
+  display: flex;
+  flex: none;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 10px var(--space-5);
+  font-size: 11.5px;
+  color: var(--text-faint);
+  background: color-mix(in srgb, var(--surface-alt) 70%, transparent);
+  border-top: var(--hairline) solid var(--border);
+}
+.palette__foot span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Its row in the account menu, with the keys that open it. */
+.user-menu__find .palette__key { margin-left: auto; }
+
+/* Touch screens have no keys to show; phones hold the panel near the top, clear of the keyboard. */
+@media (hover: none) {
+  .palette__foot, .palette__field .palette__key, .user-menu__find .palette__key { display: none; }
+}
+@media (max-width: 560px) {
+  .palette { margin-top: calc(12px + env(safe-area-inset-top)); max-height: min(520px, calc(100dvh - 24px - env(safe-area-inset-top))); }
+  .palette__item { padding: 11px var(--space-3); font-size: var(--fs-lead); }
+  .palette__hint { font-size: var(--fs-caption); }
+}
+
+/* ==========================================================================
    Ambience — the light behind the glass
    ========================================================================== */
 
@@ -5394,6 +5523,54 @@ body::after {
 body::before { background: var(--ambient-wash); }
 body::after { background: var(--ambient-orbs); animation: ambient-in 2600ms var(--ease-luxe) both; }
 @keyframes ambient-in { from { opacity: 0; transform: scale(1.14); } }
+
+/* The month's mood (forecast.js applyMood): the same three lights, weighted
+   by how the month is going. Under pace, the green comes forward and the
+   gold settles; over pace, the gold warms to amber and the green falls
+   back. On pace, or with no target, nothing here applies. Still painted
+   once: a change of mood is one short fade of the orbs, not a moving light. */
+:root[data-mood="under"] {
+  --ambient-wash:
+    radial-gradient(70% 55% at 88% -6%, rgba(216, 186, 124, 0.36), transparent 70%),
+    radial-gradient(60% 60% at -4% 22%, rgba(104, 192, 158, 0.6), transparent 70%),
+    radial-gradient(70% 60% at 62% 108%, rgba(140, 176, 214, 0.42), transparent 72%);
+  --ambient-orbs:
+    radial-gradient(circle 360px at 86% 20%, rgba(226, 186, 104, 0.3), rgba(226, 186, 104, 0.14) 45%, rgba(226, 186, 104, 0.035) 76%, transparent),
+    radial-gradient(circle 420px at 7% 60%, rgba(70, 180, 140, 0.5), rgba(70, 180, 140, 0.24) 45%, rgba(70, 180, 140, 0.055) 76%, transparent),
+    radial-gradient(circle 320px at 54% 96%, rgba(120, 160, 222, 0.34), rgba(120, 160, 222, 0.16) 45%, rgba(120, 160, 222, 0.04) 76%, transparent);
+}
+:root[data-mood="over"] {
+  --ambient-wash:
+    radial-gradient(70% 55% at 88% -6%, rgba(228, 162, 104, 0.6), transparent 70%),
+    radial-gradient(60% 60% at -4% 22%, rgba(116, 190, 160, 0.3), transparent 70%),
+    radial-gradient(70% 60% at 62% 108%, rgba(140, 176, 214, 0.42), transparent 72%);
+  --ambient-orbs:
+    radial-gradient(circle 360px at 86% 20%, rgba(234, 152, 84, 0.5), rgba(234, 152, 84, 0.24) 45%, rgba(234, 152, 84, 0.06) 76%, transparent),
+    radial-gradient(circle 420px at 7% 60%, rgba(82, 178, 140, 0.23), rgba(82, 178, 140, 0.11) 45%, rgba(82, 178, 140, 0.025) 76%, transparent),
+    radial-gradient(circle 320px at 54% 96%, rgba(120, 160, 222, 0.34), rgba(120, 160, 222, 0.16) 45%, rgba(120, 160, 222, 0.04) 76%, transparent);
+}
+[data-theme="dark"][data-mood="under"] {
+  --ambient-wash:
+    radial-gradient(70% 55% at 90% -8%, rgba(190, 148, 76, 0.14), transparent 70%),
+    radial-gradient(62% 62% at -6% 18%, rgba(30, 140, 106, 0.4), transparent 70%),
+    radial-gradient(70% 60% at 60% 110%, rgba(44, 84, 140, 0.26), transparent 72%);
+  --ambient-orbs:
+    radial-gradient(circle 360px at 86% 20%, rgba(206, 160, 82, 0.17), rgba(206, 160, 82, 0.08) 45%, rgba(206, 160, 82, 0.02) 76%, transparent),
+    radial-gradient(circle 420px at 7% 60%, rgba(40, 176, 132, 0.37), rgba(40, 176, 132, 0.17) 45%, rgba(40, 176, 132, 0.04) 76%, transparent),
+    radial-gradient(circle 320px at 54% 96%, rgba(70, 116, 200, 0.24), rgba(70, 116, 200, 0.11) 45%, rgba(70, 116, 200, 0.03) 76%, transparent);
+}
+[data-theme="dark"][data-mood="over"] {
+  --ambient-wash:
+    radial-gradient(70% 55% at 90% -8%, rgba(204, 126, 66, 0.28), transparent 70%),
+    radial-gradient(62% 62% at -6% 18%, rgba(30, 130, 100, 0.18), transparent 70%),
+    radial-gradient(70% 60% at 60% 110%, rgba(44, 84, 140, 0.26), transparent 72%);
+  --ambient-orbs:
+    radial-gradient(circle 360px at 86% 20%, rgba(218, 134, 70, 0.32), rgba(218, 134, 70, 0.15) 45%, rgba(218, 134, 70, 0.04) 76%, transparent),
+    radial-gradient(circle 420px at 7% 60%, rgba(40, 168, 126, 0.17), rgba(40, 168, 126, 0.08) 45%, rgba(40, 168, 126, 0.02) 76%, transparent),
+    radial-gradient(circle 320px at 54% 96%, rgba(70, 116, 200, 0.24), rgba(70, 116, 200, 0.11) 45%, rgba(70, 116, 200, 0.03) 76%, transparent);
+}
+.mood-shift body::after { animation: ambient-shift 900ms var(--ease-luxe) both; }
+@keyframes ambient-shift { from { opacity: 0.45; } }
 
 /* ==========================================================================
    Toasts (toast.js) — inverted pill, bottom centre
@@ -5860,6 +6037,21 @@ html.theme-transition .view-nav__link.is-active { view-transition-name: none; }
   border-radius: 50%;
 }
 .menu__item .chip__dot { flex: none; }
+/* A right-click menu's actions (table.js): the one that removes something is set in rose. */
+.menu__item--danger { color: var(--rose); }
+.menu__item--danger.is-active { background: var(--rose-soft); }
+/* Editing from the right-click menu (table.js editsFromMenu): with a mouse on a
+   wider screen, a row's name, date and amount are plain text until "Edit" switches
+   them on. Then they show as fields, until focus leaves the row. */
+@media (min-width: 561px) and (hover: hover) {
+  .tx-table tbody tr:not(.is-editing) :is(.merchant-input, .amount-edit, .amount-input, .date-button--column) { pointer-events: none; }
+  .tx-table tbody tr.is-editing { background: var(--surface-alt); }
+  .tx-table tbody tr.is-editing :is(.merchant-input, .amount-edit, .date-button--column) { background: var(--glass-control); border-color: var(--border-strong); }
+  .tx-table tbody tr.is-editing .merchant-input:focus,
+  .tx-table tbody tr.is-editing .amount-edit:focus-within { border-color: var(--ring); }
+}
+/* The row a right-click menu belongs to stays lit while it's open. */
+.tx-table tbody tr.has-menu { background: var(--surface-alt); }
 .menu__check { flex: none; }
 
 /* Phones: floating panels open as bottom sheets (sheet.js). */

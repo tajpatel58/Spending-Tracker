@@ -38,8 +38,10 @@ import { barEntrance, donutEntrance, fade, htmlTooltip } from './chart-kit.js';
 import { categoryIcon } from './category-icons.js';
 import { accountsReady, CALENDAR_EVENTS, pageSession, saveDataCache, TRANSACTIONS } from './data.js';
 import { openDatePicker } from './datepicker.js';
+import { isDiscreet } from './discreet.js';
 import { cssVar, currency, currencyShort, escapeAttr, MINUS, moneyMarkup } from './format.js';
 import { openMenu } from './menu.js';
+import { providePalette } from './palette.js';
 import { motion } from './motion.js';
 import { finishLoading, people, showLoadError, spendOwnerColor } from './state.js';
 import { refreshIfStale } from './sync.js';
@@ -866,7 +868,7 @@ function renderUnbudgeted(m, list) {
 function txRow(m, t, { withDate = false } = {}) {
   const info = PARTS[t.part];
   const fx = m.trip.fx && t.date >= m.trip.start
-    ? ` · ${m.trip.fx.symbol}${(t.amount * m.trip.fx.rate).toLocaleString('en-GB', { maximumFractionDigits: m.trip.fx.rate > 20 ? 0 : 2, minimumFractionDigits: m.trip.fx.rate > 20 ? 0 : 2 })}`
+    ? ` · ${m.trip.fx.symbol}${isDiscreet() ? '•••' : (t.amount * m.trip.fx.rate).toLocaleString('en-GB', { maximumFractionDigits: m.trip.fx.rate > 20 ? 0 : 2, minimumFractionDigits: m.trip.fx.rate > 20 ? 0 : 2 })}`
     : '';
   return `
     <li class="trip-tx">
@@ -1946,6 +1948,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
   }
+  providePalette({ transactions: TRANSACTIONS }); // quick find (⌘K): months and merchants open on the Overview
   syncStepper();
   render();
   initTableEdges();
@@ -1953,6 +1956,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // The charts hold theme colours, so they redraw when light/dark changes (theme.js).
   document.addEventListener('ledger:theme-changed', render);
+  document.addEventListener('ledger:discreet-changed', render); // figures hidden or shown (discreet.js)
   // Drawn from this device's copy of the data: check for newer transactions, and re-tag when they arrive.
   document.addEventListener('ledger:data-changed', () => {
     tagTrips();

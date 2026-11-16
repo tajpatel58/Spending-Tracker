@@ -17,8 +17,9 @@ import {
   renderCategoryChart,
   renderTrendChart,
   renderUserChart,
+  setCategoryFilter,
 } from './charts.js';
-import { ACCOUNTS, accountsReady, MONTHS, pageSession, TRANSACTIONS } from './data.js';
+import { ACCOUNTS, accountsReady, CATEGORIES, MONTHS, pageSession, TRANSACTIONS } from './data.js';
 import {
   initAccountFilter,
   initMonthSelect,
@@ -27,9 +28,12 @@ import {
   initTableFilters,
   pageHooks,
   renderMonthOptions,
+  setMonth,
+  setSearch,
 } from './filters.js';
 import { indexEvents } from './forecast.js';
-import { accountById, finishLoading, showLoadError, state } from './state.js';
+import { providePalette } from './palette.js';
+import { accountById, finishLoading, openingSearch, showLoadError, state } from './state.js';
 import { initBudgetStrip, initPaceFixedToggle, renderStats } from './stats.js';
 import { initSync } from './sync.js';
 import { initTableEditing, initTableExport, renderTable } from './table.js';
@@ -119,7 +123,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     initBudgetEditor();
     loadMonthlyBudgets(); // this device's copy now, Supabase's when it arrives
 
+    // Quick find (⌘K) can change month, search the table and filter it here in place.
+    providePalette({
+      transactions: TRANSACTIONS,
+      month: () => state.month,
+      setMonth,
+      setSearch,
+      categories: CATEGORIES,
+      setCategory: setCategoryFilter,
+    });
+
     renderAll();
+    // Arrived from quick find on another page with a merchant to show: open at the table.
+    if (openingSearch) document.querySelector('.table-tile').scrollIntoView({ block: 'start' });
     finishLoading();
     // The charts hold theme colours, so they redraw when light/dark changes (theme.js).
     document.addEventListener('ledger:theme-changed', () => {
@@ -128,6 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderTrendChart();
       renderBudgetChart();
     });
+    document.addEventListener('ledger:discreet-changed', renderAll); // figures hidden or shown (discreet.js)
     initSync({
       onChange: () => {
         indexEvents();

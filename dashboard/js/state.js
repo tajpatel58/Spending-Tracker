@@ -25,13 +25,22 @@ function openingMonth() {
   return handedOver || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** A merchant handed over by quick find on another page (palette.js): searched for on arrival, once. */
+export const openingSearch = (() => {
+  try {
+    const handedOver = sessionStorage.getItem('ledger-search') || '';
+    sessionStorage.removeItem('ledger-search');
+    return handedOver;
+  } catch { return ''; }
+})();
+
 export const state = {
   month: openingMonth(), // Overview falls back to the most recent month if this one has no transactions
   categories: new Set(), // table category filter; empty = every category
   users: new Set(),      // table user filter (see spendOwner); empty = everyone
   activeAccounts: new Set(), // populated after accounts.csv loads
   selectedTransactionIds: new Set(),
-  search: '',
+  search: openingSearch.trim().toLowerCase(),
   sort: { key: 'date', dir: 'desc' },
   // The Total spend tile's pace chart without fixed expenses (remembered on this device).
   paceWithoutFixed: (() => { try { return localStorage.getItem('ledger-pace-without-fixed') === '1'; } catch { return false; } })(),

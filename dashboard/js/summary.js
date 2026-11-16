@@ -25,7 +25,7 @@
 
 import { initPageHeading, initUserMenu, signOut } from './auth.js';
 import { barEntrance, drawInLine, fade, htmlTooltip, playDrawIn, stripePattern } from './chart-kit.js';
-import { ACCOUNTS, accountsReady, CATEGORIES, MONTH_LABEL, MONTHS, pageSession } from './data.js';
+import { ACCOUNTS, accountsReady, CATEGORIES, MONTH_LABEL, MONTHS, pageSession, TRANSACTIONS } from './data.js';
 import { initAccountFilter, initSwipeStep, pageHooks } from './filters.js';
 import {
   daysIn,
@@ -39,6 +39,7 @@ import {
 } from './forecast.js';
 import { cssVar, currency, currencyShort, escapeAttr, MINUS, moneyMarkup } from './format.js';
 import { openMenu } from './menu.js';
+import { providePalette } from './palette.js';
 import { motion } from './motion.js';
 import {
   accountById,
@@ -875,11 +876,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initPeriod();
     initLedger();
 
+    providePalette({ transactions: TRANSACTIONS }); // quick find (⌘K): months and merchants open on the Overview
+
     renderAll();
     initTableEdges();
     finishLoading();
     // The charts hold theme colours, so they redraw when light/dark changes (theme.js).
     document.addEventListener('ledger:theme-changed', renderAll);
+    document.addEventListener('ledger:discreet-changed', renderAll); // figures hidden or shown (discreet.js)
     initSync({
       onChange: () => {
         indexEvents();

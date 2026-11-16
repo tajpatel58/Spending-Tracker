@@ -11,7 +11,7 @@ import { ACCOUNT_GROUPS, ACCOUNTS, CATEGORIES, MONTH_LABEL, MONTHS } from './dat
 import { escapeAttr } from './format.js';
 import { motion } from './motion.js';
 import { asSheet } from './sheet.js';
-import { spendOwnerColor, spendOwners, state } from './state.js';
+import { openingSearch, spendOwnerColor, spendOwners, state } from './state.js';
 
 /**
  * What the page redraws when a filter changes. The same filters drive the
@@ -396,6 +396,11 @@ function closeTableFilters() {
 /** Wires up the merchant search box (debounced), its × button and Escape to clear. */
 export function initSearch() {
   const input = document.getElementById('search-input');
+  if (openingSearch) { // handed over by quick find on another page (state.js)
+    input.value = openingSearch;
+    document.getElementById('search-clear').hidden = false;
+    syncTableFilters();
+  }
   let t;
   input.addEventListener('input', () => {
     document.getElementById('search-clear').hidden = !input.value;
@@ -420,6 +425,15 @@ export function initSearch() {
     pageHooks.renderTable();
     input.focus();
   });
+}
+
+/** Searches the transactions for `text`, as if it had been typed into the search box. */
+export function setSearch(text) {
+  document.getElementById('search-input').value = text;
+  document.getElementById('search-clear').hidden = !text;
+  state.search = text.trim().toLowerCase();
+  syncTableFilters();
+  pageHooks.renderTable();
 }
 
 /** Empties the search box and its filter (callers re-render). */

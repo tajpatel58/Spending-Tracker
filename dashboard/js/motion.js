@@ -131,6 +131,20 @@ export const motion = (() => {
     frames.set(el, requestAnimationFrame(step));
   }
 
+  /**
+   * Sets a headline figure without the count that a change normally starts:
+   * for a figure that follows the pointer (scrubbing the Total spend chart).
+   * With `settle`, it counts there from what it showed, once, quickly: the
+   * figure going back to its real value when the scrub ends.
+   */
+  function setFigure(el, text, { settle = false } = {}) {
+    cancelAnimationFrame(frames.get(el));
+    writing.set(el, text); // so the observer below leaves it alone
+    el.innerHTML = moneyMarkup(text);
+    if (settle) countTo(el, { duration: 320 });
+    else shown.set(el, text);
+  }
+
   /** Watches every headline figure and animates it whenever the page re-renders it. */
   function watchFigures() {
     const observer = new MutationObserver((records) => {
@@ -502,5 +516,5 @@ export const motion = (() => {
   document.addEventListener('DOMContentLoaded', rimLight);
   document.addEventListener('DOMContentLoaded', watchFigures);
   document.addEventListener('DOMContentLoaded', watchHeader);
-  return { reveal, monthTransition, reduced };
+  return { reveal, monthTransition, reduced, setFigure };
 })();

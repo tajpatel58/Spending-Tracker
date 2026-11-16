@@ -351,7 +351,7 @@ function initDrill({ prefix, current, open, showTable }) {
 }
 
 /** Filters the transactions table down to a single category. */
-function setCategoryFilter(categoryId) {
+export function setCategoryFilter(categoryId) {
   state.categories = new Set([categoryId]);
   syncTableFilters();
   renderTable();
@@ -668,8 +668,14 @@ function runningTotals(month, keep = isExpense) {
  * line climbing to the month's spending target. `pace` comes from
  * monthPace (stats.js) and is null when there's no target. With the
  * tile's "Fixed costs" switch off, all three leave out fixed expenses.
+ *
+ * Moving along the chart scrubs the tile back to that day: `onScrub` is
+ * called with { day, spent, last, target } (last month's and the target's
+ * running totals by that day, null where there is none) as the hovered day
+ * changes, and with null once the pointer leaves or a day with nothing
+ * loaded yet is reached (stats.js scrubHero).
  */
-export function renderPaceChart(pace) {
+export function renderPaceChart(pace, { onScrub } = {}) {
   const month = state.month;
   const days = daysIn(month);
   const labels = Array.from({ length: days }, (_, i) => i + 1);
@@ -695,11 +701,19 @@ export function renderPaceChart(pace) {
   const monthName = MONTH_LABEL(month).split(' ')[0];
   const peak = Math.max(0, ...thisMonth.filter((v) => v !== null), ...lastMonth, ...target);
 
-  // A hairline down from the hovered day.
+  // A hairline down from the hovered day, and word of which day that is (onScrub).
+  // The chart is reused between draws with the plugin it was made with, so the
+  // day's figures and the callback are read off the chart, never from this closure.
   const hoverLine = {
     id: 'hoverLine',
     afterDatasetsDraw(chart) {
       const active = chart.tooltip?.getActiveElements();
+      const index = active?.length ? active[0].index : null;
+      if (index !== chart.$scrubIndex) {
+        chart.$scrubIndex = index;
+        const [spent, last, onTarget] = chart.data.datasets.map((dataset) => dataset.data[index] ?? null);
+        chart.$onScrub?.(index === null || spent === null ? null : { day: index + 1, spent, last, target: onTarget });
+      }
       if (!active?.length) return;
       const { ctx, chartArea } = chart;
       ctx.save();
@@ -715,6 +729,7 @@ export function renderPaceChart(pace) {
 
   const canvas = document.getElementById('pace-chart');
   canvas.parentElement.querySelector('.chart-tooltip')?.classList.remove('is-visible');
+  if (paceChart) paceChart.$scrubIndex = null; // a redraw starts unscrubbed; the tile has just been drawn afresh
   paceChart = drawChart(paceChart, canvas, {
     type: 'line',
     plugins: [hoverLine, drawInLine],
@@ -809,6 +824,8 @@ export function renderPaceChart(pace) {
     },
   });
   paceChart.$replay = () => playDrawIn(paceChart);
+  paceChart.$scrubIndex = null;
+  paceChart.$onScrub = onScrub;
   document.getElementById('pace-legend-this').textContent = monthName;
   document.getElementById('pace-legend-last').textContent = MONTH_LABEL(prevKey).split(' ')[0];
   document.getElementById('pace-legend-last-item').hidden = !prev;

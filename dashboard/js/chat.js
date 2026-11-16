@@ -16,6 +16,7 @@
  */
 
 import { authReady, greeting, initPageHeading, initUserMenu, signOut } from './auth.js';
+import { providePalette } from './palette.js';
 import { initTheme, toggleTheme } from './theme.js';
 import './motion.js';
 
@@ -321,6 +322,16 @@ function initChatPage(session) {
   try { chat.messages = JSON.parse(sessionStorage.getItem(CHAT_STORAGE_KEY)) || []; } catch { chat.messages = []; }
   renderThread();
   if (!touch) input.focus();
+
+  // Quick find (palette.js) puts what's typed to the Assistant: straight in when
+  // it's opened here, or handed over from another page and asked on arrival.
+  providePalette({ ask: (text) => { if (!chat.controller) ask(text); } });
+  let handedOver = null;
+  try {
+    handedOver = sessionStorage.getItem('ledger-ask');
+    sessionStorage.removeItem('ledger-ask');
+  } catch { /* storage unavailable */ }
+  if (handedOver) ask(handedOver);
 }
 
 /**

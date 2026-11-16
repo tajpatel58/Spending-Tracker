@@ -12,11 +12,13 @@
 import { renderPaceChart } from './charts.js';
 import { MONTH_LABEL, MONTHS } from './data.js';
 import {
+  applyMood,
   coverageLine,
   daysIn,
   daysLoaded,
+  expectedFixed,
   expectedSalaries,
-  forecastSpend,
+  shiftMonth,
   spendingAllowance,
   sumAbs,
 } from './forecast.js';
@@ -50,18 +52,6 @@ function transactionsTo(month, upTo) {
 }
 
 /**
- * A month's fixed expenses, as the pace without them counts them: what
- * was actually paid once the month is complete; before then, what's been
- * paid so far or the usual amount (the forecast's 3-month average),
- * whichever is more, since some bills may still be to come.
- */
-function expectedFixed(month) {
-  const paid = sumAbs(getMonthTransactions(month).filter((t) => t.category === 'fixed_expense'));
-  if (daysLoaded(month) >= daysIn(month)) return paid;
-  return Math.max(paid, forecastSpend(month).fixed);
-}
-
-/**
  * Spend so far against the month's spending target (spendingAllowance),
  * pro rata for the days loaded — or against the whole target once the
  * month is complete. With `withoutFixed`, both leave out fixed expenses:
@@ -79,6 +69,59 @@ function monthPace(month, spent, { withoutFixed = false } = {}) {
   const loaded = daysLoaded(month);
   const expected = target * (loaded / days);
   return { target, expected, gap: expected - spent, complete: loaded >= days, loaded, withoutFixed, fixed };
+}
+
+// Scrubbing the Total spend chart: what the tile showed before, to put back after.
+let heroRest = null;
+let heroTotal = ''; // the tile's settled figure, e.g. "£1,234.56"
+
+/**
+ * Moving along the Total spend chart rewinds its tile to that day: the
+ * figure becomes the running total by then, and the two notes compare it
+ * with the same day last month and with the target's line. `point` is
+ * { day, spent, last, target } from renderPaceChart, or null when the
+ * pointer leaves, which puts the tile back as renderStats drew it.
+ */
+function scrubHero(point) {
+  const label = document.getElementById('stat-total-label');
+  const figure = document.getElementById('stat-total');
+  const delta = document.getElementById('stat-total-delta');
+  const pace = document.getElementById('stat-pace');
+  if (!point) {
+    if (!heroRest) return;
+    label.textContent = heroRest.label;
+    Object.assign(delta, heroRest.delta);
+    Object.assign(pace, heroRest.pace);
+    motion.setFigure(figure, heroTotal, { settle: true });
+    heroRest = null;
+    return;
+  }
+  heroRest ||= {
+    label: label.textContent,
+    delta: { textContent: delta.textContent, className: delta.className, title: delta.title },
+    pace: { hidden: pace.hidden, textContent: pace.textContent, className: pace.className, title: pace.title },
+  };
+  const everyday = state.paceWithoutFixed;
+  const monthName = MONTH_LABEL(state.month).slice(0, 3);
+  label.textContent = `${everyday ? 'Everyday' : 'Spent'} by ${point.day} ${monthName}`;
+  motion.setFigure(figure, currency(point.spent));
+  if (point.last > 0) {
+    const pct = ((point.spent - point.last) / point.last) * 100;
+    const prevName = MONTH_LABEL(shiftMonth(state.month, -1)).slice(0, 3);
+    delta.textContent = `${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}% vs same day in ${prevName}`;
+    delta.className = 'stat-tile__delta stat-tile__delta--pill ' + (pct >= 0 ? 'is-up' : 'is-down');
+  } else {
+    delta.textContent = 'No prior month';
+    delta.className = 'stat-tile__delta stat-tile__delta--pill';
+  }
+  delta.title = '';
+  if (point.target !== null) {
+    const under = point.target >= point.spent;
+    pace.hidden = false;
+    pace.textContent = `${currencyShort(Math.abs(point.target - point.spent))} ${under ? 'under' : 'over'} ${everyday ? 'everyday ' : ''}pace`;
+    pace.className = 'stat-tile__delta ' + (under ? 'is-positive' : 'is-negative');
+    pace.title = '';
+  }
 }
 
 /**
@@ -100,8 +143,10 @@ export function renderStats() {
   const prevTotal = prevKey ? sumAbs(transactionsTo(prevKey, upTo).filter(keep)) : null;
 
   // Headline figures: pence set smaller (moneyMarkup in format.js).
+  heroRest = null; // a redraw ends any scrub of the chart
+  heroTotal = currency(total);
   document.getElementById('stat-total-label').textContent = withoutFixed ? 'Everyday spend' : 'Total spend';
-  document.getElementById('stat-total').innerHTML = moneyMarkup(currency(total));
+  document.getElementById('stat-total').innerHTML = moneyMarkup(heroTotal);
   const deltaEl = document.getElementById('stat-total-delta');
   if (prevTotal !== null && prevTotal > 0) {
     const pct = ((total - prevTotal) / prevTotal) * 100;
@@ -176,7 +221,8 @@ export function renderStats() {
   renderTileTrends(idx, upTo);
 
   document.getElementById('page-subtitle').textContent = `Spending overview — ${coverageLine(state.month)}`;
-  renderPaceChart(pace);
+  renderPaceChart(pace, { onScrub: scrubHero });
+  applyMood(state.month);
 }
 
 /**
@@ -321,7 +367,7 @@ function monthFigures(month, upTo = null) {
 }
 
 const SPARK_MONTHS = 6;
-const poundsPence = (n) => `£${Math.abs(n).toFixed(2)}`;
+const poundsPence = (n) => currency(Math.abs(n));
 
 /**
  * For each smaller tile: a pill with the change on last month (green

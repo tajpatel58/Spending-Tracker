@@ -146,6 +146,60 @@ export function spendingAllowance(month) {
   return salary > 0 ? salary - MONTHLY_SAVINGS_TARGET : null;
 }
 
+/**
+ * A month's fixed expenses, as the pace without them counts them: what
+ * was actually paid once the month is complete; before then, what's been
+ * paid so far or the usual amount (the forecast's 3-month average),
+ * whichever is more, since some bills may still be to come.
+ */
+export function expectedFixed(month) {
+  const paid = sumAbs(getMonthTransactions(month).filter((t) => t.category === 'fixed_expense'));
+  if (daysLoaded(month) >= daysIn(month)) return paid;
+  return Math.max(paid, forecastSpend(month).fixed);
+}
+
+// ---- The month's mood: how the light behind the page reads it ----
+
+const MOOD_MARGIN = 0.05;  // within 5% of where the target says spending should be counts as on pace
+const MOOD_MIN_DAYS = 5;   // too early in a month, one shop swings the pace
+
+/**
+ * 'under' or 'over' when a month's everyday spending is clearly behind or
+ * ahead of its target for the days loaded, otherwise null (on pace, too
+ * early to say, or no target). Everyday spending, since rent landing on
+ * the 1st says nothing about how the month is going.
+ */
+export function monthMood(month) {
+  const allowance = spendingAllowance(month);
+  const days = daysIn(month);
+  const loaded = daysLoaded(month);
+  if (allowance === null || loaded < Math.min(MOOD_MIN_DAYS, days)) return null;
+  const target = allowance - expectedFixed(month);
+  if (target <= 0) return null;
+  const expected = target * (loaded / days);
+  const spent = sumAbs(getMonthTransactions(month).filter(isVariableExpense));
+  const lead = (expected - spent) / expected;
+  return lead > MOOD_MARGIN ? 'under' : lead < -MOOD_MARGIN ? 'over' : null;
+}
+
+/**
+ * Tints the light behind the glass to the month's mood (the "Ambience"
+ * section of styles.css): greener when it's under pace, warmer when it's
+ * over, as it always was otherwise. A change of mood fades in; the first
+ * one arrives with the page.
+ */
+export function applyMood(month) {
+  const root = document.documentElement;
+  const mood = monthMood(month);
+  if ((root.dataset.mood || null) === mood) return;
+  if (mood) root.dataset.mood = mood;
+  else delete root.dataset.mood;
+  if (document.body.classList.contains('is-loading')) return;
+  root.classList.remove('mood-shift');
+  void root.offsetWidth; // restart the fade
+  root.classList.add('mood-shift');
+}
+
 // ---- Salaries and savings per person ----
 
 /** Each person's salary paid in a month (the joint account's split evenly): { Taj: 5200, Radhika: 0 }. */

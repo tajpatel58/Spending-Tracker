@@ -5,6 +5,8 @@
  * ---------------------------------------------------------------------
  */
 
+import { isDiscreet, MASKED } from './discreet.js';
+
 /** A true minus sign (U+2212), set in place of a hyphen before negative figures. */
 export const MINUS = '\u2212';
 
@@ -22,11 +24,11 @@ export function remembered(format) {
   };
 }
 
-/** Formats a number as GBP with 2 decimal places, e.g. "£1,234.56" or "−£1,234.56". */
-export const currency = (n) => `${n < 0 ? MINUS : ''}£${POUNDS_AND_PENCE.format(Math.abs(n))}`;
+/** Formats a number as GBP with 2 decimal places, e.g. "£1,234.56" or "−£1,234.56" ("£•••" in discreet mode, like every figure). */
+export const currency = (n) => (isDiscreet() ? MASKED : `${n < 0 ? MINUS : ''}£${POUNDS_AND_PENCE.format(Math.abs(n))}`);
 
 /** Formats a number as GBP rounded to the nearest pound, e.g. "£1,235" or "−£1,235". */
-export const currencyShort = (n) => `${Math.round(n) < 0 ? MINUS : ''}£${WHOLE_POUNDS.format(Math.abs(Math.round(n)))}`;
+export const currencyShort = (n) => (isDiscreet() ? MASKED : `${Math.round(n) < 0 ? MINUS : ''}£${WHOLE_POUNDS.format(Math.abs(Math.round(n)))}`);
 
 /** A number with fixed decimals and a true minus sign, e.g. signedFixed(-1.25, 1) -> "−1.3". */
 export const signedFixed = (n, digits) => n.toFixed(digits).replace('-', MINUS);
