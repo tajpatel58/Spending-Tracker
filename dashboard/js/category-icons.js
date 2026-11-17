@@ -31,6 +31,8 @@ const SHAPES = {
   shopping: '<path d="M5.5 8h13l-1 12.5h-11L5.5 8Z"/><path d="M9 10.5V6.5a3 3 0 0 1 6 0v4"/>',
   // A wrapped present.
   'birthday/gifts': '<rect x="4" y="8.5" width="16" height="4" rx="1"/><path d="M5.5 12.5v8h13v-8M12 8.5v12"/><path d="M12 8.5C10.5 5 7 4.5 7 7c0 1.5 2.5 1.5 5 1.5ZM12 8.5C13.5 5 17 4.5 17 7c0 1.5-2.5 1.5-5 1.5Z"/>',
+  // Two people side by side (calendar events only).
+  'friends/family': '<circle cx="8.5" cy="8" r="2.75"/><path d="M3.5 19.5v-1a5 5 0 0 1 10 0v1"/><circle cx="16.5" cy="9" r="2.25"/><path d="M15 13.6a4.25 4.25 0 0 1 5.5 4v1.9"/>',
   // A ticket.
   activities: '<path d="M3.5 7.5h17v3a1.5 1.5 0 0 0 0 3v3h-17v-3a1.5 1.5 0 0 0 0-3v-3Z"/><path d="M14.5 7.5v1.5M14.5 11.25v1.5M14.5 15v1.5"/>',
   // A parking sign: a P in a rounded square (the Trips page's Parking sub-category).

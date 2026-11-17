@@ -4,6 +4,7 @@
  * Loads the data the dashboard renders:
  *
  *   CATEGORIES                -> static list below
+ *   EVENT_ONLY_CATEGORIES     -> static list below (calendar events only)
  *   ACCOUNT_GROUPS / ACCOUNTS -> Supabase, via the accounts table
  *   MONTHS / TRANSACTIONS     -> Supabase, via supabase-client.js
  *
@@ -45,6 +46,12 @@ export const CATEGORIES = [
   { id: 'salary',        label: 'Salary',          color: 'var(--cat-salary)' },
   { id: 'interest',      label: 'Interest Payments', color: 'var(--cat-interest)' },
   { id: 'refund',        label: 'Refund',           color: 'var(--cat-refund)' },
+];
+
+// Categories only calendar events can have (never offered for transactions);
+// the same ids as EVENT_CATEGORIES in classification/prompts.py.
+export const EVENT_ONLY_CATEGORIES = [
+  { id: 'friends/family', label: 'Friends/Family', color: 'var(--cat-friends-family)' },
 ];
 
 // ---- Accounts, grouped by owner --------------------------------------

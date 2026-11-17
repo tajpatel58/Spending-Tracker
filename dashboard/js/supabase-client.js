@@ -8,7 +8,7 @@
  */
 
 import { supabaseClient } from './auth.js';
-import { CATEGORIES } from './data.js';
+import { CATEGORIES, EVENT_ONLY_CATEGORIES } from './data.js';
 
 // ============================================================
 // PAGING
@@ -52,10 +52,16 @@ async function fetchAllRows(build) {
  * it's missing or not one of CATEGORIES (e.g. an LLM answer of 'unknown').
  * Callers fall back to 'other', which the dashboard shows as "Unassigned".
  */
-function normalizeCategory(value) {
+function normalizeCategory(value, categories = CATEGORIES) {
   const id = String(value ?? '').trim().toLowerCase();
-  return CATEGORIES.some((c) => c.id === id) ? id : null;
+  return categories.some((c) => c.id === id) ? id : null;
 }
+
+/**
+ * Calendar events can also have the event-only categories (e.g. 'friends/family').
+ * Built on use, not at load: data.js imports this module, so its lists aren't ready yet.
+ */
+const eventCategories = () => [...CATEGORIES, ...EVENT_ONLY_CATEGORIES];
 
 /**
  * Fetches every transaction from Supabase and merges in any manual
@@ -153,7 +159,7 @@ export async function fetchCalendarEvents() {
     startTime: row.start_time ? row.start_time.slice(0, 5) : null,
     title: row.title,
     budget: Number(row.budget) || 0,
-    category: normalizeCategory(row.category) ?? 'other',
+    category: normalizeCategory(row.category, eventCategories()) ?? 'other',
     subCategory: row.sub_category ?? null,
   }));
 }

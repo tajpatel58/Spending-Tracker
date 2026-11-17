@@ -8,7 +8,7 @@
  * ---------------------------------------------------------------------
  */
 
-import { CATEGORIES, TRANSACTIONS } from './data.js';
+import { CATEGORIES, EVENT_ONLY_CATEGORIES, TRANSACTIONS } from './data.js';
 import { motion } from './motion.js';
 
 /**
@@ -50,7 +50,8 @@ export const state = {
 
 // Lookup tables used throughout the rendering code.
 export const accountById = {}; // filled in once accounts.csv has loaded
-export const catById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
+// Event-only categories are included so a calendar event's category can be looked up too.
+export const catById = Object.fromEntries([...CATEGORIES, ...EVENT_ONLY_CATEGORIES].map((c) => [c.id, c]));
 
 // Fixed expenses are grouped as their own "user" in the Spending by user
 // chart and the table's user filter, rather than counting towards a person.

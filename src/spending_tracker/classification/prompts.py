@@ -16,6 +16,9 @@ CATEGORIES = [
     "other",
 ]
 
+# Calendar events can also be "friends/family"; transactions never are, so it's kept out of CATEGORIES
+EVENT_CATEGORIES = [*CATEGORIES[:-1], "friends/family", CATEGORIES[-1]]
+
 # What a Holiday event's money is for: the same ids as HOLIDAY_SUB_CATEGORIES in dashboard/js/trips.js
 HOLIDAY_SUB_CATEGORIES = [
     "flights",
@@ -133,7 +136,7 @@ Return JSON only, no explanation: {{"merchant": "...", "category": "...", "confi
 def build_calendar_event_extraction_prompt(event: dict) -> str:
     categories = "\n".join(
     f"- {category}"
-    for category in CATEGORIES
+    for category in EVENT_CATEGORIES
     )
     sub_categories = "\n".join(
     f"- {sub_category}"
