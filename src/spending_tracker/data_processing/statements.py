@@ -9,7 +9,6 @@ from spending_tracker.data_processing import table_schema
 from spending_tracker.classification import classify
 from spending_tracker.database import supabase_client
 from spending_tracker.database import transactions as transactions_db
-from prefect import task, flow
 
 
 _BANK_TO_EXT_MAPPING = {
@@ -32,7 +31,6 @@ _BANK_TO_PROCESSING_FUNCTIONS = {
     "Nationwide": nationwide.clean_nationwide_transaction_dataframe
 }
 
-@task
 def create_transactions_metadata_df(cleaned_transactions_df: pd.DataFrame,
                                     labelled_examples=[],
                                     force_llm: bool = False) -> pd.DataFrame:

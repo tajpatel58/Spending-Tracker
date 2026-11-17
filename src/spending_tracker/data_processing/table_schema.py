@@ -42,3 +42,6 @@ _LUNCHFLOW_PARTITION_COLS = ["user",
                    "bank", 
                    "account_id", 
                    "processing_month"]
+
+
+_ACCOUNT_COLUMNS = ["id", "connection_id", "name", "institution_name", "institution_logo", "provider", "status"]

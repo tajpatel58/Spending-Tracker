@@ -1,36 +1,45 @@
 import os
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
 import requests
-from prefect import flow, task, get_run_logger
 from spending_tracker.database.supabase_client import load_env_variables
 from spending_tracker.data_processing import common
 from spending_tracker.data_processing import table_schema
 
-_ACCOUNT_COLUMNS = ["id", "connection_id", "name", "institution_name", "institution_logo", "provider", "status"]
+_RETRIES = 3
+_RETRY_DELAY_SECONDS = 30
 
-@task(retries=3, retry_delay_seconds=30)
+
+def _get(url: str, **kwargs) -> requests.Response:
+  """GET `url` with the lunchflow API key, retrying up to `_RETRIES` times on failure."""
+  for attempt in range(1, _RETRIES + 2):
+    try:
+      response = requests.get(url, headers={"x-api-key": os.environ["LUNCHFLOW_API_KEY"]}, **kwargs)
+      response.raise_for_status()
+      return response
+    except requests.RequestException:
+      if attempt > _RETRIES:
+        raise
+      time.sleep(_RETRY_DELAY_SECONDS)
+
 def get_accounts() -> pd.DataFrame:
   """Fetch the connected lunchflow accounts as a dataframe, one row per account."""
   load_env_variables()
   url = "https://www.lunchflow.app/api/v1/accounts"
-  response = requests.request("GET", url, headers = {
-    "x-api-key": os.environ["LUNCHFLOW_API_KEY"]
-  })
-  response.raise_for_status()
+  response = _get(url)
   accounts = response.json()["accounts"]
 
   # reindex so an empty response still has the expected columns
-  accounts_df = pd.DataFrame(accounts).reindex(columns=_ACCOUNT_COLUMNS)
+  accounts_df = pd.DataFrame(accounts).reindex(columns=table_schema._ACCOUNT_COLUMNS)
 
   # id as string to match lunchflow_account_id in the account mapping
   accounts_df["id"] = accounts_df["id"].astype(str)
   return accounts_df
 
 
-@task(retries=3, retry_delay_seconds=30, task_run_name="get-transactions-{account_id}")
 def get_transactions(account_id: str, 
                      from_date: str = None,
                      month: str = None) -> dict:
@@ -47,27 +56,21 @@ def get_transactions(account_id: str,
   if month is not None:
     from_date = datetime.strptime(month.strip(), "%B-%y").strftime("%Y-%m-%d")
 
-  response = requests.request("GET", url, headers = {
-    "x-api-key": os.environ["LUNCHFLOW_API_KEY"]
-  }, params = {"from": from_date})
-  response.raise_for_status()
+  response = _get(url, params={"from": from_date})
   return response.text
 
 
 _TRANSACTION_COLUMNS = ["id", "accountId", "date", "merchant", "description", "amount", "currency", "isPending"]
 
-@task
 def transactions_to_dataframe(transactions_response: str) -> pd.DataFrame:
   """Parse the raw transactions API response into a dataframe, one row per transaction."""
   transactions = json.loads(transactions_response)["transactions"]
-  get_run_logger().info(f"Fetched {len(transactions)} transactions")
 
   # reindex so an empty response still has the expected columns
   df = pd.DataFrame(transactions).reindex(columns=_TRANSACTION_COLUMNS)
   return df
 
 
-@task
 def load_lunchflow_account_mapping(lunchflow_account_ids: list = []) -> pd.DataFrame:
   """
   Load the lunchflow account id -> {user, bank, account_id} mapping from accounts.csv as a dataframe,
@@ -82,7 +85,6 @@ def load_lunchflow_account_mapping(lunchflow_account_ids: list = []) -> pd.DataF
   return accounts_df[["lunchflow_account_id", "user", "bank", "account_id"]].reset_index(drop=True)
 
 
-@task
 def clean_lunchflow_transactions_df(lunchflow_transactions_df: pd.DataFrame,
                                     user: str,
                                     bank: str,

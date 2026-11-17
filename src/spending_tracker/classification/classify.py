@@ -1,8 +1,6 @@
 import pandas as pd
 from spending_tracker.classification.ollama import llm_classify_transaction
-from prefect import flow, task, get_run_logger
 
-@task
 def transactions_apply_to_df(
     transactions_metadata_df: pd.DataFrame,
     examples: list[dict],

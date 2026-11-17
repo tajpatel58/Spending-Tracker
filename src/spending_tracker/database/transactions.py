@@ -3,10 +3,8 @@ from urllib import response
 from pandas import io
 from supabase import Client
 import pandas as pd
-from prefect import task
 from spending_tracker.database.supabase_client import list_folders, list_files, list_all, load_supabase_client
 
-@task
 def upload_transactions_to_db(
     transactions_df: pd.DataFrame,
     table_name: str,
@@ -45,7 +43,6 @@ def upload_transactions_to_db(
 
     return response
 
-@task
 def fetch_transactions_from_db(
     supabase_client: Client,
     table_name: str,
@@ -63,7 +60,6 @@ def fetch_transactions_from_db(
     transactions_df = pd.DataFrame(response.data)
     return transactions_df
 
-@task
 def fetch_manually_categorised_transactions_as_dict(
     from_date: str | None = None,
 ) -> dict:
@@ -110,7 +106,6 @@ def fetch_manually_categorised_transactions_as_dict(
 
     return labelled_examples
 
-@task
 def delete_transactions_for_month(
     month: str,
     page_size: int = 1000,
@@ -159,7 +154,6 @@ def delete_transactions_for_month(
 
     return len(event_ids)
 
-@task
 def fetch_transactions_from_bucket(month: str,
                                    bucket,
                                    data_home: Path):
