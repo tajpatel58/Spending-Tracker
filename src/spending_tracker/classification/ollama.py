@@ -6,6 +6,34 @@ from spending_tracker.classification import prompts
 
 MODEL = "qwen3:8b"
 
+# Raise context window for OLLAMA
+NUM_CTX = 16384
+CONTEXT_HEADROOM = 256
+
+
+def _chat_json(prompt: str):
+    response = chat(
+        model=MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        format="json",
+        think=False,
+        options={"num_ctx": NUM_CTX},
+    )
+
+    # Ollama truncates without warning, so fail loudly before that can happen again
+    if response.prompt_eval_count and response.prompt_eval_count >= NUM_CTX - CONTEXT_HEADROOM:
+        raise ValueError(
+            f"Prompt used {response.prompt_eval_count} of {NUM_CTX} context tokens; "
+            "raise NUM_CTX so the start of the prompt isn't cut off."
+        )
+
+    return response
+
 
 def llm_classify_transaction(
     merchant: str,
@@ -49,17 +77,7 @@ def llm_classify_transaction(
         examples=examples,
     )
 
-    response = chat(
-        model=MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        format="json",
-        think=False
-    )
+    response = _chat_json(prompt)
 
     content = response.message.content
 
@@ -113,17 +131,7 @@ def llm_classify_transaction(
 def llm_extract_calendar_event(event: dict) -> dict:
     prompt = prompts.build_calendar_event_extraction_prompt(event)
 
-    response = chat(
-        model=MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        format="json",
-        think=False
-    )
+    response = _chat_json(prompt)
 
     content = response.message.content
 
