@@ -12,7 +12,7 @@ from spending_tracker.classification import classify
 todays_month = datetime.now().strftime("%B-%y")
 from_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
 examples_for_categorisation_date = "2026-10-01"
-data_home = Path(__file__).resolve().parents[2] / "data"
+data_home = Path(__file__).resolve().parents[1] / "data"
 processed_transactions_data_home = data_home / "transactions" / "processed"
 transaction_metadata_home = data_home / "transactions_metadata"
 force_llm = False
