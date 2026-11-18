@@ -7,7 +7,7 @@
  * over the network to draw the dashboard. Supabase requests always go
  * to the network and are never stored here.
  *
- * Only the deployed site uses this: scripts/dashboard/build.mjs fills in
+ * Only the deployed site uses this: dashboard/tools/build.mjs fills in
  * VERSION and PRECACHE (every file in that build, content-hashed) and
  * switches on its registration in each page. Each deploy is a new
  * version: it downloads alongside the old one, takes over, then the old

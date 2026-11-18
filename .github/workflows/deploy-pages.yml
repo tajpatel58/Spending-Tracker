@@ -52,7 +52,7 @@ jobs:
       - name: Build the dashboard
         run: |
           npm install --no-save --no-package-lock esbuild@0.24.0
-          node scripts/dashboard/build.mjs dashboard build/dashboard
+          node dashboard/tools/build.mjs dashboard build/dashboard
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

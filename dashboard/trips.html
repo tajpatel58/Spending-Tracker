@@ -55,7 +55,7 @@
     }
   } catch (e) {}
 </script>
-<!-- sw-register: the deployed build switches on the service worker here (scripts/dashboard/build.mjs). -->
+<!-- sw-register: the deployed build switches on the service worker here (dashboard/tools/build.mjs). -->
 <!-- Scripts download in parallel while the page parses (defer keeps their order). -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <script defer src="js/config.js"></script>
@@ -193,7 +193,7 @@
               </svg>
               <span>Sign out</span>
             </button>
-            <!-- Which deploy this is: scripts/dashboard/build.mjs fills in the build
+            <!-- Which deploy this is: dashboard/tools/build.mjs fills in the build
                  number, commit and date; running the source directly, it's a local build. -->
             <p class="user-menu__build" data-build>Local build</p>
           </div>

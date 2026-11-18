@@ -9,7 +9,7 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- What iOS shows while the installed app starts: the page's own background, so
-     it runs straight into the launch mark (scripts/dashboard/make-splash.mjs). -->
+     it runs straight into the launch mark (dashboard/tools/make-splash.mjs). -->
 <link rel="apple-touch-startup-image" href="icons/splash/1125x2436-light.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
 <link rel="apple-touch-startup-image" href="icons/splash/1125x2436-dark.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
 <link rel="apple-touch-startup-image" href="icons/splash/1170x2532-light.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
@@ -77,7 +77,7 @@
     }
   } catch (e) {}
 </script>
-<!-- sw-register: the deployed build switches on the service worker here (scripts/dashboard/build.mjs). -->
+<!-- sw-register: the deployed build switches on the service worker here (dashboard/tools/build.mjs). -->
 <!-- Scripts download in parallel while the page parses (defer keeps their order). -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 <script defer src="js/config.js"></script>
@@ -228,7 +228,7 @@
               </svg>
               <span>Sign out</span>
             </button>
-            <!-- Which deploy this is: scripts/dashboard/build.mjs fills in the build
+            <!-- Which deploy this is: dashboard/tools/build.mjs fills in the build
                  number, commit and date; running the source directly, it's a local build. -->
             <p class="user-menu__build" data-build>Local build</p>
           </div>

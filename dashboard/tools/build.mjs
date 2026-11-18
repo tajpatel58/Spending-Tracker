@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------------
  * Builds the dashboard for deployment (run by deploy-pages.yml):
  *
- *   node scripts/dashboard/build.mjs <source dir> <output dir>
+ *   node dashboard/tools/build.mjs <source dir> <output dir>
  *
  * The source runs as-is in a browser (ES modules, no build needed to
  * develop). For the live site this:
@@ -27,7 +27,7 @@ import path from 'node:path';
 
 const [source, out] = process.argv.slice(2);
 if (!source || !out) {
-  console.error('Usage: node scripts/dashboard/build.mjs <source dir> <output dir>');
+  console.error('Usage: node dashboard/tools/build.mjs <source dir> <output dir>');
   process.exit(1);
 }
 
@@ -50,6 +50,7 @@ fs.cpSync(source, out, {
   recursive: true,
   filter: (file) => {
     const rel = path.relative(source, file);
+    if (rel === 'tools' || rel.startsWith('tools' + path.sep)) return false; // build tooling, not part of the site
     if (rel === 'sw.js' || rel === path.join('css', 'styles.css')) return false;
     if (path.dirname(rel) === 'js' && rel.endsWith('.js')) return path.basename(rel) === 'config.js'; // the modules are bundled below
     return true;

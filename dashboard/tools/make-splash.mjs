@@ -6,7 +6,7 @@
  * colour, the page's --bg, because the launch mark starts on that same
  * background and then draws itself, so a mark here would appear to jump.
  *
- *   node scripts/dashboard/make-splash.mjs
+ *   node dashboard/tools/make-splash.mjs
  *
  * Only needed when --bg changes or a new iPhone size appears. A new size
  * also needs its two <link rel="apple-touch-startup-image"> in index.html.
@@ -18,7 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 
-const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../dashboard/icons/splash');
+const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../icons/splash');
 
 // --bg in dashboard/css/styles.css.
 const THEMES = { light: [0xe9, 0xec, 0xe6], dark: [0x09, 0x0e, 0x0d] };

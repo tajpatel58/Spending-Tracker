@@ -72,7 +72,7 @@ dashboard's top bar ends the session.
 ## Deploying to GitHub Pages
 
 `.github/workflows/deploy-pages.yml` builds and deploys the dashboard on
-every push to `main`. `scripts/dashboard/build.mjs` bundles and minifies each
+every push to `main`. `dashboard/tools/build.mjs` bundles and minifies each
 page's modules, puts a content hash in every file name, and writes the service
 worker that lets the installed app open instantly and offline (a new deploy
 takes over from the next launch). The workflow generates
@@ -102,7 +102,7 @@ from the project root, then visit `http://localhost:8000/dashboard/`.
 
 To try the deployed build locally (bundled, minified, with the service
 worker): `npm install --no-save esbuild@0.24.0`, then
-`node scripts/dashboard/build.mjs dashboard build/dashboard` and serve
+`node dashboard/tools/build.mjs dashboard build/dashboard` and serve
 `build/dashboard`.
 
 ## What's live vs. UI-only right now

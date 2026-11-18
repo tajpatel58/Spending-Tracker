@@ -1078,7 +1078,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
   .user-menu__signout:hover { background: var(--surface-alt); }
 }
 
-/* Which build this is (filled in at deploy by scripts/dashboard/build.mjs):
+/* Which build this is (filled in at deploy by dashboard/tools/build.mjs):
    a quiet band at the foot of the menu, like the account picker's. */
 .user-menu__build {
   margin: 6px -8px -8px;
