@@ -6,7 +6,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from spending_tracker.classification.ollama import llm_extract_calendar_event
+from spending_tracker.classification.classify import llm_extract_calendar_event
 
 # Read-only access is all a calendar sync needs
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
@@ -85,11 +85,15 @@ def can_reuse(event: dict, stored: dict | None) -> bool:
     return unchanged and (stored["category"] != "holiday" or bool(stored["sub_category"]))
 
 
-def extract_events_df(events: list[dict], stored_events: dict[str, dict]) -> tuple[pd.DataFrame, dict]:
+def extract_events_df(events: list[dict], 
+                      stored_events: dict[str, dict],
+                      llm_model: str = "ollama",
+                      llm_usage: dict | None = None) -> tuple[pd.DataFrame, dict]:
     """Return the events as a DataFrame, one row per event, with budget/category/sub-category from the
     LLM (or from stored_events, by event_id, when unchanged), and counts of what happened to each.
 
     An event the LLM fails on is left out, so its stored row stays as it was until the next run.
+    If llm_usage is given, it is updated in place with the LLM calls/tokens used.
     """
     extracted_events = []
     counts = {"extracted": 0, "reused": 0, "failed": 0}
@@ -101,7 +105,9 @@ def extract_events_df(events: list[dict], stored_events: dict[str, dict]) -> tup
             counts["reused"] += 1
         else:
             try:
-                extraction = llm_extract_calendar_event(event)
+                extraction = llm_extract_calendar_event(event,
+                                                        llm_model=llm_model,
+                                                        llm_usage=llm_usage)
             except ValueError as exc:
                 print(f"Skipping {event['title']!r} ({event['event_date']}): {exc}")
                 counts["failed"] += 1

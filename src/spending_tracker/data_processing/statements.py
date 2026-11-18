@@ -33,7 +33,9 @@ _BANK_TO_PROCESSING_FUNCTIONS = {
 
 def create_transactions_metadata_df(cleaned_transactions_df: pd.DataFrame,
                                     labelled_examples=[],
-                                    force_llm: bool = False) -> pd.DataFrame:
+                                    force_llm: bool = False,
+                                    llm_model: str = "ollama",
+                                    llm_usage: dict | None = None) -> pd.DataFrame:
     """
     Create a table that is a mix of LLM and Manual changes through the dashboard. 
 
@@ -41,7 +43,11 @@ def create_transactions_metadata_df(cleaned_transactions_df: pd.DataFrame,
     transactions_metadata_df = cleaned_transactions_df[["event_id", "merchant", "amount"] + table_schema._LUNCHFLOW_PARTITION_COLS]
 
     # code to utilise LLM suggestions
-    transactions_metadata_df = classify.transactions_apply_to_df(transactions_metadata_df, labelled_examples, force_llm)
+    transactions_metadata_df = classify.transactions_apply_to_df(transactions_metadata_df, 
+                                                                 labelled_examples, 
+                                                                 force_llm,
+                                                                 llm_model,
+                                                                 llm_usage)
 
     # add NULL columns for default values of manually changed fiels
     transactions_metadata_df["manual_merchant"] = None

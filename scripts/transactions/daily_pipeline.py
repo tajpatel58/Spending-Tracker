@@ -7,6 +7,7 @@ from spending_tracker.database import transactions as transactions_db
 from spending_tracker.data_processing import common
 from spending_tracker.data_processing import statements
 from spending_tracker.data_processing import table_schema
+from spending_tracker.classification import classify
 
 todays_month = datetime.now().strftime("%B-%y")
 from_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
@@ -17,6 +18,7 @@ transaction_metadata_home = data_home / "transactions_metadata"
 force_llm = False
 upsert_cols = ["event_id"]
 lunchflow_account_ids = []
+llm_model = "ollama" # need to be one of claude/ollama. 
 
 """
 For each mapped lunchflow account, fetch transactions from the start of `month` (e.g. "October-26",
@@ -30,6 +32,7 @@ transaction_metadata_data_root = data_home / "transactions_metadata"
 account_mapping_df = lunchflow.load_lunchflow_account_mapping(lunchflow_account_ids)
 upsert_transactions_df_list =  []
 upsert_transactions_metadata_df_list = []
+llm_usage = classify.new_llm_usage()
 
 # fetch labelled data from supabase
 labelled_examples = transactions_db.fetch_manually_categorised_transactions_as_dict(examples_for_categorisation_date
@@ -57,19 +60,23 @@ for row in account_mapping_df.itertuples(index=False):
                                                 upsert_cols=upsert_cols)
         
         transactions_metadata_df = statements.create_transactions_metadata_df(cleaned_transactions_df, 
-                                                                                labelled_examples,
-                                                                                force_llm)
+                                                                              labelled_examples,
+                                                                              force_llm,
+                                                                              llm_model,
+                                                                              llm_usage)
 
         common.save_partitioned_dataframe_to_csv(transactions_metadata_df,
-                                                    transaction_metadata_data_root,
-                                                    partition_columns=table_schema._LUNCHFLOW_PARTITION_COLS,
-                                                    export_columns=table_schema._TRANSACTIONS_METADATA_DB_COLUMNS,
-                                                    filename="transaction_metadata.csv",
-                                                    upsert_cols=upsert_cols)
+                                                transaction_metadata_data_root,
+                                                partition_columns=table_schema._LUNCHFLOW_PARTITION_COLS,
+                                                export_columns=table_schema._TRANSACTIONS_METADATA_DB_COLUMNS,
+                                                filename="transaction_metadata.csv",
+                                                upsert_cols=upsert_cols)
 
         upsert_transactions_df_list.append(cleaned_transactions_df)
         upsert_transactions_metadata_df_list.append(transactions_metadata_df)
 
+
+print(classify.llm_usage_summary(llm_usage, llm_model))
 
 upsert_transactions_df = pd.concat(upsert_transactions_df_list)[table_schema._TRANSACTIONS_DB_COLUMNS]
 upsert_transactions_metadata_df = pd.concat(upsert_transactions_metadata_df_list)[table_schema._TRANSACTIONS_METADATA_DB_COLUMNS]

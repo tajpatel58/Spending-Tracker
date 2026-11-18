@@ -1,0 +1,101 @@
+{
+  "transaction_classification": {
+    "type": "object",
+    "properties": {
+      "merchant": {
+        "type": "string"
+      },
+      "category": {
+        "type": "string",
+        "enum": [
+          "groceries",
+          "dining",
+          "transport",
+          "housing",
+          "holiday",
+          "subscriptions",
+          "fixed_expense",
+          "shopping",
+          "health",
+          "birthday/gifts",
+          "activities",
+          "salary",
+          "interest",
+          "refund",
+          "other"
+        ]
+      },
+      "confidence": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "merchant",
+      "category",
+      "confidence"
+    ],
+    "additionalProperties": false
+  },
+  "calendar_event_extraction": {
+    "type": "object",
+    "properties": {
+      "budget": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "category": {
+        "type": "string",
+        "enum": [
+          "groceries",
+          "dining",
+          "transport",
+          "housing",
+          "holiday",
+          "subscriptions",
+          "fixed_expense",
+          "shopping",
+          "health",
+          "birthday/gifts",
+          "activities",
+          "salary",
+          "interest",
+          "refund",
+          "friends/family",
+          "other"
+        ]
+      },
+      "sub_category": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "flights",
+              "stay",
+              "food",
+              "activities",
+              "transport",
+              "parking",
+              "shopping",
+              "other"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "budget",
+      "category",
+      "sub_category"
+    ],
+    "additionalProperties": false
+  }
+}

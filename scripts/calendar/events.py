@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 from spending_tracker.database import calendar_events, upload
+from spending_tracker.classification import classify
 
 data_home = Path(__file__).parents[2] / "data"
 
@@ -17,7 +18,8 @@ events = cal.fetch_events(time_min, time_max)
 # fetch what's already stored, so unchanged events can skip the LLM
 stored_events = calendar_events.fetch_stored_events(time_min, time_max)
 # extract budget, category and sub-category using LLM
-events_df, counts = cal.extract_events_df(events, stored_events)
+llm_usage = classify.new_llm_usage()
+events_df, counts = cal.extract_events_df(events, stored_events, llm_usage=llm_usage)
 
 calendar_save_path.parent.mkdir(parents=True, exist_ok=True)
 events_df.to_csv(calendar_save_path, index=False)
@@ -40,3 +42,4 @@ print(
     f"{counts['extracted']} extracted, {counts['reused']} reused, "
     f"{len(removed_ids)} deleted, {counts['failed']} failed"
 )
+print(classify.llm_usage_summary(llm_usage))

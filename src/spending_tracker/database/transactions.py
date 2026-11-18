@@ -74,7 +74,6 @@ def fetch_manually_categorised_transactions_as_dict(
         supabase_client
         .table("transactions_metadata")
         .select("*")
-        .is_("hidden", "null")
         .execute()
     )
 

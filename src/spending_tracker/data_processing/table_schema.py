@@ -45,3 +45,5 @@ _LUNCHFLOW_PARTITION_COLS = ["user",
 
 
 _ACCOUNT_COLUMNS = ["id", "connection_id", "name", "institution_name", "institution_logo", "provider", "status"]
+
+_LUNCHFLOW_TRANSACTION_COLUMNS = ["id", "accountId", "date", "merchant", "description", "amount", "currency", "isPending"]

@@ -60,14 +60,13 @@ def get_transactions(account_id: str,
   return response.text
 
 
-_TRANSACTION_COLUMNS = ["id", "accountId", "date", "merchant", "description", "amount", "currency", "isPending"]
 
 def transactions_to_dataframe(transactions_response: str) -> pd.DataFrame:
   """Parse the raw transactions API response into a dataframe, one row per transaction."""
   transactions = json.loads(transactions_response)["transactions"]
 
   # reindex so an empty response still has the expected columns
-  df = pd.DataFrame(transactions).reindex(columns=_TRANSACTION_COLUMNS)
+  df = pd.DataFrame(transactions).reindex(columns=table_schema._LUNCHFLOW_TRANSACTION_COLUMNS)
   return df
 
 
