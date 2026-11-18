@@ -7,13 +7,13 @@ from dotenv import load_dotenv
 
 def load_env_variables():
     """
-    Load environment variables from a .env file.
+    Load environment variables from a .env file, if there is one.
+    Locally the keys live in .env; in CI (GitHub Actions) there is no .env and the
+    keys are already set as environment variables from GitHub Secrets.
     """
     env_path = Path(__file__).parents[3]/ ".env"
-    if not env_path.exists():
-        raise FileNotFoundError(f".env file not found at {env_path}")
-    
-    load_dotenv(dotenv_path=env_path)
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
     return None
 
 

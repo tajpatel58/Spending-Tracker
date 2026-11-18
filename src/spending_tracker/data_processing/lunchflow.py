@@ -8,6 +8,7 @@ import requests
 from spending_tracker.database.supabase_client import load_env_variables
 from spending_tracker.data_processing import common
 from spending_tracker.data_processing import table_schema
+from spending_tracker.database import fetch
 
 _RETRIES = 3
 _RETRY_DELAY_SECONDS = 30
@@ -75,8 +76,7 @@ def load_lunchflow_account_mapping(lunchflow_account_ids: list = []) -> pd.DataF
   Load the lunchflow account id -> {user, bank, account_id} mapping from accounts.csv as a dataframe,
   one row per lunchflow account with columns lunchflow_account_id, user, bank, account_id.
   """
-  ACCOUNTS_FILE = Path(__file__).parents[3] / "data" / "accounts" / "accounts.csv"
-  accounts_df = pd.read_csv(ACCOUNTS_FILE, dtype=str)
+  accounts_df = fetch.load_accounts_from_supabase()
   accounts_df = accounts_df.rename(columns={"account_name": "bank"})
 
   if lunchflow_account_ids:

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -18,7 +19,7 @@ transaction_metadata_home = data_home / "transactions_metadata"
 force_llm = False
 upsert_cols = ["event_id"]
 lunchflow_account_ids = []
-llm_model = "ollama" # need to be one of claude/ollama. 
+llm_model = os.getenv("LLM_MODEL", "ollama") # need to be one of claude/ollama. CI sets LLM_MODEL=claude.
 
 """
 For each mapped lunchflow account, fetch transactions from the start of `month` (e.g. "October-26",

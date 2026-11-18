@@ -224,7 +224,6 @@ def transactions_apply_to_df(
             })
             continue
 
-        print(row.merchant)
         result = llm_classify_transaction(
             merchant=row.merchant,
             amount=row.amount,
