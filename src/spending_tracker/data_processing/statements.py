@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+from loguru import logger
 from spending_tracker.data_processing import chase
 from spending_tracker.data_processing import amex
 from spending_tracker.data_processing import nationwide
@@ -118,7 +119,7 @@ def parse_and_clean_batch(data_home: Path,
             continue
         if specific_bank and bank != specific_bank:
             continue
-        print(f"Processing {user}/{bank}/{account_id}/{month}")
+        logger.info(f"Processing {user}/{bank}/{account_id}/{month}")
         parse_and_clean_single_dataset(data_home, user, bank, account_id, month, labelled_examples)
 
     return None

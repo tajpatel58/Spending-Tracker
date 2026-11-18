@@ -3,6 +3,7 @@ from urllib import response
 from pandas import io
 from supabase import Client
 import pandas as pd
+from loguru import logger
 from spending_tracker.database.supabase_client import list_folders, list_files, list_all, load_supabase_client
 
 def upload_transactions_to_db(
@@ -40,6 +41,7 @@ def upload_transactions_to_db(
         )
         .execute()
     )
+    logger.info(f"Upserted {len(records)} rows into '{table_name}'")
 
     return response
 

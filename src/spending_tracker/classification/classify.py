@@ -2,6 +2,7 @@
 import json
 import pandas as pd
 from pathlib import Path
+from loguru import logger
 from spending_tracker.classification import prompts
 from spending_tracker.classification.ollama import ollama_chat
 from spending_tracker.classification import claude
@@ -26,17 +27,24 @@ def new_llm_usage() -> dict:
     return {"calls": 0, "input_tokens": 0, "output_tokens": 0}
 
 
+def llm_usage_cost(llm_usage: dict, llm_model: str = "ollama") -> float | None:
+    """Estimated $ cost of the usage so far; None for Ollama (runs locally, free)."""
+    if llm_model != "claude":
+        return None
+    return (
+        llm_usage["input_tokens"] * claude.INPUT_PRICE_PER_MTOK
+        + llm_usage["output_tokens"] * claude.OUTPUT_PRICE_PER_MTOK
+    ) / 1_000_000
+
+
 def llm_usage_summary(llm_usage: dict, llm_model: str = "ollama") -> str:
     """One-line summary of calls/tokens, with an estimated cost for Claude (Ollama runs locally)."""
     summary = (
         f"LLM ({llm_model}): {llm_usage['calls']} calls, "
         f"{llm_usage['input_tokens']} input / {llm_usage['output_tokens']} output tokens"
     )
-    if llm_model == "claude":
-        cost = (
-            llm_usage["input_tokens"] * claude.INPUT_PRICE_PER_MTOK
-            + llm_usage["output_tokens"] * claude.OUTPUT_PRICE_PER_MTOK
-        ) / 1_000_000
+    cost = llm_usage_cost(llm_usage, llm_model)
+    if cost is not None:
         summary += f", ~${cost:.4f}"
     return summary
 
@@ -59,6 +67,7 @@ def llm_chat(prompt: str,
     else:
         raise ValueError(f"{llm_model} not a valid LLM Model type")
 
+    logger.debug(f"{llm_model} call: {input_tokens} input / {output_tokens} output tokens")
     if llm_usage is not None:
         llm_usage["calls"] += 1
         llm_usage["input_tokens"] += input_tokens
@@ -211,12 +220,15 @@ def transactions_apply_to_df(
     merchant_to_category = {example["merchant"]: example["category"] for example in examples}
     merchant_to_cleaned_merchant = {example["merchant"]: example["cleaned_merchant"] for example in examples}
 
+    from_examples = 0
     for row in transactions_metadata_df.itertuples(index=False):
         if row.merchant in merchant_to_category and not force_llm:
+            from_examples += 1
             # fetch cleaned merchant
             cleaned_merchant = merchant_to_cleaned_merchant[row.merchant]
 
             # Use the pre-classified category
+            logger.debug(f"Known merchant {row.merchant!r} -> {merchant_to_category[row.merchant]}")
             results.append({
                 "merchant": cleaned_merchant,
                 "category": merchant_to_category[row.merchant],
@@ -232,7 +244,11 @@ def transactions_apply_to_df(
             llm_usage=llm_usage,
         )
 
+        logger.debug(f"LLM classified {row.merchant!r} -> {result.get('category')}")
         results.append(result)
+
+    llm_classified = len(results) - from_examples
+    logger.info(f"Classified {len(results)} transactions: {from_examples} from labelled examples, {llm_classified} by LLM ({llm_model})")
 
     result_df = pd.DataFrame(results, index=transactions_metadata_df.index, columns=["merchant", "category", "confidence"])
 

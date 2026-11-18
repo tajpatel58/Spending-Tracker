@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import pandas as pd
 import requests
+from loguru import logger
 from spending_tracker.database.supabase_client import load_env_variables
 from spending_tracker.data_processing import common
 from spending_tracker.data_processing import table_schema
@@ -21,9 +22,11 @@ def _get(url: str, **kwargs) -> requests.Response:
       response = requests.get(url, headers={"x-api-key": os.environ["LUNCHFLOW_API_KEY"]}, **kwargs)
       response.raise_for_status()
       return response
-    except requests.RequestException:
+    except requests.RequestException as exc:
       if attempt > _RETRIES:
+        logger.error(f"Lunchflow request failed after {_RETRIES} retries: {exc}")
         raise
+      logger.warning(f"Lunchflow request failed ({exc}); retry {attempt}/{_RETRIES} in {_RETRY_DELAY_SECONDS}s")
       time.sleep(_RETRY_DELAY_SECONDS)
 
 def get_accounts() -> pd.DataFrame:
@@ -57,6 +60,7 @@ def get_transactions(account_id: str,
   if month is not None:
     from_date = datetime.strptime(month.strip(), "%B-%y").strftime("%Y-%m-%d")
 
+  logger.debug(f"Fetching lunchflow transactions for account {account_id} from {from_date}")
   response = _get(url, params={"from": from_date})
   return response.text
 

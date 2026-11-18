@@ -1,5 +1,6 @@
 from supabase import Client
 import pandas as pd
+from loguru import logger
 from spending_tracker.database import supabase_client
 
 
@@ -12,4 +13,5 @@ def load_accounts_from_supabase() -> pd.DataFrame:
         .select("*")
         .execute()
     )
+    logger.debug(f"Loaded {len(response.data)} accounts from Supabase")
     return pd.DataFrame(response.data)

@@ -2,6 +2,7 @@ import re
 from datetime import date, datetime, timezone
 from pathlib import Path
 import pandas as pd
+from loguru import logger
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -109,7 +110,7 @@ def extract_events_df(events: list[dict],
                                                         llm_model=llm_model,
                                                         llm_usage=llm_usage)
             except ValueError as exc:
-                print(f"Skipping {event['title']!r} ({event['event_date']}): {exc}")
+                logger.warning(f"Skipping {event['title']!r} ({event['event_date']}): {exc}")
                 counts["failed"] += 1
                 continue
             counts["extracted"] += 1
