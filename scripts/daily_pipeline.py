@@ -43,7 +43,7 @@ end_date_for_labelled_transactions = (
 )
 
 # env vars used in workflow, overwrites if set.
-dry_run = os.getenv("LLM_DRY_RUN", dry_run)
+dry_run = os.getenv("LLM_DRY_RUN", str(dry_run)).lower() == "true"
 llm_model = os.getenv("LLM_MODEL", llm_model)
 
 
