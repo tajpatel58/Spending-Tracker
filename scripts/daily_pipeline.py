@@ -27,8 +27,8 @@ end_date_for_labelled_transactions = (
 force_llm = False
 upsert_cols = ["event_id"]
 lunchflow_account_ids = []  # defaults to running all.
-llm_model = "claude"  # need to be one of claude/ollama. CI sets LLM_MODEL=claude.
-dry_run = True  # estimate only: fetches transactions, no LLM calls, no uploads
+llm_model = "ollama"  # need to be one of claude/ollama. CI sets LLM_MODEL=claude.
+dry_run = False  # estimate only: fetches transactions, no LLM calls, no uploads
 max_llm_cost_usd = float(
     os.getenv("MAX_LLM_COST_USD", "0.05")
 )  # abort if the worst-case estimate is above this
@@ -65,6 +65,7 @@ logger.bind(public=True).info(
 cleaned_by_account = {}  # "bank/account_id" -> cleaned transactions, from pass 1
 upsert_transactions_metadata_df_list = []
 llm_usage = classify.new_llm_usage()
+llm_cache = {}  # merchant -> LLM result, so a merchant seen in several rows/accounts is asked about once
 llm_estimate = {}
 account_metrics = {}  # "bank/account_id" -> one-line summary, for the end-of-run table (never public)
 totals = {
@@ -180,7 +181,12 @@ if dry_run:
 for account, cleaned_transactions_df in cleaned_by_account.items():
     llm_calls_before = llm_usage["calls"]
     transactions_metadata_df = statements.create_transactions_metadata_df(
-        cleaned_transactions_df, labelled_examples, force_llm, llm_model, llm_usage
+        cleaned_transactions_df,
+        labelled_examples,
+        force_llm,
+        llm_model,
+        llm_usage,
+        llm_cache,
     )
 
     common.save_partitioned_dataframe_to_csv(

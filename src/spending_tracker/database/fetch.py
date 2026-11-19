@@ -3,6 +3,20 @@ from loguru import logger
 
 from spending_tracker.database import supabase_client
 
+_PAGE_SIZE = 1000  # Supabase returns at most 1,000 rows per request by default
+
+
+def _select_all(query) -> list[dict]:
+    """Run a select query page by page, so tables over the row limit aren't silently cut off."""
+    query = query.order("event_id")  # stable order, so pages don't overlap or skip rows
+    rows, offset = [], 0
+    while True:
+        page = query.range(offset, offset + _PAGE_SIZE - 1).execute().data
+        rows += page
+        if len(page) < _PAGE_SIZE:
+            return rows
+        offset += _PAGE_SIZE
+
 
 def load_accounts_from_supabase() -> pd.DataFrame:
     """Fetch the accounts table from Supabase as a DataFrame."""
@@ -23,20 +37,26 @@ def load_labelled_transactions_as_dict(
     """
 
     client = supabase_client.load_supabase_client()
-    metadata_response = client.table("transactions_metadata").select("*").execute()
+    metadata_rows = _select_all(
+        client.table("transactions_metadata").select(
+            "event_id, manual_merchant, manual_category, llm_merchant, llm_category"
+        )
+    )
 
-    transactions_query = client.table("transactions").select("*")
+    transactions_query = client.table("transactions").select(
+        "event_id, merchant, amount"
+    )
     if from_date is not None:
         transactions_query = transactions_query.gte("date", from_date)
 
     if end_date is not None:
         transactions_query = transactions_query.lte("date", end_date)
 
-    transactions_response = transactions_query.execute()
+    transactions_rows = _select_all(transactions_query)
 
     # convert to dataframes and merge on event_id:
-    metadata_df = pd.DataFrame(metadata_response.data)
-    transactions_df = pd.DataFrame(transactions_response.data)
+    metadata_df = pd.DataFrame(metadata_rows)
+    transactions_df = pd.DataFrame(transactions_rows)
     transactions_with_metadata_df = pd.merge(
         transactions_df, metadata_df, on="event_id", how="inner"
     )

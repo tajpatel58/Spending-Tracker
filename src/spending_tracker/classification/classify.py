@@ -210,12 +210,15 @@ def llm_extract_calendar_event(
 def rows_needing_llm(
     transactions_df: pd.DataFrame, examples: list[dict], force_llm: bool = False
 ) -> pd.DataFrame:
-    """Rows the LLM will be asked about: merchants with no labelled example (all rows if force_llm).
-    transactions_apply_to_df uses the same rule, so the estimate and the real run agree."""
-    if force_llm:
-        return transactions_df
-    known_merchants = {example["merchant"] for example in examples}
-    return transactions_df[~transactions_df["merchant"].isin(known_merchants)]
+    """Rows the LLM will be asked about: one per merchant with no labelled example (one per
+    merchant if force_llm). transactions_apply_to_df asks about each merchant once per run,
+    so the estimate and the real run agree."""
+    if not force_llm:
+        known_merchants = {example["merchant"] for example in examples}
+        transactions_df = transactions_df[
+            ~transactions_df["merchant"].isin(known_merchants)
+        ]
+    return transactions_df.drop_duplicates("merchant")
 
 
 def estimate_llm_run(
@@ -284,6 +287,7 @@ def transactions_apply_to_df(
     force_llm: bool = False,
     llm_model: str = "ollama",
     llm_usage: dict | None = None,
+    llm_cache: dict | None = None,
 ) -> pd.DataFrame:
     """
     Classify transactions in a DataFrame.
@@ -293,9 +297,12 @@ def transactions_apply_to_df(
         llm_category
 
     If llm_usage is given, it is updated in place with this run's LLM calls/tokens.
+    llm_cache (merchant -> LLM result) means each merchant is only sent to the LLM once;
+    pass the same dict for every call in a run to share it across accounts.
     """
 
     results = []
+    llm_cache = {} if llm_cache is None else llm_cache
 
     merchant_to_category = {
         example["merchant"]: example["category"] for example in examples
@@ -305,6 +312,7 @@ def transactions_apply_to_df(
     }
 
     from_examples = 0
+    from_cache = 0
     for row in transactions_metadata_df.itertuples(index=False):
         if row.merchant in merchant_to_category and not force_llm:
             from_examples += 1
@@ -324,6 +332,11 @@ def transactions_apply_to_df(
             )
             continue
 
+        if row.merchant in llm_cache:
+            from_cache += 1
+            results.append(llm_cache[row.merchant])
+            continue
+
         result = llm_classify_transaction(
             merchant=row.merchant,
             amount=row.amount,
@@ -333,11 +346,13 @@ def transactions_apply_to_df(
         )
 
         logger.debug(f"LLM classified {row.merchant!r} -> {result.get('category')}")
+        llm_cache[row.merchant] = result
         results.append(result)
 
-    llm_classified = len(results) - from_examples
+    llm_classified = len(results) - from_examples - from_cache
     logger.bind(public=True).info(
-        f"Classified {len(results)} transactions: {from_examples} from labelled examples, {llm_classified} by LLM ({llm_model})"
+        f"Classified {len(results)} transactions: {from_examples} from labelled examples, "
+        f"{from_cache} repeats of a merchant already classified this run, {llm_classified} by LLM ({llm_model})"
     )
 
     result_df = pd.DataFrame(

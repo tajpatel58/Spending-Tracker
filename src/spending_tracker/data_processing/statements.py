@@ -37,6 +37,7 @@ def create_transactions_metadata_df(
     force_llm: bool = False,
     llm_model: str = "ollama",
     llm_usage: dict | None = None,
+    llm_cache: dict | None = None,
 ) -> pd.DataFrame:
     """
     Create a table that is a mix of LLM and Manual changes through the dashboard.
@@ -48,7 +49,12 @@ def create_transactions_metadata_df(
 
     # code to utilise LLM suggestions
     transactions_metadata_df = classify.transactions_apply_to_df(
-        transactions_metadata_df, labelled_examples, force_llm, llm_model, llm_usage
+        transactions_metadata_df,
+        labelled_examples,
+        force_llm,
+        llm_model,
+        llm_usage,
+        llm_cache,
     )
 
     # add NULL columns for default values of manually changed fiels
