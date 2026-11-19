@@ -60,7 +60,12 @@ def setup_logging(run_name: str = "run") -> None:
     sys.excepthook = _log_uncaught_exception
 
     _log_path = _LOG_DIR / f"{run_name}_{datetime.now():%Y-%m-%d_%H-%M-%S}.log"
-    _file_handler_id = logger.add(_log_path, level="DEBUG", format=_FILE_FORMAT)
+    _file_handler_id = logger.add(
+        _log_path,
+        level="DEBUG",
+        format=_FILE_FORMAT,
+        filter=lambda record: not record["extra"].get("console_only", False),
+    )
     # If the script ends without calling finalise_log_file (i.e. it crashed), file it as failed
     atexit.register(finalise_log_file, "failed")
 
@@ -147,7 +152,11 @@ def finalise_log_file(status: str) -> Path | None:
 
 
 def log_run_summary(
-    title: str, sections: dict[str, dict], depth: int = 1, public: bool = False
+    title: str,
+    sections: dict[str, dict],
+    depth: int = 1,
+    public: bool = False,
+    console_only: bool = False,
 ) -> None:
     """
     Log a readable table of run metrics, e.g.
@@ -161,7 +170,9 @@ def log_run_summary(
         lines.append(f"  {section}")
         lines.extend(f"    {key:<{width}}  {value}" for key, value in rows.items())
     # depth: how many frames up to report as the source, so the log shows the calling script
-    logger.opt(depth=depth).bind(public=public).info("\n" + "\n".join(lines))
+    logger.opt(depth=depth).bind(public=public, console_only=console_only).info(
+        "\n" + "\n".join(lines)
+    )
 
     summary_path = os.getenv("GITHUB_STEP_SUMMARY")
     if public and summary_path:
@@ -255,6 +266,7 @@ def log_pipeline_summary(
             build(include_accounts=False),
             depth=2,
             public=True,
+            console_only=True,  # the file already has the full table above
         )
     else:
         log_run_summary("Daily pipeline summary", build(include_accounts=True), depth=2)
