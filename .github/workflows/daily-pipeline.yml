@@ -1,0 +1,67 @@
+# Runs scripts/daily_pipeline.py on a GitHub-hosted machine:
+#   Lunchflow API  ->  clean + categorise (Claude)  ->  upsert into Supabase
+name: Daily transactions pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      # Shows as a checkbox on the "Run workflow" button. Ticked = fetch from Lunchflow and
+      # print the Claude cost estimate, but send nothing to Claude and upload nothing.
+      dry_run:
+        description: "Dry run: estimate Claude cost only (no LLM calls, no Supabase uploads)"
+        type: boolean
+        default: true
+
+  # To run it every day later, uncomment this (cron is in UTC; this is 06:00 UTC):
+  # schedule:
+  #   - cron: "0 6 * * *"
+
+# read only perms to repo.
+permissions:
+  contents: read
+
+# Never let two runs upsert into Supabase at the same time; a second run waits.
+concurrency:
+  group: daily-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest  
+    timeout-minutes: 10
+
+    # Environment variables for every step below. The ${{ secrets.X }} values come
+    # from Settings -> Secrets and variables -> Actions, and are masked (***) in logs.
+    # These replace your local .env file.
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      LUNCHFLOW_API_KEY: ${{ secrets.LUNCHFLOW_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LLM_MODEL: claude      # no Ollama server on the runner, so categorise with Claude
+      LOG_LEVEL: INFO        # console level; the uploaded log file always has full DEBUG detail
+      # Cost guards (checked before any Claude request is sent):
+      LLM_DRY_RUN: ${{ inputs.dry_run || false }}   # scheduled runs have no inputs -> false
+      MAX_LLM_COST_USD: "0.05"   # abort the run if the worst-case estimate is above this
+
+    steps:
+      # 1. Download this repo's code onto the runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install uv, the same tool you use locally. The cache makes later runs faster.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # 3. Install Python 3.12 and the exact package versions pinned in uv.lock
+      #    (--frozen = fail rather than silently change the lock file).
+      #    This also installs the spending_tracker package from src/.
+      - name: Install Python and dependencies
+        run: uv sync --frozen --python 3.12
+
+      # 4. The actual work: read the account list from Supabase, fetch from
+      #    Lunchflow, process, and upload back to Supabase.
+      - name: Run daily pipeline
+        run: uv run python scripts/daily_pipeline.py
