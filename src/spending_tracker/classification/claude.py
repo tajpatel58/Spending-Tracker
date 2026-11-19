@@ -9,6 +9,10 @@ MAX_TOKENS = 512
 INPUT_PRICE_PER_MTOK = 0.10
 OUTPUT_PRICE_PER_MTOK = 0.50
 
+# Rough size of one classification reply ({"merchant", "category", "confidence"} as JSON),
+# used only for the pre-flight estimate. Calibrate from a real run: output_tokens / calls.
+TYPICAL_OUTPUT_TOKENS = 60
+
 # Hard stop on calls per run, so a bug (or a huge backfill) can't run up a bill.
 DEFAULT_MAX_CALLS_PER_RUN = 20
 
@@ -28,6 +32,30 @@ def _get_client() -> anthropic.Anthropic:
     return _client
 
 
+def estimate_cost(input_tokens: int, output_tokens: int) -> float:
+    """$ cost of a number of input/output tokens at MODEL's prices."""
+    return (input_tokens * INPUT_PRICE_PER_MTOK + output_tokens * OUTPUT_PRICE_PER_MTOK) / 1_000_000
+
+
+def _request_kwargs(prompt: str, schema: dict | None = None) -> dict:
+    """The request we send, shared by claude_chat and count_prompt_tokens so the
+    pre-flight token count always matches the real call (incl. JSON-schema overhead)."""
+    output_config = {"effort": "low"}
+    if schema is not None:
+        output_config["format"] = {"type": "json_schema", "schema": schema}
+    return {
+        "model": MODEL,
+        "thinking": {"type": "disabled"},
+        "output_config": output_config,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+
+
+def count_prompt_tokens(prompt: str, schema: dict | None = None) -> int:
+    """Input tokens this prompt would use, via the free count_tokens endpoint (nothing is generated)."""
+    return _get_client().messages.count_tokens(**_request_kwargs(prompt, schema)).input_tokens
+
+
 def claude_chat(prompt: str, schema: dict | None = None) -> tuple[str, int, int]:
     """Send a prompt to Claude and return (reply_text, input_tokens, output_tokens).
     - No schema: the reply is plain text.
@@ -40,17 +68,7 @@ def claude_chat(prompt: str, schema: dict | None = None) -> tuple[str, int, int]
         )
     _calls_this_run += 1
 
-    output_config = {"effort": "low"}
-    if schema is not None:
-        output_config["format"] = {"type": "json_schema", "schema": schema}
-
-    response = _get_client().messages.create(
-        model=MODEL,
-        max_tokens=MAX_TOKENS,
-        thinking={"type": "disabled"},
-        output_config=output_config,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    response = _get_client().messages.create(max_tokens=MAX_TOKENS, **_request_kwargs(prompt, schema))
 
     if response.stop_reason == "refusal":
         raise ValueError(f"Claude declined the request: {response.stop_details}")

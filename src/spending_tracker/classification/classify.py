@@ -31,10 +31,7 @@ def llm_usage_cost(llm_usage: dict, llm_model: str = "ollama") -> float | None:
     """Estimated $ cost of the usage so far; None for Ollama (runs locally, free)."""
     if llm_model != "claude":
         return None
-    return (
-        llm_usage["input_tokens"] * claude.INPUT_PRICE_PER_MTOK
-        + llm_usage["output_tokens"] * claude.OUTPUT_PRICE_PER_MTOK
-    ) / 1_000_000
+    return claude.estimate_cost(llm_usage["input_tokens"], llm_usage["output_tokens"])
 
 
 def llm_usage_summary(llm_usage: dict, llm_model: str = "ollama") -> str:
@@ -196,6 +193,60 @@ def llm_extract_calendar_event(event: dict,
         extraction["sub_category"] = None
 
     return extraction
+
+
+def rows_needing_llm(transactions_df: pd.DataFrame,
+                     examples: list[dict],
+                     force_llm: bool = False) -> pd.DataFrame:
+    """Rows the LLM will be asked about: merchants with no labelled example (all rows if force_llm).
+    transactions_apply_to_df uses the same rule, so the estimate and the real run agree."""
+    if force_llm:
+        return transactions_df
+    known_merchants = {example["merchant"] for example in examples}
+    return transactions_df[~transactions_df["merchant"].isin(known_merchants)]
+
+
+def estimate_llm_run(transactions_df: pd.DataFrame,
+                     examples: list[dict],
+                     force_llm: bool = False,
+                     llm_model: str = "ollama") -> dict:
+    """
+    Pre-flight estimate of the LLM calls/cost classifying these transactions will take,
+    before anything is sent. For Claude, each real prompt is token-counted with the free
+    count_tokens endpoint; output tokens can't be known in advance, so two figures are given:
+      est_cost        - with a typical reply size (claude.TYPICAL_OUTPUT_TOKENS per call)
+      worst_case_cost - if every reply used the full claude.MAX_TOKENS
+    """
+    to_classify = rows_needing_llm(transactions_df, examples, force_llm)
+    estimate = {"calls": len(to_classify), "input_tokens": 0, "est_output_tokens": 0,
+                "est_cost": 0.0, "worst_case_cost": 0.0, "over_call_cap": False}
+
+    if llm_model != "claude" or to_classify.empty:
+        logger.info(f"LLM pre-flight: {estimate['calls']} calls needed ({llm_model}, no API cost)")
+        return estimate
+
+    if estimate["calls"] > claude.DEFAULT_MAX_CALLS_PER_RUN:
+        # don't bother counting tokens; the run would hit the call cap anyway
+        estimate["over_call_cap"] = True
+        logger.warning(f"LLM pre-flight: {estimate['calls']} calls needed, over the cap of {claude.DEFAULT_MAX_CALLS_PER_RUN}")
+        return estimate
+
+    schema = LLM_SCHEMAS["transaction_classification"]
+    for row in to_classify.itertuples(index=False):
+        prompt = prompts.build_transaction_classification_prompt(
+            merchant=row.merchant, amount=row.amount, examples=examples)
+        estimate["input_tokens"] += claude.count_prompt_tokens(prompt, schema)
+
+    calls = estimate["calls"]
+    estimate["est_output_tokens"] = calls * claude.TYPICAL_OUTPUT_TOKENS
+    estimate["est_cost"] = claude.estimate_cost(estimate["input_tokens"], estimate["est_output_tokens"])
+    estimate["worst_case_cost"] = claude.estimate_cost(estimate["input_tokens"], calls * claude.MAX_TOKENS)
+    logger.info(
+        f"LLM pre-flight: {calls} calls, {estimate['input_tokens']:,} input tokens "
+        f"(~{estimate['input_tokens'] // calls:,}/call) -> est. ${estimate['est_cost']:.4f}, "
+        f"worst case ${estimate['worst_case_cost']:.4f}"
+    )
+    return estimate
 
 
 def transactions_apply_to_df(
