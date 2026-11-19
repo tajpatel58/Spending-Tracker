@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
-from supabase import create_client
-from storage3.exceptions import StorageApiError
+
 from dotenv import load_dotenv
+from storage3.exceptions import StorageApiError
+from supabase import create_client
 
 
 def load_env_variables():
@@ -11,10 +12,9 @@ def load_env_variables():
     Locally the keys live in .env; in CI (GitHub Actions) there is no .env and the
     keys are already set as environment variables from GitHub Secrets.
     """
-    env_path = Path(__file__).parents[3]/ ".env"
+    env_path = Path(__file__).parents[3] / ".env"
     if env_path.exists():
         load_dotenv(dotenv_path=env_path)
-    return None
 
 
 def load_supabase_client():
@@ -24,10 +24,12 @@ def load_supabase_client():
     load_env_variables()
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    
+
     if not url or not key:
-        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the .env file.")
-    
+        raise ValueError(
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the .env file."
+        )
+
     return create_client(url, key)
 
 
@@ -60,5 +62,8 @@ def list_folders(path: Path, bucket):
 
 
 def list_files(path: Path, bucket):
-    return [e["name"] for e in list_all(path, bucket)
-            if e.get("id") is not None and not e["name"].startswith(".")]
+    return [
+        e["name"]
+        for e in list_all(path, bucket)
+        if e.get("id") is not None and not e["name"].startswith(".")
+    ]

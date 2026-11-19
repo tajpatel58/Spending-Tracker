@@ -1,5 +1,7 @@
 import os
+
 import anthropic
+
 from spending_tracker.database.supabase_client import load_env_variables
 
 MODEL = "claude-haiku-5-5"
@@ -34,7 +36,9 @@ def _get_client() -> anthropic.Anthropic:
 
 def estimate_cost(input_tokens: int, output_tokens: int) -> float:
     """$ cost of a number of input/output tokens at MODEL's prices."""
-    return (input_tokens * INPUT_PRICE_PER_MTOK + output_tokens * OUTPUT_PRICE_PER_MTOK) / 1_000_000
+    return (
+        input_tokens * INPUT_PRICE_PER_MTOK + output_tokens * OUTPUT_PRICE_PER_MTOK
+    ) / 1_000_000
 
 
 def _request_kwargs(prompt: str, schema: dict | None = None) -> dict:
@@ -53,7 +57,11 @@ def _request_kwargs(prompt: str, schema: dict | None = None) -> dict:
 
 def count_prompt_tokens(prompt: str, schema: dict | None = None) -> int:
     """Input tokens this prompt would use, via the free count_tokens endpoint (nothing is generated)."""
-    return _get_client().messages.count_tokens(**_request_kwargs(prompt, schema)).input_tokens
+    return (
+        _get_client()
+        .messages.count_tokens(**_request_kwargs(prompt, schema))
+        .input_tokens
+    )
 
 
 def claude_chat(prompt: str, schema: dict | None = None) -> tuple[str, int, int]:
@@ -68,7 +76,9 @@ def claude_chat(prompt: str, schema: dict | None = None) -> tuple[str, int, int]
         )
     _calls_this_run += 1
 
-    response = _get_client().messages.create(max_tokens=MAX_TOKENS, **_request_kwargs(prompt, schema))
+    response = _get_client().messages.create(
+        max_tokens=MAX_TOKENS, **_request_kwargs(prompt, schema)
+    )
 
     if response.stop_reason == "refusal":
         raise ValueError(f"Claude declined the request: {response.stop_details}")

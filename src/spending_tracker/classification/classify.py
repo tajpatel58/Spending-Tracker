@@ -1,16 +1,16 @@
-
 import json
-import pandas as pd
 from pathlib import Path
-from loguru import logger
-from spending_tracker.classification import prompts
-from spending_tracker.classification.ollama import ollama_chat
-from spending_tracker.classification import claude
-from spending_tracker.classification.claude import claude_chat
 
+import pandas as pd
+from loguru import logger
+
+from spending_tracker.classification import claude, prompts
+from spending_tracker.classification.claude import claude_chat
+from spending_tracker.classification.ollama import ollama_chat
 
 NUMBER = (int, float)
 NULLABLE_NUMBER = (int, float, type(None))
+
 
 def load_llm_schemas():
     schemas_path = Path(__file__).with_name("llm_schemas.json")
@@ -46,10 +46,12 @@ def llm_usage_summary(llm_usage: dict, llm_model: str = "ollama") -> str:
     return summary
 
 
-def llm_chat(prompt: str, 
-             schema: dict | None = None, 
-             llm_model: str = "ollama",
-             llm_usage: dict | None = None) -> str:
+def llm_chat(
+    prompt: str,
+    schema: dict | None = None,
+    llm_model: str = "ollama",
+    llm_usage: dict | None = None,
+) -> str:
     """Send a prompt to the chosen LLM and return its reply text.
 
     If llm_usage is given, its calls/input_tokens/output_tokens are incremented in place.
@@ -64,7 +66,9 @@ def llm_chat(prompt: str,
     else:
         raise ValueError(f"{llm_model} not a valid LLM Model type")
 
-    logger.debug(f"{llm_model} call: {input_tokens} input / {output_tokens} output tokens")
+    logger.debug(
+        f"{llm_model} call: {input_tokens} input / {output_tokens} output tokens"
+    )
     if llm_usage is not None:
         llm_usage["calls"] += 1
         llm_usage["input_tokens"] += input_tokens
@@ -73,7 +77,9 @@ def llm_chat(prompt: str,
     return content
 
 
-def check_json_response(content: str, field_types: dict[str, tuple[type, ...] | type]) -> dict:
+def check_json_response(
+    content: str, field_types: dict[str, tuple[type, ...] | type]
+) -> dict:
     """
     Parse an LLM's JSON reply and check each required field has the expected type.
 
@@ -86,7 +92,9 @@ def check_json_response(content: str, field_types: dict[str, tuple[type, ...] | 
         raise ValueError(f"LLM returned invalid JSON: {content}") from exc
 
     if not isinstance(data, dict):
-        raise ValueError(f"LLM JSON must be an object, got {type(data).__name__}: {content}")
+        raise ValueError(
+            f"LLM JSON must be an object, got {type(data).__name__}: {content}"
+        )
 
     missing_fields = field_types.keys() - data.keys()
     if missing_fields:
@@ -101,7 +109,9 @@ def check_json_response(content: str, field_types: dict[str, tuple[type, ...] | 
         else:
             ok = isinstance(value, allowed)
         if not ok:
-            names = " or ".join("null" if t is type(None) else t.__name__ for t in allowed)
+            names = " or ".join(
+                "null" if t is type(None) else t.__name__ for t in allowed
+            )
             raise ValueError(
                 f"Field '{field}' must be {names}, got {type(value).__name__}: {value!r}"
             )
@@ -155,10 +165,12 @@ def llm_classify_transaction(
         examples=examples,
     )
 
-    content = llm_chat(prompt, 
-                       schema=LLM_SCHEMAS["transaction_classification"], 
-                       llm_model=llm_model,
-                       llm_usage=llm_usage)
+    content = llm_chat(
+        prompt,
+        schema=LLM_SCHEMAS["transaction_classification"],
+        llm_model=llm_model,
+        llm_usage=llm_usage,
+    )
 
     classification = check_json_response(
         content,
@@ -166,22 +178,22 @@ def llm_classify_transaction(
     )
 
     if not 0 <= classification["confidence"] <= 1:
-        raise ValueError(
-            "Confidence must be between 0 and 1."
-        )
+        raise ValueError("Confidence must be between 0 and 1.")
 
     return classification
 
 
-def llm_extract_calendar_event(event: dict,
-                               llm_model: str = "ollama",
-                               llm_usage: dict | None = None) -> dict:
+def llm_extract_calendar_event(
+    event: dict, llm_model: str = "ollama", llm_usage: dict | None = None
+) -> dict:
     prompt = prompts.build_calendar_event_extraction_prompt(event)
 
-    content = llm_chat(prompt, 
-                       schema=LLM_SCHEMAS["calendar_event_extraction"], 
-                       llm_model=llm_model,
-                       llm_usage=llm_usage)
+    content = llm_chat(
+        prompt,
+        schema=LLM_SCHEMAS["calendar_event_extraction"],
+        llm_model=llm_model,
+        llm_usage=llm_usage,
+    )
 
     extraction = check_json_response(
         content,
@@ -195,9 +207,9 @@ def llm_extract_calendar_event(event: dict,
     return extraction
 
 
-def rows_needing_llm(transactions_df: pd.DataFrame,
-                     examples: list[dict],
-                     force_llm: bool = False) -> pd.DataFrame:
+def rows_needing_llm(
+    transactions_df: pd.DataFrame, examples: list[dict], force_llm: bool = False
+) -> pd.DataFrame:
     """Rows the LLM will be asked about: merchants with no labelled example (all rows if force_llm).
     transactions_apply_to_df uses the same rule, so the estimate and the real run agree."""
     if force_llm:
@@ -206,10 +218,12 @@ def rows_needing_llm(transactions_df: pd.DataFrame,
     return transactions_df[~transactions_df["merchant"].isin(known_merchants)]
 
 
-def estimate_llm_run(transactions_df: pd.DataFrame,
-                     examples: list[dict],
-                     force_llm: bool = False,
-                     llm_model: str = "ollama") -> dict:
+def estimate_llm_run(
+    transactions_df: pd.DataFrame,
+    examples: list[dict],
+    force_llm: bool = False,
+    llm_model: str = "ollama",
+) -> dict:
     """
     Pre-flight estimate of the LLM calls/cost classifying these transactions will take,
     before anything is sent. For Claude, each real prompt is token-counted with the free
@@ -218,29 +232,44 @@ def estimate_llm_run(transactions_df: pd.DataFrame,
       worst_case_cost - if every reply used the full claude.MAX_TOKENS
     """
     to_classify = rows_needing_llm(transactions_df, examples, force_llm)
-    estimate = {"calls": len(to_classify), "input_tokens": 0, "est_output_tokens": 0,
-                "est_cost": 0.0, "worst_case_cost": 0.0, "over_call_cap": False}
+    estimate = {
+        "calls": len(to_classify),
+        "input_tokens": 0,
+        "est_output_tokens": 0,
+        "est_cost": 0.0,
+        "worst_case_cost": 0.0,
+        "over_call_cap": False,
+    }
 
     if llm_model != "claude" or to_classify.empty:
-        logger.bind(public=True).info(f"LLM pre-flight: {estimate['calls']} calls needed ({llm_model}, no API cost)")
+        logger.bind(public=True).info(
+            f"LLM pre-flight: {estimate['calls']} calls needed ({llm_model}, no API cost)"
+        )
         return estimate
 
     if estimate["calls"] > claude.DEFAULT_MAX_CALLS_PER_RUN:
         # don't bother counting tokens; the run would hit the call cap anyway
         estimate["over_call_cap"] = True
-        logger.bind(public=True).warning(f"LLM pre-flight: {estimate['calls']} calls needed, over the cap of {claude.DEFAULT_MAX_CALLS_PER_RUN}")
+        logger.bind(public=True).warning(
+            f"LLM pre-flight: {estimate['calls']} calls needed, over the cap of {claude.DEFAULT_MAX_CALLS_PER_RUN}"
+        )
         return estimate
 
     schema = LLM_SCHEMAS["transaction_classification"]
     for row in to_classify.itertuples(index=False):
         prompt = prompts.build_transaction_classification_prompt(
-            merchant=row.merchant, amount=row.amount, examples=examples)
+            merchant=row.merchant, amount=row.amount, examples=examples
+        )
         estimate["input_tokens"] += claude.count_prompt_tokens(prompt, schema)
 
     calls = estimate["calls"]
     estimate["est_output_tokens"] = calls * claude.TYPICAL_OUTPUT_TOKENS
-    estimate["est_cost"] = claude.estimate_cost(estimate["input_tokens"], estimate["est_output_tokens"])
-    estimate["worst_case_cost"] = claude.estimate_cost(estimate["input_tokens"], calls * claude.MAX_TOKENS)
+    estimate["est_cost"] = claude.estimate_cost(
+        estimate["input_tokens"], estimate["est_output_tokens"]
+    )
+    estimate["worst_case_cost"] = claude.estimate_cost(
+        estimate["input_tokens"], calls * claude.MAX_TOKENS
+    )
     logger.bind(public=True).info(
         f"LLM pre-flight: {calls} calls, {estimate['input_tokens']:,} input tokens "
         f"(~{estimate['input_tokens'] // calls:,}/call) -> est. ${estimate['est_cost']:.4f}, "
@@ -268,8 +297,12 @@ def transactions_apply_to_df(
 
     results = []
 
-    merchant_to_category = {example["merchant"]: example["category"] for example in examples}
-    merchant_to_cleaned_merchant = {example["merchant"]: example["cleaned_merchant"] for example in examples}
+    merchant_to_category = {
+        example["merchant"]: example["category"] for example in examples
+    }
+    merchant_to_cleaned_merchant = {
+        example["merchant"]: example["cleaned_merchant"] for example in examples
+    }
 
     from_examples = 0
     for row in transactions_metadata_df.itertuples(index=False):
@@ -279,12 +312,16 @@ def transactions_apply_to_df(
             cleaned_merchant = merchant_to_cleaned_merchant[row.merchant]
 
             # Use the pre-classified category
-            logger.debug(f"Known merchant {row.merchant!r} -> {merchant_to_category[row.merchant]}")
-            results.append({
-                "merchant": cleaned_merchant,
-                "category": merchant_to_category[row.merchant],
-                "confidence": 1.0
-            })
+            logger.debug(
+                f"Known merchant {row.merchant!r} -> {merchant_to_category[row.merchant]}"
+            )
+            results.append(
+                {
+                    "merchant": cleaned_merchant,
+                    "category": merchant_to_category[row.merchant],
+                    "confidence": 1.0,
+                }
+            )
             continue
 
         result = llm_classify_transaction(
@@ -299,12 +336,20 @@ def transactions_apply_to_df(
         results.append(result)
 
     llm_classified = len(results) - from_examples
-    logger.bind(public=True).info(f"Classified {len(results)} transactions: {from_examples} from labelled examples, {llm_classified} by LLM ({llm_model})")
+    logger.bind(public=True).info(
+        f"Classified {len(results)} transactions: {from_examples} from labelled examples, {llm_classified} by LLM ({llm_model})"
+    )
 
-    result_df = pd.DataFrame(results, index=transactions_metadata_df.index, columns=["merchant", "category", "confidence"])
+    result_df = pd.DataFrame(
+        results,
+        index=transactions_metadata_df.index,
+        columns=["merchant", "category", "confidence"],
+    )
 
     # merge datasets on index to ensure alignment:
     transactions_metadata_with_category_df = pd.DataFrame.copy(transactions_metadata_df)
-    transactions_metadata_with_category_df[["llm_merchant", "llm_category"]] = result_df[["merchant", "category"]]
+    transactions_metadata_with_category_df[["llm_merchant", "llm_category"]] = (
+        result_df[["merchant", "category"]]
+    )
 
     return transactions_metadata_with_category_df

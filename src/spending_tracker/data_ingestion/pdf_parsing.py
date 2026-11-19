@@ -1,10 +1,12 @@
-import pandas as pd
-import pdfplumber
 from pathlib import Path
 
-def pdf_to_dataframe(pdf_path: str, 
-                     columns: list = None,
-                     csv_path: str = None) -> pd.DataFrame:
+import pandas as pd
+import pdfplumber
+
+
+def pdf_to_dataframe(
+    pdf_path: str, columns: list = None, csv_path: str = None
+) -> pd.DataFrame:
     rows = []
 
     with pdfplumber.open(pdf_path) as pdf:

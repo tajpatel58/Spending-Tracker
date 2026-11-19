@@ -1,9 +1,11 @@
-import pandas as pd
-from pathlib import Path
 import re
+from pathlib import Path
+
+import pandas as pd
+
 from spending_tracker.data_ingestion import pdf_parsing
-from spending_tracker.data_processing import common
-from spending_tracker.data_processing import table_schema
+from spending_tracker.data_processing import common, table_schema
+
 
 def load_raw_chase_statement_pdf(pdf_path: Path) -> pd.DataFrame:
     """
@@ -23,20 +25,32 @@ def load_raw_chase_statement_csv(csv_path: Path) -> pd.DataFrame:
     Load a raw Chase statement CSV and return a DataFrame.
     """
     # Define the expected columns for Chase statements (note CSV and PDF differ)
-    expected_columns = ["Date", "Time", "Transaction Type", "Transaction Description", "Amount", "Balance"]
-    
+    expected_columns = [
+        "Date",
+        "Time",
+        "Transaction Type",
+        "Transaction Description",
+        "Amount",
+        "Balance",
+    ]
+
     # Use pandas to read the CSV file
-    raw_chase_df = pd.read_csv(csv_path, usecols=expected_columns, skiprows=1, dtype=str)
+    raw_chase_df = pd.read_csv(
+        csv_path, usecols=expected_columns, skiprows=1, dtype=str
+    )
 
     # Rename columns to match the expected format for further processing
-    raw_chase_df.rename(columns={
-        "Date": "date",
-        "Time": "time",
-        "Transaction Type": "transaction_type",
-        "Transaction Description": "transaction_details",
-        "Amount": "amount",
-        "Balance": "balance"
-    }, inplace=True)
+    raw_chase_df.rename(
+        columns={
+            "Date": "date",
+            "Time": "time",
+            "Transaction Type": "transaction_type",
+            "Transaction Description": "transaction_details",
+            "Amount": "amount",
+            "Balance": "balance",
+        },
+        inplace=True,
+    )
 
     return raw_chase_df
 
@@ -99,25 +113,39 @@ def clean_chase_transaction_dataframe(chase_df: pd.DataFrame, **kwargs) -> pd.Da
     chase_df["user"] = kwargs["user"]
 
     # add occurence column to handle duplicate transactions
-    chase_df["occurrence"] = chase_df.groupby(["date", "time", "transaction_details", "amount", "account_id"]).cumcount().add(1)
+    chase_df["occurrence"] = (
+        chase_df.groupby(
+            ["date", "time", "transaction_details", "amount", "account_id"]
+        )
+        .cumcount()
+        .add(1)
+    )
 
     # Convert 'date' column to datetime and add month column for partitioning
-    chase_df['date'] = pd.to_datetime(chase_df['date'], errors='coerce')
-    chase_df['month'] = chase_df['date'].dt.strftime('%B-%y')
+    chase_df["date"] = pd.to_datetime(chase_df["date"], errors="coerce")
+    chase_df["month"] = chase_df["date"].dt.strftime("%B-%y")
 
     # Convert 'amount' and 'balance' columns to numeric, removing any non-numeric characters
-    chase_df['amount'] = pd.to_numeric(chase_df['amount'].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
+    chase_df["amount"] = pd.to_numeric(
+        chase_df["amount"].str.replace(r"[^\d.-]", "", regex=True), errors="coerce"
+    )
 
     # Clean the 'transaction_details' column
     chase_df["merchant"] = chase_df["transaction_details"]
-    type_split = chase_df["transaction_type"].str.split(" | ", n=1, expand=True, regex=False).reindex(columns=[0, 1])
+    type_split = (
+        chase_df["transaction_type"]
+        .str.split(" | ", n=1, expand=True, regex=False)
+        .reindex(columns=[0, 1])
+    )
     chase_df["type"] = type_split[0]
-    chase_df["other_details"] = type_split[1].astype(object).where(type_split[1].notna(), None)
+    chase_df["other_details"] = (
+        type_split[1].astype(object).where(type_split[1].notna(), None)
+    )
 
     # remove round ups
     chase_df = chase_df[~chase_df["merchant"].str.contains("Round up")]
 
-    # create dupe columns as might be changed by end user. 
+    # create dupe columns as might be changed by end user.
     chase_df["bank"] = "Chase"
 
     # add event_id column with unique UUIDs for each row
@@ -129,9 +157,9 @@ def clean_chase_transaction_dataframe(chase_df: pd.DataFrame, **kwargs) -> pd.Da
             row["amount"],
             row["transaction_details"],
             row["balance"],
-            row["occurrence"]
+            row["occurrence"],
         ),
-        axis=1
+        axis=1,
     )
 
     chase_df = chase_df[table_schema._TRANSACTIONS_DB_COLUMNS]

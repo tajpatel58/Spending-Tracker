@@ -1,8 +1,15 @@
 from pathlib import Path
-from supabase import Client
+
 import pandas as pd
 from loguru import logger
-from spending_tracker.database.supabase_client import list_folders, list_files, list_all, load_supabase_client
+from supabase import Client
+
+from spending_tracker.database.supabase_client import (
+    list_files,
+    list_folders,
+    load_supabase_client,
+)
+
 
 def upload_transactions_to_db(
     transactions_df: pd.DataFrame,
@@ -18,10 +25,14 @@ def upload_transactions_to_db(
     exclude_columns = set(exclude_columns or [])
     missing_columns = exclude_columns - set(transactions_df.columns)
     if missing_columns:
-        raise KeyError(f"Columns to exclude not found in dataframe: {sorted(missing_columns)}")
+        raise KeyError(
+            f"Columns to exclude not found in dataframe: {sorted(missing_columns)}"
+        )
 
     if "event_id" in exclude_columns:
-        raise ValueError("event_id cannot be excluded because it is the upsert conflict key")
+        raise ValueError(
+            "event_id cannot be excluded because it is the upsert conflict key"
+        )
 
     supabase_client = load_supabase_client()
     upsert_df = transactions_df.drop(columns=exclude_columns)
@@ -31,34 +42,27 @@ def upload_transactions_to_db(
         .to_dict(orient="records")
     )
     response = (
-        supabase_client
-        .table(f"{table_name}")
-        .upsert(
-            records,
-            on_conflict="event_id"
-        )
+        supabase_client.table(f"{table_name}")
+        .upsert(records, on_conflict="event_id")
         .execute()
     )
     logger.bind(public=True).info(f"Upserted {len(records)} rows into '{table_name}'")
 
     return response
 
+
 def fetch_transactions_from_db(
     supabase_client: Client,
     table_name: str,
 ) -> pd.DataFrame:
     """Fetch all transactions from the database."""
-    response = (
-        supabase_client
-        .table(f"{table_name}")
-        .select("*")
-        .execute()
-    )
+    response = supabase_client.table(f"{table_name}").select("*").execute()
     if response.status_code != 200:
         raise RuntimeError(f"Failed to fetch transactions: {response.data}")
 
     transactions_df = pd.DataFrame(response.data)
     return transactions_df
+
 
 def delete_transactions_for_month(
     month: str,
@@ -77,8 +81,7 @@ def delete_transactions_for_month(
     supabase_client = load_supabase_client()
     while True:
         response = (
-            supabase_client
-            .table("transactions")
+            supabase_client.table("transactions")
             .select("event_id")
             .eq("month", month)
             .range(len(event_ids), len(event_ids) + page_size - 1)
@@ -91,26 +94,18 @@ def delete_transactions_for_month(
     # delete in chunks to keep the in_ filter within url length limits
     for start in range(0, len(event_ids), chunk_size):
         (
-            supabase_client
-            .table("transactions_metadata")
+            supabase_client.table("transactions_metadata")
             .delete()
-            .in_("event_id", event_ids[start:start + chunk_size])
+            .in_("event_id", event_ids[start : start + chunk_size])
             .execute()
         )
 
-    (
-        supabase_client
-        .table("transactions")
-        .delete()
-        .eq("month", month)
-        .execute()
-    )
+    (supabase_client.table("transactions").delete().eq("month", month).execute())
 
     return len(event_ids)
 
-def fetch_transactions_from_bucket(month: str,
-                                   bucket,
-                                   data_home: Path):
+
+def fetch_transactions_from_bucket(month: str, bucket, data_home: Path):
     results = {}
     transactions_base = "data/transactions/raw"
     users = list_folders(transactions_base, bucket)
@@ -118,9 +113,20 @@ def fetch_transactions_from_bucket(month: str,
         for acct_name in list_folders(f"{transactions_base}/{u}", bucket):
             for acct_id in list_folders(f"{transactions_base}/{u}/{acct_name}", bucket):
                 month_path = f"{transactions_base}/{u}/{acct_name}/{acct_id}/{month}"
-                for name in list_files(month_path, bucket):   # empty list if month folder doesn't exist
+                for name in list_files(
+                    month_path, bucket
+                ):  # empty list if month folder doesn't exist
                     full = f"{month_path}/{name}"
-                    local_path = data_home / "transactions" / "raw" / u / acct_name / acct_id / month / name
+                    local_path = (
+                        data_home
+                        / "transactions"
+                        / "raw"
+                        / u
+                        / acct_name
+                        / acct_id
+                        / month
+                        / name
+                    )
                     local_path.parent.mkdir(parents=True, exist_ok=True)
                     local_path.write_bytes(bucket.download(full))
                     results[full] = local_path

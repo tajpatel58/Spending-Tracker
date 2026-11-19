@@ -1,28 +1,37 @@
-import pandas as pd
-from pathlib import Path
 import re
-from spending_tracker.data_processing import common
-from spending_tracker.data_processing import table_schema
+from pathlib import Path
+
+import pandas as pd
+
+from spending_tracker.data_processing import common, table_schema
+
 
 def load_raw_nationwide_statement_csv(csv_path: Path) -> pd.DataFrame:
     """
     Load a raw nationwide statement CSV and return a DataFrame.
     """
     # Define the expected columns for nationwide statements
-    expected_columns = ["Date", "Transaction type", "Description", "Paid out", "Paid in", "Balance"]
+    expected_columns = [
+        "Date",
+        "Transaction type",
+        "Description",
+        "Paid out",
+        "Paid in",
+        "Balance",
+    ]
 
     # load in csv
-    raw_nationwide_df = pd.read_csv(csv_path, 
-                              dtype=str, 
-                              skiprows=3,
-                              usecols=expected_columns)
+    raw_nationwide_df = pd.read_csv(
+        csv_path, dtype=str, skiprows=3, usecols=expected_columns
+    )
 
     return raw_nationwide_df
+
 
 def parse_transaction_details(details: str) -> dict[str, str]:
     """
     Cleans the transaction details string and returns a dictionary
-    of transaction details. 
+    of transaction details.
 
     Apple Pay transactions may end with an ``APPLEPAY`` marker and four digits.
     Only that suffix is moved into ``other_details``; other descriptions remain
@@ -50,27 +59,28 @@ def parse_transaction_details(details: str) -> dict[str, str]:
 
     applepay_match = re.search(r"\s+(APPLEPAY\s+\d{4})$", details, flags=re.IGNORECASE)
     if applepay_match:
-        merchant = details[:applepay_match.start()].rstrip()
+        merchant = details[: applepay_match.start()].rstrip()
         other_details = applepay_match.group(1)
     else:
         merchant = details
         other_details = ""
 
-    return {
-        "merchant": merchant,
-        "other_details": other_details
-    }
+    return {"merchant": merchant, "other_details": other_details}
 
 
-def clean_nationwide_transaction_dataframe(nationwide_df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-    nationwide_df = nationwide_df.rename(columns={
-        "Date": "date",
-        "Transaction type": "type",
-        "Description": "transaction_details",
-        "Paid out": "paid_out",
-        "Paid in": "paid_in",
-        "Balance": "balance"
-    })
+def clean_nationwide_transaction_dataframe(
+    nationwide_df: pd.DataFrame, **kwargs
+) -> pd.DataFrame:
+    nationwide_df = nationwide_df.rename(
+        columns={
+            "Date": "date",
+            "Transaction type": "type",
+            "Description": "transaction_details",
+            "Paid out": "paid_out",
+            "Paid in": "paid_in",
+            "Balance": "balance",
+        }
+    )
 
     # add columns for account_id and user
     account_id = kwargs["account_id"]
@@ -79,13 +89,23 @@ def clean_nationwide_transaction_dataframe(nationwide_df: pd.DataFrame, **kwargs
     nationwide_df["user"] = user
 
     # Convert 'date' column to datetime and add month column for partitioning
-    nationwide_df['date'] = pd.to_datetime(nationwide_df['date'], errors='coerce', format='%d %b %Y')
-    nationwide_df['month'] = nationwide_df['date'].dt.strftime('%B-%y')
+    nationwide_df["date"] = pd.to_datetime(
+        nationwide_df["date"], errors="coerce", format="%d %b %Y"
+    )
+    nationwide_df["month"] = nationwide_df["date"].dt.strftime("%B-%y")
 
     # Convert 'amount' and 'balance' columns to numeric, removing any non-numeric characters
-    nationwide_df["paid_in"] = pd.to_numeric(nationwide_df["paid_in"].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
-    nationwide_df["paid_out"] = pd.to_numeric(nationwide_df["paid_out"].str.replace(r'[^\d.-]', '', regex=True), errors='coerce')
-    nationwide_df['amount'] = nationwide_df["paid_in"].fillna(0).astype(float) - nationwide_df["paid_out"].fillna(0).astype(float)
+    nationwide_df["paid_in"] = pd.to_numeric(
+        nationwide_df["paid_in"].str.replace(r"[^\d.-]", "", regex=True),
+        errors="coerce",
+    )
+    nationwide_df["paid_out"] = pd.to_numeric(
+        nationwide_df["paid_out"].str.replace(r"[^\d.-]", "", regex=True),
+        errors="coerce",
+    )
+    nationwide_df["amount"] = nationwide_df["paid_in"].fillna(0).astype(
+        float
+    ) - nationwide_df["paid_out"].fillna(0).astype(float)
 
     # Clean the 'transaction_details' column
     nationwide_df[["merchant", "other_details"]] = (
@@ -97,8 +117,14 @@ def clean_nationwide_transaction_dataframe(nationwide_df: pd.DataFrame, **kwargs
     nationwide_df["bank"] = "Nationwide"
     nationwide_df["type"] = None
 
-        # add occurence column to handle duplicate transactions
-    nationwide_df["occurrence"] = nationwide_df.groupby(["date", "transaction_details", "amount", "user", "account_id"]).cumcount().add(1)
+    # add occurence column to handle duplicate transactions
+    nationwide_df["occurrence"] = (
+        nationwide_df.groupby(
+            ["date", "transaction_details", "amount", "user", "account_id"]
+        )
+        .cumcount()
+        .add(1)
+    )
 
     # add event_id column with unique UUIDs for each row
     nationwide_df["event_id"] = nationwide_df.apply(
@@ -108,9 +134,9 @@ def clean_nationwide_transaction_dataframe(nationwide_df: pd.DataFrame, **kwargs
             row["amount"],
             row["transaction_details"],
             row["user"],
-            row["occurrence"]
+            row["occurrence"],
         ),
-        axis=1
+        axis=1,
     )
 
     nationwide_df = nationwide_df[table_schema._TRANSACTIONS_DB_COLUMNS]

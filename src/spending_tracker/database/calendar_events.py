@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from spending_tracker.database import supabase_client
 
 TABLE_NAME = "calendar_events"
@@ -12,8 +13,7 @@ def fetch_stored_events(time_min: datetime, time_max: datetime) -> dict[str, dic
     rows, offset = [], 0
     while True:
         page = (
-            supabase_api
-            .table(TABLE_NAME)
+            supabase_api.table(TABLE_NAME)
             .select("event_id, google_updated_ts, budget, category, sub_category")
             .gte("event_date", time_min.date().isoformat())
             .lt("event_date", time_max.date().isoformat())
@@ -32,9 +32,8 @@ def delete_events(event_ids: list[str]) -> None:
     supabase_api = supabase_client.load_supabase_client()
     for i in range(0, len(event_ids), DELETE_CHUNK_SIZE):
         (
-            supabase_api
-            .table(TABLE_NAME)
+            supabase_api.table(TABLE_NAME)
             .delete()
-            .in_("event_id", event_ids[i:i + DELETE_CHUNK_SIZE])
+            .in_("event_id", event_ids[i : i + DELETE_CHUNK_SIZE])
             .execute()
         )

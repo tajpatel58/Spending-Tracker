@@ -1,9 +1,11 @@
-from spending_tracker.data_ingestion import cal
-import pandas as pd
-from pathlib import Path
 from datetime import datetime
-from spending_tracker.database import calendar_events, upload
+from pathlib import Path
+
+import pandas as pd
+
 from spending_tracker.classification import classify
+from spending_tracker.data_ingestion import cal
+from spending_tracker.database import calendar_events, upload
 
 data_home = Path(__file__).parents[2] / "data"
 

@@ -22,11 +22,14 @@ def ollama_chat(prompt: str, schema: dict | None = None):
         ],
         think=False,
         options={"num_ctx": NUM_CTX},
-        **llm_kwargs
+        **llm_kwargs,
     )
 
     # Ollama truncates without warning, so fail loudly before that can happen again
-    if response.prompt_eval_count and response.prompt_eval_count >= NUM_CTX - CONTEXT_HEADROOM:
+    if (
+        response.prompt_eval_count
+        and response.prompt_eval_count >= NUM_CTX - CONTEXT_HEADROOM
+    ):
         raise ValueError(
             f"Prompt used {response.prompt_eval_count} of {NUM_CTX} context tokens; "
             "raise NUM_CTX so the start of the prompt isn't cut off."

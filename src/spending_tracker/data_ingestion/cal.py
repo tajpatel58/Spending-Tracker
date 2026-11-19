@@ -1,12 +1,14 @@
 import re
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
+
 import pandas as pd
-from loguru import logger
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from loguru import logger
+
 from spending_tracker.classification.classify import llm_extract_calendar_event
 
 # Read-only access is all a calendar sync needs
@@ -25,10 +27,12 @@ def get_credentials() -> Credentials:
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request()) 
+            creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
-            creds = flow.run_local_server(port=0)   
+            flow = InstalledAppFlow.from_client_secrets_file(
+                str(CREDENTIALS_FILE), SCOPES
+            )
+            creds = flow.run_local_server(port=0)
         TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         TOKEN_FILE.write_text(creds.to_json())
 
@@ -39,35 +43,45 @@ def sync_window(today: date | None = None) -> tuple[datetime, datetime]:
     """UTC [start, end) bounds to sync: the 1st of last month to 12 months after the 1st of this month."""
     today = today or date.today()
     this_month = today.year * 12 + today.month - 1
-    first_of = lambda month: datetime(month // 12, month % 12 + 1, 1, tzinfo=timezone.utc)
+    first_of = lambda month: datetime(month // 12, month % 12 + 1, 1, tzinfo=UTC)
     return first_of(this_month - 1), first_of(this_month + 12)
 
 
-def fetch_events(time_min: datetime, time_max: datetime, calendar_id: str = "primary") -> list[dict]:
+def fetch_events(
+    time_min: datetime, time_max: datetime, calendar_id: str = "primary"
+) -> list[dict]:
     """Return all events overlapping the given [time_min, time_max) window."""
     service = build("calendar", "v3", credentials=get_credentials())
 
     events, page_token = [], None
 
     while True:
-        response = service.events().list(
-            calendarId=calendar_id,
-            timeMin=time_min.isoformat(),
-            timeMax=time_max.isoformat(),
-            singleEvents=True,
-            orderBy="startTime",
-            pageToken=page_token,
-        ).execute()
+        response = (
+            service.events()
+            .list(
+                calendarId=calendar_id,
+                timeMin=time_min.isoformat(),
+                timeMax=time_max.isoformat(),
+                singleEvents=True,
+                orderBy="startTime",
+                pageToken=page_token,
+            )
+            .execute()
+        )
 
         for e in response.get("items", []):
-            events.append({
-                "event_id": e["id"],
-                "title": e.get("summary", "(no title)"),
-                "event_date": (e["start"].get("dateTime") or e["start"]["date"])[:10],
-                "start_time": e["start"].get("dateTime", "")[11:16] or None,
-                "description": e.get("description"),
-                "google_updated_ts": e.get("updated"),
-            })
+            events.append(
+                {
+                    "event_id": e["id"],
+                    "title": e.get("summary", "(no title)"),
+                    "event_date": (e["start"].get("dateTime") or e["start"]["date"])[
+                        :10
+                    ],
+                    "start_time": e["start"].get("dateTime", "")[11:16] or None,
+                    "description": e.get("description"),
+                    "google_updated_ts": e.get("updated"),
+                }
+            )
 
         page_token = response.get("nextPageToken")
         if not page_token:
@@ -78,18 +92,27 @@ def fetch_events(time_min: datetime, time_max: datetime, calendar_id: str = "pri
 
 def can_reuse(event: dict, stored: dict | None) -> bool:
     """True when a stored event's extraction still holds: it's unchanged, and has its sub-category if it needs one."""
-    if not stored or not stored.get("google_updated_ts") or not event["google_updated_ts"]:
+    if (
+        not stored
+        or not stored.get("google_updated_ts")
+        or not event["google_updated_ts"]
+    ):
         return False
     # Parsed, as the database may format the timestamp differently from Google
-    unchanged = (datetime.fromisoformat(stored["google_updated_ts"])
-                 == datetime.fromisoformat(event["google_updated_ts"]))
-    return unchanged and (stored["category"] != "holiday" or bool(stored["sub_category"]))
+    unchanged = datetime.fromisoformat(
+        stored["google_updated_ts"]
+    ) == datetime.fromisoformat(event["google_updated_ts"])
+    return unchanged and (
+        stored["category"] != "holiday" or bool(stored["sub_category"])
+    )
 
 
-def extract_events_df(events: list[dict], 
-                      stored_events: dict[str, dict],
-                      llm_model: str = "ollama",
-                      llm_usage: dict | None = None) -> tuple[pd.DataFrame, dict]:
+def extract_events_df(
+    events: list[dict],
+    stored_events: dict[str, dict],
+    llm_model: str = "ollama",
+    llm_usage: dict | None = None,
+) -> tuple[pd.DataFrame, dict]:
     """Return the events as a DataFrame, one row per event, with budget/category/sub-category from the
     LLM (or from stored_events, by event_id, when unchanged), and counts of what happened to each.
 
@@ -106,29 +129,49 @@ def extract_events_df(events: list[dict],
             counts["reused"] += 1
         else:
             try:
-                extraction = llm_extract_calendar_event(event,
-                                                        llm_model=llm_model,
-                                                        llm_usage=llm_usage)
+                extraction = llm_extract_calendar_event(
+                    event, llm_model=llm_model, llm_usage=llm_usage
+                )
             except ValueError as exc:
-                logger.warning(f"Skipping {event['title']!r} ({event['event_date']}): {exc}")
+                logger.warning(
+                    f"Skipping {event['title']!r} ({event['event_date']}): {exc}"
+                )
                 counts["failed"] += 1
                 continue
             counts["extracted"] += 1
 
-        category = "holiday" if HOLIDAY_TAG.search(event["description"] or "") else extraction["category"]
-        extracted_events.append({
-            **event,
-            "budget": extraction["budget"],
-            "category": category,
-            "sub_category": extraction["sub_category"] if category == "holiday" else None,
-        })
+        category = (
+            "holiday"
+            if HOLIDAY_TAG.search(event["description"] or "")
+            else extraction["category"]
+        )
+        extracted_events.append(
+            {
+                **event,
+                "budget": extraction["budget"],
+                "category": category,
+                "sub_category": extraction["sub_category"]
+                if category == "holiday"
+                else None,
+            }
+        )
 
     parsed_events_df = pd.DataFrame(
         extracted_events,
-        columns=["event_id", "title", "event_date", "start_time", "description",
-                 "google_updated_ts", "budget", "category", "sub_category"],
+        columns=[
+            "event_id",
+            "title",
+            "event_date",
+            "start_time",
+            "description",
+            "google_updated_ts",
+            "budget",
+            "category",
+            "sub_category",
+        ],
     )
-    parsed_events_df["event_date"] = pd.to_datetime(parsed_events_df["event_date"]).dt.date
+    parsed_events_df["event_date"] = pd.to_datetime(
+        parsed_events_df["event_date"]
+    ).dt.date
 
     return parsed_events_df, counts
-

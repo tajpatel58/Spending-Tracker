@@ -1,6 +1,8 @@
 import hashlib
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+
 
 def generate_event_id(*inputs):
     raw = "|".join(str(value) for value in inputs)
@@ -48,7 +50,9 @@ def save_partitioned_dataframe_to_csv(
     if not partition_columns:
         raise ValueError("partition_columns must contain at least one column")
 
-    missing_columns = [column for column in partition_columns if column not in data.columns]
+    missing_columns = [
+        column for column in partition_columns if column not in data.columns
+    ]
     if missing_columns:
         raise KeyError(f"Partition columns not found in dataframe: {missing_columns}")
 

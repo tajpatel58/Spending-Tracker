@@ -3,11 +3,15 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+
 from loguru import logger
+
 from spending_tracker.database import supabase_client
 
 _LOG_DIR = Path(__file__).resolve().parents[2] / "logs"
-_LOGS_KEPT_PER_STATUS = 10  # newest run logs kept in each status folder (local and in Supabase)
+_LOGS_KEPT_PER_STATUS = (
+    10  # newest run logs kept in each status folder (local and in Supabase)
+)
 _LOG_BUCKET = "pipeline-logs"  # private Supabase Storage bucket for GitHub runs' logs
 
 # The current run's log file, so finalise_log_file can close, move and upload it.
@@ -35,7 +39,8 @@ def _log_uncaught_exception(exc_type, exc, tb) -> None:
     logger.opt(exception=(exc_type, exc, tb)).critical("Run failed")
     if on_github_actions():
         logger.bind(public=True).critical(
-            f"Run failed ({exc_type.__name__}) - full traceback in the run's log in Supabase")
+            f"Run failed ({exc_type.__name__}) - full traceback in the run's log in Supabase"
+        )
 
 
 def setup_logging(run_name: str = "run") -> None:
@@ -47,7 +52,9 @@ def setup_logging(run_name: str = "run") -> None:
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
         format=_CONSOLE_FORMAT,
         colorize=True,  # GitHub's log viewer renders ANSI colours too
-        filter=_is_public if on_github_actions() else None,  # public repo: safe lines only
+        filter=_is_public
+        if on_github_actions()
+        else None,  # public repo: safe lines only
     )
     # Uncaught errors go through loguru, so the traceback is in the log file too
     sys.excepthook = _log_uncaught_exception
@@ -60,7 +67,11 @@ def setup_logging(run_name: str = "run") -> None:
 
 def _status_folder(status: str) -> str:
     """'completed (no new transactions)' -> completed, 'dry run' -> dry_run, 'aborted: ...' -> aborted."""
-    for prefix, folder in (("completed", "completed"), ("dry run", "dry_run"), ("aborted", "aborted")):
+    for prefix, folder in (
+        ("completed", "completed"),
+        ("dry run", "dry_run"),
+        ("aborted", "aborted"),
+    ):
         if status.startswith(prefix):
             return folder
     return "failed"
@@ -77,11 +88,18 @@ def _upload_log_to_supabase(log_file: Path, folder: str) -> str:
 
     bucket = supabase_client.load_bucket(_LOG_BUCKET)
     remote_path = f"{folder}/{log_file.name}"
-    bucket.upload(remote_path, log_file.read_bytes(), {"content-type": "text/plain; charset=utf-8"})
+    bucket.upload(
+        remote_path,
+        log_file.read_bytes(),
+        {"content-type": "text/plain; charset=utf-8"},
+    )
 
     prefix = _run_prefix(log_file.name)
-    stored = sorted(name for name in supabase_client.list_files(folder, bucket)
-                    if name.startswith(prefix + "_"))
+    stored = sorted(
+        name
+        for name in supabase_client.list_files(folder, bucket)
+        if name.startswith(prefix + "_")
+    )
     old_logs = stored[:-_LOGS_KEPT_PER_STATUS]
     if old_logs:
         bucket.remove([f"{folder}/{name}" for name in old_logs])
@@ -104,7 +122,9 @@ def finalise_log_file(status: str) -> Path | None:
     _file_handler_id = _log_path = None
 
     # retention per status folder: names are timestamped, so sorting puts the oldest first
-    old_logs = sorted(folder.glob(f"{_run_prefix(destination.name)}_*.log"))[:-_LOGS_KEPT_PER_STATUS]
+    old_logs = sorted(folder.glob(f"{_run_prefix(destination.name)}_*.log"))[
+        :-_LOGS_KEPT_PER_STATUS
+    ]
     for old_log in old_logs:
         old_log.unlink()
 
@@ -116,14 +136,19 @@ def finalise_log_file(status: str) -> Path | None:
     # A failed upload must never change the run's outcome or hide the original error.
     try:
         remote_path = _upload_log_to_supabase(destination, folder_name)
-        logger.bind(public=True).info(f"Log saved to Supabase: {_LOG_BUCKET}/{remote_path}")
+        logger.bind(public=True).info(
+            f"Log saved to Supabase: {_LOG_BUCKET}/{remote_path}"
+        )
     except Exception as exc:  # noqa: BLE001 - deliberately broad: logging must not crash the run
         logger.bind(public=True).warning(
-            f"Couldn't upload the log to Supabase ({type(exc).__name__}); this run's full log is lost")
+            f"Couldn't upload the log to Supabase ({type(exc).__name__}); this run's full log is lost"
+        )
     return destination
 
 
-def log_run_summary(title: str, sections: dict[str, dict], depth: int = 1, public: bool = False) -> None:
+def log_run_summary(
+    title: str, sections: dict[str, dict], depth: int = 1, public: bool = False
+) -> None:
     """
     Log a readable table of run metrics, e.g.
         {"Accounts": {"Starling": "12 fetched, 10 kept"}, "LLM usage": {"calls": 3, ...}}
@@ -198,11 +223,16 @@ def log_pipeline_summary(
     calls = llm_usage["calls"]
     usage = {
         **{key: f"{value:,}" for key, value in llm_usage.items()},
-        "input tokens per call": f"{llm_usage['input_tokens'] / calls:,.0f}" if calls else "n/a (no calls)",
-        "output tokens per call": f"{llm_usage['output_tokens'] / calls:,.0f}" if calls else "n/a (no calls)",
+        "input tokens per call": f"{llm_usage['input_tokens'] / calls:,.0f}"
+        if calls
+        else "n/a (no calls)",
+        "output tokens per call": f"{llm_usage['output_tokens'] / calls:,.0f}"
+        if calls
+        else "n/a (no calls)",
         "cost": f"${llm_cost:.4f}" if llm_cost is not None else "n/a (local)",
         "cost per request": (f"${llm_cost / calls:.6f}" if calls else "n/a (no calls)")
-                            if llm_cost is not None else "n/a (local)",
+        if llm_cost is not None
+        else "n/a (local)",
     }
     upserts = upload_metrics or {"(none)": "nothing uploaded"}
 
@@ -217,7 +247,14 @@ def log_pipeline_summary(
         return sections
 
     if on_github_actions():
-        log_run_summary("Daily pipeline summary", build(include_accounts=True), depth=2)  # file only
-        log_run_summary("Daily pipeline summary", build(include_accounts=False), depth=2, public=True)
+        log_run_summary(
+            "Daily pipeline summary", build(include_accounts=True), depth=2
+        )  # file only
+        log_run_summary(
+            "Daily pipeline summary",
+            build(include_accounts=False),
+            depth=2,
+            public=True,
+        )
     else:
         log_run_summary("Daily pipeline summary", build(include_accounts=True), depth=2)

@@ -49,12 +49,17 @@ def build_transaction_classification_prompt(
     # dedupe so repeated transactions at the same merchant don't flood the prompt
     unique_examples = {}
     for example in examples:
-        unique_examples.setdefault((example["merchant"], example["category"]), example["amount"])
+        unique_examples.setdefault(
+            (example["merchant"], example["category"]), example["amount"]
+        )
 
-    example_text = "\n".join(
-        f"- {example_merchant} | £{example_amount:.2f} -> {category}"
-        for (example_merchant, category), example_amount in unique_examples.items()
-    ) or "- (none)"
+    example_text = (
+        "\n".join(
+            f"- {example_merchant} | £{example_amount:.2f} -> {category}"
+            for (example_merchant, category), example_amount in unique_examples.items()
+        )
+        or "- (none)"
+    )
 
     categories = ", ".join(CATEGORIES)
 
@@ -134,15 +139,10 @@ Return JSON only, no explanation: {{"merchant": "...", "category": "...", "confi
 
 
 def build_calendar_event_extraction_prompt(event: dict) -> str:
-    categories = "\n".join(
-    f"- {category}"
-    for category in EVENT_CATEGORIES
-    )
+    categories = "\n".join(f"- {category}" for category in EVENT_CATEGORIES)
     sub_categories = "\n".join(
-    f"- {sub_category}"
-    for sub_category in HOLIDAY_SUB_CATEGORIES
+        f"- {sub_category}" for sub_category in HOLIDAY_SUB_CATEGORIES
     )
-
 
     prompt = f"""You are extracting structured spending information from a Google Calendar event.
         <categories>

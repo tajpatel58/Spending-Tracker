@@ -1,8 +1,8 @@
-from supabase import Client
 import pandas as pd
+from supabase import Client
 
-def upload_accounts_to_db(accounts_df: pd.DataFrame,
-                          supabase_client: Client) -> dict:
+
+def upload_accounts_to_db(accounts_df: pd.DataFrame, supabase_client: Client) -> dict:
     """Upload accounts to the database."""
     records = (
         accounts_df.astype(object)
@@ -10,12 +10,8 @@ def upload_accounts_to_db(accounts_df: pd.DataFrame,
         .to_dict(orient="records")
     )
     response = (
-        supabase_client
-        .table("accounts")
-        .upsert(
-            records,
-            on_conflict="account_id"
-        )
+        supabase_client.table("accounts")
+        .upsert(records, on_conflict="account_id")
         .execute()
     )
 
