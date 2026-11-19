@@ -222,13 +222,13 @@ def estimate_llm_run(transactions_df: pd.DataFrame,
                 "est_cost": 0.0, "worst_case_cost": 0.0, "over_call_cap": False}
 
     if llm_model != "claude" or to_classify.empty:
-        logger.info(f"LLM pre-flight: {estimate['calls']} calls needed ({llm_model}, no API cost)")
+        logger.bind(public=True).info(f"LLM pre-flight: {estimate['calls']} calls needed ({llm_model}, no API cost)")
         return estimate
 
     if estimate["calls"] > claude.DEFAULT_MAX_CALLS_PER_RUN:
         # don't bother counting tokens; the run would hit the call cap anyway
         estimate["over_call_cap"] = True
-        logger.warning(f"LLM pre-flight: {estimate['calls']} calls needed, over the cap of {claude.DEFAULT_MAX_CALLS_PER_RUN}")
+        logger.bind(public=True).warning(f"LLM pre-flight: {estimate['calls']} calls needed, over the cap of {claude.DEFAULT_MAX_CALLS_PER_RUN}")
         return estimate
 
     schema = LLM_SCHEMAS["transaction_classification"]
@@ -241,7 +241,7 @@ def estimate_llm_run(transactions_df: pd.DataFrame,
     estimate["est_output_tokens"] = calls * claude.TYPICAL_OUTPUT_TOKENS
     estimate["est_cost"] = claude.estimate_cost(estimate["input_tokens"], estimate["est_output_tokens"])
     estimate["worst_case_cost"] = claude.estimate_cost(estimate["input_tokens"], calls * claude.MAX_TOKENS)
-    logger.info(
+    logger.bind(public=True).info(
         f"LLM pre-flight: {calls} calls, {estimate['input_tokens']:,} input tokens "
         f"(~{estimate['input_tokens'] // calls:,}/call) -> est. ${estimate['est_cost']:.4f}, "
         f"worst case ${estimate['worst_case_cost']:.4f}"
@@ -299,7 +299,7 @@ def transactions_apply_to_df(
         results.append(result)
 
     llm_classified = len(results) - from_examples
-    logger.info(f"Classified {len(results)} transactions: {from_examples} from labelled examples, {llm_classified} by LLM ({llm_model})")
+    logger.bind(public=True).info(f"Classified {len(results)} transactions: {from_examples} from labelled examples, {llm_classified} by LLM ({llm_model})")
 
     result_df = pd.DataFrame(results, index=transactions_metadata_df.index, columns=["merchant", "category", "confidence"])
 

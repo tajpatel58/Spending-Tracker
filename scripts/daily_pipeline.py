@@ -46,22 +46,23 @@ processed_transactions_data_root = data_home / "transactions" / "processed"
 transaction_metadata_data_root = data_home / "transactions_metadata"
 
 
-logger.info(f"Starting daily pipeline: transactions from {from_date}, LLM = {llm_model}"
+logger.bind(public=True).info(f"Starting daily pipeline: transactions from {from_date}, LLM = {llm_model}"
             + (" (DRY RUN)" if dry_run else ""))
 
 account_mapping_df = lunchflow.load_lunchflow_account_mapping(lunchflow_account_ids)
-logger.info(f"Loaded {len(account_mapping_df)} lunchflow accounts from Supabase")
+logger.bind(public=True).info(f"Loaded {len(account_mapping_df)} lunchflow accounts from Supabase")
 cleaned_by_account = {}  # "bank/account_id" -> cleaned transactions, from pass 1
 upsert_transactions_metadata_df_list = []
 llm_usage = classify.new_llm_usage()
 llm_estimate = {}
-account_metrics = {}  # "bank/account_id" -> one-line summary, for the end-of-run table
+account_metrics = {}  # "bank/account_id" -> one-line summary, for the end-of-run table (never public)
+totals = {"accounts": len(account_mapping_df), "accounts_with_transactions": 0, "fetched": 0, "kept": 0}
 upload_metrics = {}
 
 # fetch labelled data from supabase
 labelled_examples = fetch.load_labelled_transactions_as_dict(start_date_for_labelled_transactions, 
                                                              end_date_for_labelled_transactions)
-logger.info(f"Loaded {len(labelled_examples)} labelled examples (from {start_date_for_labelled_transactions} -> {end_date_for_labelled_transactions})")
+logger.bind(public=True).info(f"Loaded {len(labelled_examples)} labelled examples (from {start_date_for_labelled_transactions} -> {end_date_for_labelled_transactions})")
 
 
 def emit_summary(status: str) -> None:
@@ -73,6 +74,7 @@ def emit_summary(status: str) -> None:
         labelled_examples_count=len(labelled_examples),
         duration_seconds=time.perf_counter() - run_started,
         account_metrics=account_metrics,
+        totals=totals,
         llm_estimate=llm_estimate,
         max_llm_cost_usd=max_llm_cost_usd,
         llm_usage=llm_usage,
@@ -111,11 +113,14 @@ for row in account_mapping_df.itertuples(index=False):
 
     cleaned_by_account[account] = cleaned_transactions_df
     account_metrics[account] = f"{len(transactions_df)} fetched, {len(cleaned_transactions_df)} kept (settled)"
+    totals["accounts_with_transactions"] += 1
+    totals["fetched"] += len(transactions_df)
+    totals["kept"] += len(cleaned_transactions_df)
 
 
 if not cleaned_by_account:
     # pd.concat([]) would raise, so a quiet few days ends the run cleanly instead
-    logger.warning(f"No new transactions since {from_date}; nothing to classify or upload")
+    logger.bind(public=True).warning(f"No new transactions since {from_date}; nothing to classify or upload")
     emit_summary("completed")
     sys.exit(0)
 
@@ -127,7 +132,7 @@ all_cleaned_df = pd.concat(cleaned_by_account.values())
 llm_estimate = classify.estimate_llm_run(all_cleaned_df, labelled_examples, force_llm, llm_model)
 
 if llm_estimate["over_call_cap"] or llm_estimate["worst_case_cost"] > max_llm_cost_usd:
-    logger.error(
+    logger.bind(public=True).error(
         f"Aborting before any LLM call: {llm_estimate['calls']} calls, worst case "
         f"${llm_estimate['worst_case_cost']:.4f} (budget ${max_llm_cost_usd:.4f}, "
         f"call cap {classify.claude.DEFAULT_MAX_CALLS_PER_RUN}). Raise MAX_LLM_COST_USD / the cap if this is expected."
@@ -136,7 +141,7 @@ if llm_estimate["over_call_cap"] or llm_estimate["worst_case_cost"] > max_llm_co
     sys.exit(1)
 
 if dry_run:
-    logger.warning("Dry run: stopping before LLM calls and Supabase uploads (set LLM_DRY_RUN=false to run for real)")
+    logger.bind(public=True).warning("Dry run: stopping before LLM calls and Supabase uploads (set LLM_DRY_RUN=false to run for real)")
     emit_summary("dry run")
     sys.exit(0)
 
@@ -160,7 +165,7 @@ for account, cleaned_transactions_df in cleaned_by_account.items():
     account_metrics[account] += f", {llm_usage['calls'] - llm_calls_before} LLM calls"
 
 
-logger.info(classify.llm_usage_summary(llm_usage, llm_model))
+logger.bind(public=True).info(classify.llm_usage_summary(llm_usage, llm_model))
 
 upsert_transactions_df = all_cleaned_df[table_schema._TRANSACTIONS_DB_COLUMNS]
 upsert_transactions_metadata_df = pd.concat(upsert_transactions_metadata_df_list)[table_schema._TRANSACTIONS_METADATA_DB_COLUMNS]

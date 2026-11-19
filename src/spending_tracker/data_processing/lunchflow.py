@@ -45,8 +45,8 @@ def get_accounts() -> pd.DataFrame:
 
 
 def get_transactions(account_id: str, 
-                     from_date: str = None,
-                     month: str = None) -> dict:
+                     from_date: str | None= None,
+                     month: str | None = None) -> dict:
   """Fetch transactions from `from_date` (e.g. "2026-10-01") or the start of
   `month` (e.g. "October-26") onwards. Exactly one of the two must be given."""
   if (from_date is None) == (month is None):

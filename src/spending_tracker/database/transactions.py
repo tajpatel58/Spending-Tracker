@@ -39,7 +39,7 @@ def upload_transactions_to_db(
         )
         .execute()
     )
-    logger.info(f"Upserted {len(records)} rows into '{table_name}'")
+    logger.bind(public=True).info(f"Upserted {len(records)} rows into '{table_name}'")
 
     return response
 
